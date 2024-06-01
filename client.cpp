@@ -5,6 +5,8 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+#include "message.hpp"
+
 using namespace std;
 
 const char *host = "0.0.0.0";
@@ -27,22 +29,32 @@ int main() {
   inet_pton(AF_INET, host, &server_addr.sin_addr);
   server_addr.sin_port = htons(port);
 
+  char inbuffer[1024] = {0}, outbuffer[1024] = {0};
+  Message message;
 
   // connect
   status = connect(socket_fd, (struct sockaddr *) &server_addr, sizeof(server_addr));
 
   if (status == -1) { cerr << "Connection error.\n"; exit(1); }
 
-  char inbuffer[1024] = {0}, outbuffer[1024] = {0};
+  message.type = CONNECT;
+  message.string = "";
+  try {
+    send_message(socket_fd, outbuffer, message);
+  } catch (int err) {
+    cerr << "Error sending message.\n";
+  }
+  cout << "Sent: " << outbuffer << '\n';
+
   while (true) {
-    // send buffer
-    cout << "Input data to send: ";
-    gets(outbuffer);
-    cout << "Sended: " << outbuffer << '\n';
-    send(socket_fd, outbuffer, strlen(outbuffer), 0);
 
     // receive buffer
-    int nbytes = recv(socket_fd, inbuffer, sizeof(inbuffer), 0);
+    int nbytes;
+    try {
+      nbytes = recv_message(socket_fd, inbuffer, message);
+    } catch (int err) {
+      cerr << "Error receiving message.\n";
+    }
 
     if (nbytes <= 0) {
       close(socket_fd);
