@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <iostream>
 #include <string.h>
 #include <thread>
@@ -8,7 +7,7 @@
 #include <arpa/inet.h>
 
 #include "message.hpp"
-#include "receive.hpp"
+#include "server_util.hpp"
 
 
 const char *host = "0.0.0.0";
@@ -29,7 +28,6 @@ int main() {
   struct sockaddr_in server_addr, client_addr;
 
   server_addr.sin_family = AF_INET;
-  // inet_aton(host, &server_addr.sin_addr);
   inet_pton(AF_INET, host, &server_addr.sin_addr);
   server_addr.sin_port = htons(port);
 
@@ -57,8 +55,8 @@ int main() {
     client_fd = accept(socket_fd, (struct sockaddr *) &client_addr, &client_addrlen);
     std::cout << "Connection from " << inet_ntoa(client_addr.sin_addr) << ':' << (int) ntohs(client_addr.sin_port) << '\n';
 
-    std::thread receive_thread (receive, std::ref(client_fd));
-    receive_thread.detach();
+    std::thread new_session_thread(session, std::ref(client_fd));
+    new_session_thread.detach();
   }
  
   
