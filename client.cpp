@@ -6,8 +6,7 @@
 #include <arpa/inet.h>
 
 #include "message.hpp"
-
-using namespace std;
+#include "client_util.hpp"
 
 const char *host = "0.0.0.0";
 int port = 3000;
@@ -19,7 +18,7 @@ int main() {
   // socket creation
   socket_fd = socket(AF_INET, SOCK_STREAM, 0);
   
-  if (socket_fd == -1) { cerr << "Failed to create socket.\n"; exit(1); }
+  if (socket_fd == -1) { std::cerr << "Failed to create socket.\n"; exit(1); }
 
   // server address
   struct sockaddr_in server_addr;
@@ -35,16 +34,16 @@ int main() {
   // connect
   status = connect(socket_fd, (struct sockaddr *) &server_addr, sizeof(server_addr));
 
-  if (status == -1) { cerr << "Connection error.\n"; exit(1); }
+  if (status == -1) { std::cerr << "Connection error.\n"; exit(1); }
 
   message.type = CONNECT;
   message.string = "";
   try {
     send_message(socket_fd, outbuffer, message);
   } catch (int err) {
-    cerr << "Error sending message.\n";
+    std::cerr << "Error sending message.\n";
   }
-  cout << "Sent: " << outbuffer << '\n';
+  std::cout << "Sent: " << outbuffer << '\n';
 
   while (true) {
 
@@ -53,16 +52,20 @@ int main() {
     try {
       nbytes = recv_message(socket_fd, inbuffer, message);
     } catch (int err) {
-      cerr << "Error receiving message.\n";
+      std::cerr << "Error receiving message.\n";
     }
 
     if (nbytes <= 0) {
       close(socket_fd);
-      cout << "Connection closed.\n";
+      std::cout << "Connection closed.\n";
       break;
     }
 
-    cout << "Received: " << inbuffer << '\n';
+    std::cout << "Recv: " << message.type << ", " << message.string << '\n';
+
+    if (message.type == HEARTBEAT) heartbeat(socket_fd, inbuffer);
+
+
   }
 
   close(socket_fd);

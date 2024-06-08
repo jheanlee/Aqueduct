@@ -53,13 +53,11 @@ int main() {
   int client_fd;
   while (true) {
     client_fd = accept(socket_fd, (struct sockaddr *) &client_addr, &client_addrlen);
-    std::cout << "Connection from " << inet_ntoa(client_addr.sin_addr) << ':' << (int) ntohs(client_addr.sin_port) << '\n';
+    std::cout << "Connection from " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << '\n';
 
-    std::thread new_session_thread(session, std::ref(client_fd));
+    std::thread new_session_thread(session, client_fd, client_addr);
     new_session_thread.detach();
   }
  
-  
-  close(socket_fd);
   return 0;
 }

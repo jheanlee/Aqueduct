@@ -9,10 +9,10 @@
 
 #include "message.hpp"
 
-const int heartbeat_sleep_sec = 60;
-const int wait_time_sec = 60;
+const int heartbeat_sleep_sec = 30;
+const int wait_time_sec = 30;
 
-void heartbeat(int &client_fd, std::atomic<bool> &echo_heartbeat, std::atomic<bool> &close_session_flag) {
+void heartbeat(int &client_fd, sockaddr_in &client_addr,std::atomic<bool> &echo_heartbeat, std::atomic<bool> &close_session_flag) {
   char inbuffer[1024] = {0}, outbuffer[1024] = {0};
   Message message;
   message.type = HEARTBEAT;
@@ -22,8 +22,11 @@ void heartbeat(int &client_fd, std::atomic<bool> &echo_heartbeat, std::atomic<bo
   std::chrono::seconds duration;
 
   while (!close_session_flag) {
+
     try {
       send_message(client_fd, outbuffer, message);
+      std::cout << "To " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " " \
+        << "Sent: " << message.type << ", " << message.string << '\n';
     } catch (int err) {
       std::cerr << "Error sending message.\n";
     }
@@ -37,7 +40,8 @@ void heartbeat(int &client_fd, std::atomic<bool> &echo_heartbeat, std::atomic<bo
       // if waiting duration > wait_time_sec, send close_session_flag
       if (duration > std::chrono::seconds(wait_time_sec)) { 
         close_session_flag = true;
-        std::cout << "Heartbeat timeout.\n";
+        std::cout << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << ' ' \
+          << "Heartbeat timeout.\n";
         break;
       }
     }
@@ -47,40 +51,54 @@ void heartbeat(int &client_fd, std::atomic<bool> &echo_heartbeat, std::atomic<bo
   }
 }
 
-void session(int &client_fd) {
+void session(int client_fd, sockaddr_in client_addr) {
   std::atomic<bool> echo_heartbeat (false);
   std::atomic<bool> close_session_flag (false);
+
+  fd_set read_fds;
+  FD_ZERO(&read_fds);
+  FD_SET(client_fd, &read_fds);
+  int ready_for_call;
+  timeval timev {0, 0};
 
 
   int nbytes;
   char inbuffer[1024] = {0}, outbuffer[1024] = {0};
   Message message;
-
-  std::thread heartbeat_thread(heartbeat, std::ref(client_fd), std::ref(echo_heartbeat), std::ref(close_session_flag));
+  std::thread heartbeat_thread(heartbeat, std::ref(client_fd), std::ref(client_addr), std::ref(echo_heartbeat), std::ref(close_session_flag));
 
   while (!close_session_flag) {   //TODO: resolve recv() blocking (possibly solve with select())
-    try {
-      // number of bytes received
-      nbytes = recv_message(client_fd, inbuffer, message); 
-    } catch (int err) {
-      std::cerr << "Error receiving message.\n";
+    ready_for_call = select(client_fd + 1, &read_fds, NULL, NULL, &timev);
+
+    if (ready_for_call < 0) {
+      std::cerr << "Error while using select().\n";
+    } else if (ready_for_call == 0) {
+      continue;
+    } else {
+      try {
+        // number of bytes received
+        nbytes = recv_message(client_fd, inbuffer, message); 
+      } catch (int err) {
+        std::cerr << "Error receiving message.\n";
+      }
+
+      // nbytes == 0: client closed connection; nbytes == -1: error
+      if (nbytes <= 0) {
+        close_session_flag = true;
+        break;
+      }
+      std::cout << "From " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " "
+        << "Recv: " << message.type << ", " << message.string << '\n';
+
+      // TODO: perform operation
+      if (message.type == HEARTBEAT) echo_heartbeat = true;
+
     }
-
-    // nbytes == 0: client closed connection; nbytes == -1: error
-    if (nbytes <= 0) {
-      close_session_flag = true;
-      break;
-    }
-    std::cout << "Received: " << message.type << ", " << message.string << '\n';
-
-    // TODO: perform operation
-
-
   }
 
   heartbeat_thread.join();
 
   close(client_fd);
-  std::cout << "Connection closed.\n";
+  std::cout << "Connection with " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " closed.\n";
 }
 
