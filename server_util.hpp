@@ -13,7 +13,7 @@ const int heartbeat_sleep_sec = 30;
 const int wait_time_sec = 30;
 
 void heartbeat(int &client_fd, sockaddr_in &client_addr,std::atomic<bool> &echo_heartbeat, std::atomic<bool> &close_session_flag) {
-  char inbuffer[1024] = {0}, outbuffer[1024] = {0};
+  char outbuffer[1024] = {0};
   Message message;
   message.type = HEARTBEAT;
   message.string = "";
@@ -56,19 +56,22 @@ void session(int client_fd, sockaddr_in client_addr) {
   std::atomic<bool> close_session_flag (false);
 
   fd_set read_fds;
-  FD_ZERO(&read_fds);
-  FD_SET(client_fd, &read_fds);
   int ready_for_call;
   timeval timev {0, 0};
 
 
-  int nbytes;
+  int nbytes = 0;
   char inbuffer[1024] = {0}, outbuffer[1024] = {0};
   Message message;
   std::thread heartbeat_thread(heartbeat, std::ref(client_fd), std::ref(client_addr), std::ref(echo_heartbeat), std::ref(close_session_flag));
 
-  while (!close_session_flag) {   //TODO: resolve recv() blocking (possibly solve with select())
-    ready_for_call = select(client_fd + 1, &read_fds, NULL, NULL, &timev);
+  while (!close_session_flag) {
+    FD_ZERO(&read_fds);
+    FD_SET(client_fd, &read_fds);
+    timev = {0, 0};
+
+
+    ready_for_call = select(client_fd + 1, &read_fds, nullptr, nullptr, &timev);
 
     if (ready_for_call < 0) {
       std::cerr << "Error while using select().\n";
@@ -87,7 +90,7 @@ void session(int client_fd, sockaddr_in client_addr) {
         close_session_flag = true;
         break;
       }
-      std::cout << "From " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " "
+      std::cout << "From " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " "     \
         << "Recv: " << message.type << ", " << message.string << '\n';
 
       // TODO: perform operation

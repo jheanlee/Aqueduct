@@ -12,5 +12,5 @@ void heartbeat(int &socket_fd, char *buffer) {
   message.string = "";
 
   send_message(socket_fd, buffer, message);
-  std::cout << "Sent: " << message.type << ", a" << message.string << '\n';
+  std::cout << "Sent: " << message.type << ", " << message.string << '\n';
 }

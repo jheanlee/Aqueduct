@@ -1,5 +1,5 @@
 #include <iostream>
-#include <string.h>
+#include <cstring>
 
 #include <unistd.h>
 #include <sys/socket.h>
@@ -48,7 +48,7 @@ int main() {
   while (true) {
 
     // receive buffer
-    int nbytes;
+    int nbytes = 0;
     try {
       nbytes = recv_message(socket_fd, inbuffer, message);
     } catch (int err) {

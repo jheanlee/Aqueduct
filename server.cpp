@@ -1,8 +1,7 @@
 #include <iostream>
-#include <string.h>
+#include <cstring>
 #include <thread>
 
-#include <unistd.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
