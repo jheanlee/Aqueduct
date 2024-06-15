@@ -1,1 +1,0 @@
-cout << "Received: " << message.type << ", " << message.string << '\n';

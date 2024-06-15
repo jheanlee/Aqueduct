@@ -1,21 +1,13 @@
-#include <iostream>
-#include <cstring>
-#include <thread>
-
-#include <sys/socket.h>
-#include <arpa/inet.h>
-
 #include "message.hpp"
 #include "server_util.hpp"
-
-
-const char *host = "0.0.0.0";
-const int port = 3000;
+#include "config.hpp"
 
 int main() {
   int socket_fd = 0;  //socket file descriptor
   int status;
   int on = 1;
+
+  init_available_port();
 
   // socket creation (AF_INET = ipv4, SOCK_STREAM = tcp)
   socket_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -28,7 +20,7 @@ int main() {
 
   server_addr.sin_family = AF_INET;
   inet_pton(AF_INET, host, &server_addr.sin_addr);
-  server_addr.sin_port = htons(port);
+  server_addr.sin_port = htons(main_port);
 
 
   // bind socket

@@ -58,6 +58,14 @@
     "variant": "cpp",
     "vector": "cpp",
     "algorithm": "cpp",
-    "future": "cpp"
+    "future": "cpp",
+    "__availability": "cpp",
+    "__debug": "cpp",
+    "__errc": "cpp",
+    "__mutex_base": "cpp",
+    "atomic": "cpp",
+    "exception": "cpp",
+    "system_error": "cpp",
+    "thread": "cpp"
   }
 }

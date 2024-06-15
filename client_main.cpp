@@ -9,7 +9,7 @@
 #include "client_util.hpp"
 
 const char *host = "0.0.0.0";
-int port = 3000;
+int main_port = 3000;
 
 int main() {
   int socket_fd;
@@ -26,7 +26,7 @@ int main() {
   server_addr.sin_family = AF_INET;
   // inet_aton(host, &server_addr.sin_addr);
   inet_pton(AF_INET, host, &server_addr.sin_addr);
-  server_addr.sin_port = htons(port);
+  server_addr.sin_port = htons(main_port);
 
   char inbuffer[1024] = {0}, outbuffer[1024] = {0};
   Message message;
