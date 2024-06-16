@@ -5,8 +5,8 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-#include "message.hpp"
-#include "client_util.hpp"
+#include "common/message.hpp"
+#include "client/client_util.hpp"
 
 const char *host = "0.0.0.0";
 int main_port = 3000;

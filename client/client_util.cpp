@@ -1,9 +1,4 @@
-#pragma once
-
-#include <iostream>
-#include <thread>
-
-#include "message.hpp"
+#include "client_util.hpp"
 
 void heartbeat(int &socket_fd, char *buffer) {
 //  char inbuffer[1024] = {0}, outbuffer[1024] = {0};

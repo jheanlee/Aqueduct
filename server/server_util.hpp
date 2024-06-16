@@ -9,8 +9,8 @@
   #include <unistd.h>
   #include <arpa/inet.h>
 
-  #include "message.hpp"
-  #include "config.hpp"
+  #include "../common/message.hpp"
+  #include "../common/config.hpp"
 
 
 void heartbeat(int &client_fd, sockaddr_in &client_addr,std::atomic<bool> &echo_heartbeat, std::atomic<bool> &close_session_flag);

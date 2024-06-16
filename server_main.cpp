@@ -1,6 +1,6 @@
-#include "message.hpp"
-#include "server_util.hpp"
-#include "config.hpp"
+#include "common/message.hpp"
+#include "server/server_util.hpp"
+#include "common/config.hpp"
 
 int main() {
   int socket_fd = 0;  //socket file descriptor

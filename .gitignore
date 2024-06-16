@@ -1,5 +1,5 @@
-client
-server
 .DS_Store
 tempCodeRunnerFile.cpp
 *.o
+cmake-build-debug
+bin/*.*
