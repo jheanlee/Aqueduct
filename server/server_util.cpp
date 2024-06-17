@@ -53,7 +53,11 @@ void session(int client_fd, sockaddr_in client_addr) {
   Message message;
   std::thread heartbeat_thread(heartbeat, std::ref(client_fd), std::ref(client_addr), std::ref(echo_heartbeat), std::ref(close_session_flag));
 
-  std::thread listen_port_thread;
+  std::thread stream_thread;
+  int new_port = 0;
+  std::atomic<bool> port_connected(false);
+  Message redirect_message;
+  redirect_message.type = REDIRECT;
 
   while (!close_session_flag) {
     FD_ZERO(&read_fds);
@@ -84,7 +88,22 @@ void session(int client_fd, sockaddr_in client_addr) {
         << "Recv: " << message.type << ", " << message.string << '\n';
 
       if (message.type == CONNECT) {
-        listen_port_thread = std::thread(listen_new_port);
+
+        stream_thread = std::thread(stream_port, std::ref(new_port), std::ref(port_connected));
+        while (!port_connected) std::this_thread::yield;
+
+        if (new_port != 0) {
+          try {
+            redirect_message.string = std::to_string(new_port);
+            send_message(client_fd, outbuffer, redirect_message);
+
+            std::cout << "To " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " " \
+        << "Sent: " << redirect_message.type << ", " << redirect_message.string << '\n';
+          } catch (int err) {
+            std::cerr << "Error sending message.\n";
+          }
+        }
+
       }
 
       if (message.type == HEARTBEAT) echo_heartbeat = true;
@@ -93,42 +112,48 @@ void session(int client_fd, sockaddr_in client_addr) {
   }
 
   heartbeat_thread.join();
-  listen_port_thread.join();
+  stream_thread.join();
 
   close(client_fd);
   std::cout << "Connection with " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " closed.\n";
 }
 
-void listen_new_port() {
-  int new_fd = socket(AF_INET, SOCK_STREAM, 0);
+void stream_port(int &new_port, std::atomic<bool> &port_connected) {
+  int stream_fd = socket(AF_INET, SOCK_STREAM, 0);
   int status, on = 1;
-  struct sockaddr_in new_server_addr, new_client_addr;
+  struct sockaddr_in server_addr_stream, client_addr_stream;
 
-  new_server_addr.sin_family = AF_INET;
-  inet_pton(AF_INET, host, &new_server_addr.sin_addr);
+  server_addr_stream.sin_family = AF_INET;
+  inet_pton(AF_INET, host, &server_addr_stream.sin_addr);
 
 
   for (int i = 0; i < available_port.size(); i++) {
-    new_server_addr.sin_port = htons(available_port[i]);
+    server_addr_stream.sin_port = htons(available_port[i]);
 
-    status = bind(new_fd, (struct sockaddr *) &new_server_addr, sizeof(new_server_addr));
-    if (status == -1) { continue; }
+    status = bind(stream_fd, (struct sockaddr *) &server_addr_stream, sizeof(server_addr_stream));
+    if (status == -1) continue;
 
     int connection_limit = 1;
-    status = listen(new_fd, connection_limit);
+    status = listen(stream_fd, connection_limit);
 
-    if (status == -1) { continue; }
-    if (setsockopt(new_fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int)) == -1) { continue; }
-    
-    std::cout << "Opened port at: " << available_port[i] << '\n';
+    if (status == -1) continue;
+    if (setsockopt(stream_fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int)) == -1) continue;
+
+    new_port = ntohs(server_addr_stream.sin_port);
+    port_connected = true;
+    std::cout << "Opened new port at: " << available_port[i] << '\n';
     available_port.erase(available_port.begin() + i);
+
     break;
   }
 
-  socklen_t new_client_addrlen = sizeof(new_client_addr);
+  if (new_port == 0) { std::cerr << "Unable to open new port.\n"; port_connected = true; return; }
 
-  new_fd = accept(new_fd, (struct sockaddr*) &new_client_addr, &new_client_addrlen);
-  std::cout << "Connection from " << inet_ntoa(new_client_addr.sin_addr) << ':' << (int)ntohs(new_client_addr.sin_port) << '\n';
+  socklen_t client_stream_addrlen = sizeof(client_addr_stream);
+
+  stream_fd = accept(stream_fd, (struct sockaddr*) &client_addr_stream, &client_stream_addrlen);
+  std::cout << "Connection from " << inet_ntoa(client_addr_stream.sin_addr) << ':' << (int)ntohs(client_addr_stream.sin_port) << '\n';
 
   // TODO: [note] tell client the port, client connect to port 3000. After connected, client send redirect request (probably with an id), server redirect to new port
+
 }

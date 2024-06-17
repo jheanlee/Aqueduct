@@ -5,6 +5,7 @@
   #include <thread>
   #include <chrono>
   #include <atomic>
+  #include <string>
 
   #include <unistd.h>
   #include <arpa/inet.h>
@@ -17,6 +18,6 @@ void heartbeat(int &client_fd, sockaddr_in &client_addr,std::atomic<bool> &echo_
 
 void session(int client_fd, sockaddr_in client_addr);
 
-void listen_new_port();
+void stream_port(int &new_port, std::atomic<bool> &port_connected);
 
 #endif

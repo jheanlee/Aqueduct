@@ -6,5 +6,7 @@
 
   #include "../common/message.hpp"
 
-  void heartbeat(int &socket_fd, char *buffer);
+  void heartbeat(int &socket_fd, char *outbuffer);
+
+  void connect_to_stream_socket(); // TODO
 #endif

@@ -63,7 +63,10 @@ int main() {
 
     std::cout << "Recv: " << message.type << ", " << message.string << '\n';
 
-    if (message.type == HEARTBEAT) heartbeat(socket_fd, inbuffer);
+    if (message.type == HEARTBEAT) heartbeat(socket_fd, outbuffer);
+
+    if (message.type == REDIRECT)
+      ;
 
 
   }

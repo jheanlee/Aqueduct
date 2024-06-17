@@ -8,7 +8,7 @@
 
   #define CONNECT     '0'
   #define HEARTBEAT   '1'
-  #define BINDING     '2'
+  #define REDIRECT     '2'
 
 /*
   byte 0: message type (CONNECT, HEARTBEAT, etc.)
