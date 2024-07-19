@@ -1,6 +1,6 @@
 #include "common/message.hpp"
 #include "server/server_util.hpp"
-#include "common/config.hpp"
+#include "server/server_config.hpp"
 
 int main() {
   int socket_fd = 0;  //socket file descriptor
@@ -20,7 +20,7 @@ int main() {
 
   server_addr.sin_family = AF_INET;
   inet_pton(AF_INET, host, &server_addr.sin_addr);
-  server_addr.sin_port = htons(main_port);
+  server_addr.sin_port = htons(host_main_port);
 
 
   // bind socket

@@ -57,7 +57,6 @@ void session(int client_fd, sockaddr_in client_addr) {
   int new_port = 0;
   std::atomic<bool> port_connected(false);
   Message redirect_message;
-  redirect_message.type = REDIRECT;
 
   while (!close_session_flag) {
     FD_ZERO(&read_fds);
@@ -89,11 +88,12 @@ void session(int client_fd, sockaddr_in client_addr) {
 
       if (message.type == CONNECT) {
 
-        stream_thread = std::thread(stream_port, std::ref(new_port), std::ref(port_connected));
+        stream_thread = std::thread(stream_port, std::ref(new_port), std::ref(port_connected), std::ref(close_session_flag));
         while (!port_connected) std::this_thread::yield;
 
         if (new_port != 0) {
           try {
+            redirect_message.type = REDIRECT;
             redirect_message.string = std::to_string(new_port);
             send_message(client_fd, outbuffer, redirect_message);
 
@@ -118,7 +118,7 @@ void session(int client_fd, sockaddr_in client_addr) {
   std::cout << "Connection with " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " closed.\n";
 }
 
-void stream_port(int &new_port, std::atomic<bool> &port_connected) {
+void stream_port(int &new_port, std::atomic<bool> &port_connected, std::atomic<bool> &close_session_flag) {
   int stream_fd = socket(AF_INET, SOCK_STREAM, 0);
   int status, on = 1;
   struct sockaddr_in server_addr_stream, client_addr_stream;
@@ -154,6 +154,7 @@ void stream_port(int &new_port, std::atomic<bool> &port_connected) {
   stream_fd = accept(stream_fd, (struct sockaddr*) &client_addr_stream, &client_stream_addrlen);
   std::cout << "Connection from " << inet_ntoa(client_addr_stream.sin_addr) << ':' << (int)ntohs(client_addr_stream.sin_port) << '\n';
 
-  // TODO: [note] tell client the port, client connect to port 3000. After connected, client send redirect request (probably with an id), server redirect to new port
-
+  while(!close_session_flag) {
+    //TODO
+  }
 }

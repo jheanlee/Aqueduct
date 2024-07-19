@@ -11,13 +11,13 @@
   #include <arpa/inet.h>
 
   #include "../common/message.hpp"
-  #include "../common/config.hpp"
+  #include "server_config.hpp"
 
 
 void heartbeat(int &client_fd, sockaddr_in &client_addr,std::atomic<bool> &echo_heartbeat, std::atomic<bool> &close_session_flag);
 
 void session(int client_fd, sockaddr_in client_addr);
 
-void stream_port(int &new_port, std::atomic<bool> &port_connected);
+void stream_port(int &new_port, std::atomic<bool> &port_connected, std::atomic<bool> &close_session_flag);
 
 #endif

@@ -7,11 +7,13 @@
 
 #include "common/message.hpp"
 #include "client/client_util.hpp"
+#include "client/client_config.hpp"
 
-const char *host = "0.0.0.0";
-int main_port = 3000;
+int host_stream_port;
 
 int main() {
+  std::thread stream_service_thread;
+
   int socket_fd;
   int status;
 
@@ -26,7 +28,7 @@ int main() {
   server_addr.sin_family = AF_INET;
   // inet_aton(host, &server_addr.sin_addr);
   inet_pton(AF_INET, host, &server_addr.sin_addr);
-  server_addr.sin_port = htons(main_port);
+  server_addr.sin_port = htons(host_main_port);
 
   char inbuffer[1024] = {0}, outbuffer[1024] = {0};
   Message message;
@@ -65,11 +67,16 @@ int main() {
 
     if (message.type == HEARTBEAT) heartbeat(socket_fd, outbuffer);
 
-    if (message.type == REDIRECT)
-      ;
+    if (message.type == REDIRECT) {
+      host_stream_port = std::stoi(message.string);
+      std::cout << "Started forwarding from " << host << ':' << message.string << '\n';
+      stream_service_thread = std::thread(stream_service);
+      //TODO
+    }
 
 
   }
+  stream_service_thread.join();
 
   close(socket_fd);
   return 0;
