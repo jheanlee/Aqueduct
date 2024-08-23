@@ -15,6 +15,6 @@
 
 void heartbeat(int &socket_fd, char *outbuffer);
 
-void stream_service();
+void stream_service(int id);
 
 #endif

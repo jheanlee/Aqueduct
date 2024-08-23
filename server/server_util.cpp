@@ -2,9 +2,9 @@
 
 void heartbeat(int &client_fd, sockaddr_in &client_addr,std::atomic<bool> &echo_heartbeat, std::atomic<bool> &close_session_flag) {
   char outbuffer[1024] = {0};
-  Message message;
-  message.type = HEARTBEAT;
-  message.string = "";
+  Message heartbeat_message;
+  heartbeat_message.type = HEARTBEAT;
+  heartbeat_message.string = "";
 
   std::chrono::system_clock::time_point time_point;
   std::chrono::seconds duration;
@@ -12,11 +12,11 @@ void heartbeat(int &client_fd, sockaddr_in &client_addr,std::atomic<bool> &echo_
   while (!close_session_flag) {
 
     try {
-      send_message(client_fd, outbuffer, message);
+      send_message(client_fd, outbuffer, heartbeat_message);
       std::cout << "To " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " " \
-        << "Sent: " << message.type << ", " << message.string << '\n';
+ << "Sent: " << heartbeat_message.type << ", " << heartbeat_message.string << '\n';
     } catch (int err) {
-      std::cerr << "Error sending message.\n";
+      std::cerr << "Error sending heartbeat_message.\n";
     }
 
     // wait while no echo_heartbeat signal
@@ -54,9 +54,13 @@ void session(int client_fd, sockaddr_in client_addr) {
   std::thread heartbeat_thread(heartbeat, std::ref(client_fd), std::ref(client_addr), std::ref(echo_heartbeat), std::ref(close_session_flag));
 
   std::thread stream_thread;
+  std::unordered_map<int, int> user_socket_fds(32);  // unordered_map[id] = socket_fd of user with {id}
+
   int new_port = 0;
   std::atomic<bool> port_connected(false);
-  Message redirect_message;
+
+  Message stream_port_message;
+  stream_port_message.type = STREAM_PORT;
 
   while (!close_session_flag) {
     FD_ZERO(&read_fds);
@@ -88,17 +92,16 @@ void session(int client_fd, sockaddr_in client_addr) {
 
       if (message.type == CONNECT) {
 
-        stream_thread = std::thread(stream_port, std::ref(new_port), std::ref(port_connected), std::ref(close_session_flag));
+        stream_thread = std::thread(stream_port, std::ref(client_fd), std::ref(new_port), std::ref(port_connected), std::ref(close_session_flag), std::ref(user_socket_fds));
         while (!port_connected) std::this_thread::yield;
 
         if (new_port != 0) {
           try {
-            redirect_message.type = REDIRECT;
-            redirect_message.string = std::to_string(new_port);
-            send_message(client_fd, outbuffer, redirect_message);
+            stream_port_message.string = std::to_string(new_port);
+            send_message(client_fd, outbuffer, stream_port_message);
 
             std::cout << "To " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " " \
-        << "Sent: " << redirect_message.type << ", " << redirect_message.string << '\n';
+ << "Sent: " << stream_port_message.type << ", " << stream_port_message.string << '\n';
           } catch (int err) {
             std::cerr << "Error sending message.\n";
           }
@@ -107,6 +110,10 @@ void session(int client_fd, sockaddr_in client_addr) {
       }
 
       if (message.type == HEARTBEAT) echo_heartbeat = true;
+
+      if (message.type == REDIRECT) {
+
+      }
 
     }
   }
@@ -118,9 +125,10 @@ void session(int client_fd, sockaddr_in client_addr) {
   std::cout << "Connection with " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " closed.\n";
 }
 
-void stream_port(int &new_port, std::atomic<bool> &port_connected, std::atomic<bool> &close_session_flag) {
-  int stream_fd = socket(AF_INET, SOCK_STREAM, 0);
-  int status, on = 1;
+void stream_port(int &client_fd, int &new_port, std::atomic<bool> &port_connected, std::atomic<bool> &close_session_flag, std::unordered_map<std::string, int> &user_socket_fds) {
+
+  int stream_socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+  int stream_socket_status, on = 1;
   struct sockaddr_in server_addr_stream, client_addr_stream;
 
   server_addr_stream.sin_family = AF_INET;
@@ -130,14 +138,14 @@ void stream_port(int &new_port, std::atomic<bool> &port_connected, std::atomic<b
   for (int i = 0; i < available_port.size(); i++) {
     server_addr_stream.sin_port = htons(available_port[i]);
 
-    status = bind(stream_fd, (struct sockaddr *) &server_addr_stream, sizeof(server_addr_stream));
-    if (status == -1) continue;
+    stream_socket_status = bind(stream_socket_fd, (struct sockaddr *) &server_addr_stream, sizeof(server_addr_stream));
+    if (stream_socket_status == -1) continue;
 
     int connection_limit = 1;
-    status = listen(stream_fd, connection_limit);
+    stream_socket_status = listen(stream_socket_fd, connection_limit);
 
-    if (status == -1) continue;
-    if (setsockopt(stream_fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int)) == -1) continue;
+    if (stream_socket_status == -1) continue;
+    if (setsockopt(stream_socket_fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int)) == -1) continue;
 
     new_port = ntohs(server_addr_stream.sin_port);
     port_connected = true;
@@ -151,10 +159,24 @@ void stream_port(int &new_port, std::atomic<bool> &port_connected, std::atomic<b
 
   socklen_t client_stream_addrlen = sizeof(client_addr_stream);
 
-  stream_fd = accept(stream_fd, (struct sockaddr*) &client_addr_stream, &client_stream_addrlen);
-  std::cout << "Connection from " << inet_ntoa(client_addr_stream.sin_addr) << ':' << (int)ntohs(client_addr_stream.sin_port) << '\n';
+  char stream_id_message_buffer[1024];
+  Message stream_id_message;
+  stream_id_message.type = REDIRECT;
+  std::string new_key;
 
   while(!close_session_flag) {
-    //TODO
+    stream_socket_fd = accept(stream_socket_fd, (struct sockaddr*) &client_addr_stream, &client_stream_addrlen);
+
+    new_key = random_key_gen();
+    user_socket_fds.emplace(new_key, stream_socket_fd);
+    stream_id_message.string = new_key;
+    send_message(client_fd, stream_id_message_buffer, stream_id_message);
+
+    std::cout << "Connection from " << inet_ntoa(client_addr_stream.sin_addr) << ':' << (int)ntohs(client_addr_stream.sin_port) << '\n';
+
   }
+}
+
+void proxy(int user_fd) {
+
 }

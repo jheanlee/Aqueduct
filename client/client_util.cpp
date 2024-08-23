@@ -13,7 +13,8 @@ void heartbeat(int &socket_fd, char *outbuffer) {
 }
 
 void stream_service() {
-  int service_socket_fd, status;
+  int server_socket_fd, server_status;
+  int service_socket_fd, service_status;
 
   service_socket_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (service_socket_fd == -1) { std::cerr << "Failed to create socket.\n"; exit(1); }
@@ -23,9 +24,9 @@ void stream_service() {
   inet_pton(AF_INET, client, &service_addr.sin_addr);
   service_addr.sin_port = htons(client_stream_port);
 
-  char service_inbuffer[stream_io_buffer_size] = {0}, service_outbuffer[stream_io_buffer_size];
-  status = connect(service_socket_fd, (struct sockaddr *) &service_addr, sizeof(service_addr));
-  if (status == -1) { std::cerr << "Service connection error.\n"; exit(1); }
+  char service_inbuffer[stream_io_buffer_size] = {0}, service_outbuffer[stream_io_buffer_size] = {0};
+  service_status = connect(service_socket_fd, (struct sockaddr *) &service_addr, sizeof(service_addr));
+  if (service_status == -1) { std::cerr << "Service connection error.\n"; exit(1); }
 
   //TODO
   std::cout << host_stream_port << '\n';

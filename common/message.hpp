@@ -6,9 +6,10 @@
 
   #include <sys/socket.h>
 
-  #define CONNECT     '0'
-  #define HEARTBEAT   '1'
-  #define REDIRECT     '2'
+  #define CONNECT      '0'
+  #define HEARTBEAT    '1'
+  #define STREAM_PORT  '2'
+  #define REDIRECT     '3'
 
 /*
   byte 0: message type (CONNECT, HEARTBEAT, etc.)

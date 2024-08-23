@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <vector>
 
 #include "common/message.hpp"
 #include "client/client_util.hpp"
@@ -12,15 +13,15 @@
 int host_stream_port;
 
 int main() {
-  std::thread stream_service_thread;
+  std::vector<std::thread> stream_service_threads;
 
-  int socket_fd;
-  int status;
+  int control_socket_fd;
+  int control_socket_status;
 
   // socket creation
-  socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+  control_socket_fd = socket(AF_INET, SOCK_STREAM, 0);
   
-  if (socket_fd == -1) { std::cerr << "Failed to create socket.\n"; exit(1); }
+  if (control_socket_fd == -1) { std::cerr << "Failed to create socket.\n"; exit(1); }
 
   // server address
   struct sockaddr_in server_addr;
@@ -34,14 +35,14 @@ int main() {
   Message message;
 
   // connect
-  status = connect(socket_fd, (struct sockaddr *) &server_addr, sizeof(server_addr));
+  control_socket_status = connect(control_socket_fd, (struct sockaddr *) &server_addr, sizeof(server_addr));
 
-  if (status == -1) { std::cerr << "Connection error.\n"; exit(1); }
+  if (control_socket_status == -1) { std::cerr << "Connection error.\n"; exit(1); }
 
   message.type = CONNECT;
   message.string = "";
   try {
-    send_message(socket_fd, outbuffer, message);
+    send_message(control_socket_fd, outbuffer, message);
   } catch (int err) {
     std::cerr << "Error sending message.\n";
   }
@@ -52,32 +53,33 @@ int main() {
     // receive buffer
     int nbytes = 0;
     try {
-      nbytes = recv_message(socket_fd, inbuffer, message);
+      nbytes = recv_message(control_socket_fd, inbuffer, message);
     } catch (int err) {
       std::cerr << "Error receiving message.\n";
     }
 
     if (nbytes <= 0) {
-      close(socket_fd);
+      close(control_socket_fd);
       std::cout << "Connection closed.\n";
       break;
     }
 
     std::cout << "Recv: " << message.type << ", " << message.string << '\n';
 
-    if (message.type == HEARTBEAT) heartbeat(socket_fd, outbuffer);
+    if (message.type == HEARTBEAT) heartbeat(control_socket_fd, outbuffer);
 
     if (message.type == REDIRECT) {
       host_stream_port = std::stoi(message.string);
       std::cout << "Started forwarding from " << host << ':' << message.string << '\n';
-      stream_service_thread = std::thread(stream_service);
+      stream_service_threads.emplace_back(stream_service, id); //TODO
       //TODO
     }
 
 
   }
-  stream_service_thread.join();
 
-  close(socket_fd);
+  for (std::thread &t : stream_service_threads) t.join();
+
+  close(control_socket_fd);
   return 0;
 }
