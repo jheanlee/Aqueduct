@@ -13,7 +13,7 @@ void heartbeat_thread_func(int &client_fd, sockaddr_in &client_addr, std::atomic
 
   while (!flag_kill) {
     try {
-      send_message(client_fd, outbuffer, heartbeat_message);
+      send_message(client_fd, outbuffer, sizeof(outbuffer), heartbeat_message);
       std::cout << "To " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " " \
         << "Sent: " << heartbeat_message.type << ", " << heartbeat_message.string << '\n';
     } catch (int err) {
@@ -63,7 +63,7 @@ void session_thread_func(int client_fd, sockaddr_in client_addr, std::unordered_
   while (!flag_kill && (flag_first_msg || duration <= std::chrono::seconds(first_message_timeout_sec))) {
     if (!flag_first_msg) duration = std::chrono::duration_cast<std::chrono::seconds> (std::chrono::system_clock::now() - time_point);
 
-    recv_status = read_message_non_block(read_fds, client_fd, timev, inbuffer, message);
+    recv_status = read_message_non_block(read_fds, client_fd, timev, inbuffer, sizeof(inbuffer), message);
     if (recv_status < 0) {
       flag_kill = true;
     } else if (recv_status > 0){
@@ -135,7 +135,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::unordered
   }
 
   message.string = std::to_string((int) ntohs(server_proxy_addr.sin_port));
-  send_message(client_fd, outbuffer, message);
+  send_message(client_fd, outbuffer, sizeof(outbuffer), message);
 
   while (!flag_kill) {
     socklen_t external_user_addrlen = sizeof(external_user_addr);
@@ -150,7 +150,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::unordered
     std::cout << "To " << inet_ntoa(client_addr.sin_addr) << ':' << (int) ntohs(client_addr.sin_port) << ' ' \
       << "Sent: " << message.type << ", " << message.string << '\n';
 
-    send_message(client_fd, outbuffer, message);
+    send_message(client_fd, outbuffer, sizeof(outbuffer), message);
     std::this_thread::sleep_for(std::chrono::milliseconds(10));  //  period can be adjusted
   }
 

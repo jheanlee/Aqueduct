@@ -29,7 +29,7 @@ int main() {
   if (status == -1) { std::cerr << "[main.cpp] Connection error. \n"; exit(1); }
 
   try {
-    send_message(socket_fd, outbuffer, message);
+    send_message(socket_fd, outbuffer, sizeof(outbuffer), message);
   } catch (int err) {
     std::cerr << "[main.cpp] Error sending message. \n";
   }
@@ -37,10 +37,9 @@ int main() {
     << "Sent: " << message.type << ", " << message.string << '\n';
 
   while (!flag_kill) {
-    //memset(inbuffer, 0, sizeof(inbuffer));
     int nbytes;
     try {
-      nbytes = recv_message(socket_fd, inbuffer, message);
+      nbytes = recv_message(socket_fd, inbuffer, sizeof(inbuffer), message);
     } catch (int err) {
       std::cerr << "[main.cpp] Error receiving message.\n";
     }

@@ -8,7 +8,7 @@
 void send_heartbeat_message(int &socket_fd, char *buffer) {
   Message message{.type = HEARTBEAT, .string = ""};
 
-  send_message(socket_fd, buffer, message);
+  send_message(socket_fd, buffer, sizeof(buffer), message);
   std::cout << "Sent: " << message.type << ", " << message.string << '\n';
 }
 
@@ -25,7 +25,7 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
   if (service_fd == -1) { std::cerr << "[connection.cpp] Failed to create socket. \n"; exit(1); }
 
   while (!flag_kill) {
-    while (user_id.empty()) std::this_thread::yield();
+    while (!flag_kill && user_id.empty()) std::this_thread::yield();
     
     //  connect
     service_status = connect(service_fd, (struct sockaddr *) &service_addr, sizeof(service_addr));
@@ -57,7 +57,7 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
     }
 
     std::cout << "Connected to host for id: "<< redirect_message.string << '\n';
-    send_message(host_fd, buffer, redirect_message);
+    send_message(host_fd, buffer, sizeof(buffer), redirect_message);
 
     proxy_threads.emplace_back(proxy_thread_func, std::ref(flag_kill), host_fd, host_addr, service_fd);
   }

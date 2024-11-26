@@ -17,6 +17,7 @@
 
   #include "config.hpp"
   #include "message.hpp"
+  #include "shared.hpp"
 
 
 #endif //TUNNEL_CONNECTION_HPP

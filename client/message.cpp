@@ -20,8 +20,11 @@ void Message::dump(char *buffer) const {
   strcat(buffer, string.c_str());
 }
 
-int send_message(int &socket_fd, char *buffer, Message &message) {
+int send_message(int &socket_fd, char *buffer, size_t buffer_size, Message &message) {
+  std::lock_guard<std::mutex> lock(shared_resources::send_mutex);
+
   try {
+    std::memset(buffer, '\0', buffer_size);
     message.dump(buffer);
   } catch (int err) {
     std::cerr << "[message.cpp] Error occurred in Message::dump() \n";
@@ -29,12 +32,12 @@ int send_message(int &socket_fd, char *buffer, Message &message) {
   }
 
   send(socket_fd, buffer, strlen(buffer), 0);
-
   return 0;
 }
 
-int recv_message(int &socket_fd, char *buffer, Message &message) {
-  int nbytes = recv(socket_fd, buffer, sizeof(buffer), 0);
+int recv_message(int &socket_fd, char *buffer, size_t buffer_size, Message &message) {
+  std::memset(buffer, '\0', buffer_size);
+  int nbytes = recv(socket_fd, buffer, buffer_size, 0);
   if (nbytes <= 0) return nbytes;
 
   try {
@@ -47,10 +50,10 @@ int recv_message(int &socket_fd, char *buffer, Message &message) {
   return nbytes;
 }
 
-int read_message_non_block(fd_set &read_fd, int &socket_fd, timeval &timev, char *buffer, Message &message) {
+int read_message_non_block(fd_set &read_fd, int &socket_fd, timeval &timev, char *buffer, size_t buffer_size, Message &message) {
   FD_ZERO(&read_fd);
   FD_SET(socket_fd, &read_fd);
-  timev.tv_sec = 0; timev.tv_usec = 0;
+  timev.tv_sec = 0; timev.tv_usec = 50;
 
   int ready_for_call = select(socket_fd + 1, &read_fd, nullptr, nullptr, &timev);
 
@@ -60,7 +63,7 @@ int read_message_non_block(fd_set &read_fd, int &socket_fd, timeval &timev, char
   } else if (ready_for_call == 0) {
     return 0;
   } else {
-    int recv_status = recv_message(socket_fd, buffer, message); // recv_status = nbytes
+    int recv_status = recv_message(socket_fd, buffer, buffer_size, message); // recv_status = nbytes
     if (recv_status == 0) return -1;
     return recv_status;
   }

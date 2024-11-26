@@ -12,7 +12,9 @@ add_executable(server
         server/connection.cpp
         server/connection.hpp
         server/message.cpp
-        server/message.hpp)
+        server/message.hpp
+        server/shared.cpp
+        server/shared.hpp)
 add_executable(client
         client/main.cpp
         client/message.cpp
@@ -20,4 +22,6 @@ add_executable(client
         client/config.cpp
         client/config.hpp
         client/connection.cpp
-        client/connection.hpp)
+        client/connection.hpp
+        client/shared.cpp
+        client/shared.hpp)
