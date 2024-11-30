@@ -2,5 +2,6 @@
 tempCodeRunnerFile.cpp
 *.o
 cmake-build-debug
-bin/*.*
-/demo_service/.venv/
+bin
+demo_service/.venv
+CMakeFiles

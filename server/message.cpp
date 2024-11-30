@@ -43,7 +43,7 @@ int recv_message(int &socket_fd, char *buffer, size_t buffer_size, Message &mess
   try {
     message.load(buffer);
   } catch (int err) {
-    std::cerr << "[message.cpp] Error occurred in Message::load() \n";
+    std::cerr << "[message.cpp] Error occurred in Message::load() \n" << buffer;
     return -1;
   }
 

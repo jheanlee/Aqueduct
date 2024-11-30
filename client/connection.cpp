@@ -20,12 +20,12 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
   struct sockaddr_in service_addr{.sin_family = AF_INET, .sin_port = htons(local_service_port)};
   inet_pton(AF_INET, local_service, &service_addr.sin_addr);
 
-  //  create socket
-  service_fd = socket(AF_INET, SOCK_STREAM, 0);
-  if (service_fd == -1) { std::cerr << "[connection.cpp] Failed to create socket. \n"; exit(1); }
-
   while (!flag_kill) {
     while (!flag_kill && user_id.empty()) std::this_thread::yield();
+
+    //  create socket
+    service_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (service_fd == -1) { std::cerr << "[connection.cpp] Failed to create socket. \n"; exit(1); }
     
     //  connect
     service_status = connect(service_fd, (struct sockaddr *) &service_addr, sizeof(service_addr));
@@ -67,6 +67,7 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
 }
 
 void proxy_thread_func(std::atomic<bool> &flag_kill, int host_fd, sockaddr_in host_addr, int service_fd) {
+  std::cout << "Proxying started\n";
   bool flag_close = false;
   fd_set read_fd;
   timeval timev = {.tv_sec = 0, .tv_usec = 0};
@@ -78,6 +79,7 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, int host_fd, sockaddr_in ho
     FD_SET(service_fd, &read_fd);
     timev.tv_sec = 0; timev.tv_usec = 0;
     ready_for_call = select(service_fd + 1, &read_fd, nullptr, nullptr, &timev);
+    std::cerr << "afterselect\n";
     if (ready_for_call < 0) {
       std::cerr << "[connection.cpp] Error occurred in select(). \n";
       close(service_fd); close(host_fd);
@@ -90,7 +92,9 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, int host_fd, sockaddr_in ho
         flag_close = true;
         break;
       }
+      std::cerr << "presend\n";
       send(host_fd, buffer, strlen(buffer), 0);
+      std::cerr << "aftersend\n";
     }
 
     FD_ZERO(&read_fd);
@@ -111,8 +115,6 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, int host_fd, sockaddr_in ho
       }
       send(service_fd, buffer, strlen(buffer), 0);
     }
-
-    std::this_thread::sleep_for(std::chrono::seconds(proxy_sleep_sec));
   }
   close(host_fd);
   close(service_fd);

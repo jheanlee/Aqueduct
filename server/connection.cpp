@@ -105,6 +105,7 @@ void session_thread_func(int client_fd, sockaddr_in client_addr, std::unordered_
 
 void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::unordered_map<std::string, std::pair<int, sockaddr_in>> &external_user_id, int &client_fd, sockaddr_in &client_addr) {
   int server_proxy_fd = 0, status = 0, on = 1, proxy_port = 0;
+  int external_user_fd = 0;
   struct sockaddr_in server_proxy_addr = {.sin_family = AF_INET}, external_user_addr = {.sin_family = AF_INET};
   inet_pton(AF_INET, host, &server_proxy_addr.sin_addr);
 
@@ -139,13 +140,13 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::unordered
 
   while (!flag_kill) {
     socklen_t external_user_addrlen = sizeof(external_user_addr);
-    server_proxy_fd = accept(server_proxy_fd, (struct sockaddr *) &external_user_addr, &external_user_addrlen);
+    external_user_fd = accept(server_proxy_fd, (struct sockaddr *) &external_user_addr, &external_user_addrlen);
     std::cout << "Accepted connection from " << inet_ntoa(external_user_addr.sin_addr) << ':' << (int) ntohs(external_user_addr.sin_port) << '\n';
     uuid_generate_random(uuid);
     uuid_unparse_lower(uuid, uuid_str);
     message.type = REDIRECT;
     message.string = std::string(uuid_str);
-    external_user_id.try_emplace(message.string, std::pair(server_proxy_fd, external_user_addr));
+    external_user_id.try_emplace(message.string, std::pair(external_user_fd, external_user_addr));
 
     std::cout << "To " << inet_ntoa(client_addr.sin_addr) << ':' << (int) ntohs(client_addr.sin_port) << ' ' \
       << "Sent: " << message.type << ", " << message.string << '\n';
@@ -158,6 +159,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::unordered
 }
 
 void proxy_thread_func(int service_fd, int user_fd, std::atomic<bool> &flag_kill) {
+  std::cout << "Proxying started\n";
   fd_set read_fd;
   timeval timev = {.tv_sec = 0, .tv_usec = 0};
   int ready_for_call = 0, nbytes = 0;
@@ -168,6 +170,7 @@ void proxy_thread_func(int service_fd, int user_fd, std::atomic<bool> &flag_kill
     FD_SET(service_fd, &read_fd);
     timev.tv_sec = 0; timev.tv_usec = 0;
     ready_for_call = select(service_fd + 1, &read_fd, nullptr, nullptr, &timev);
+    // std::cerr << "select1\n" << ready_for_call;
     if (ready_for_call < 0) {
       std::cerr << "[connection.cpp] Error occurred in select(). \n";
       close(service_fd); close(user_fd);
@@ -187,6 +190,7 @@ void proxy_thread_func(int service_fd, int user_fd, std::atomic<bool> &flag_kill
     FD_SET(user_fd, &read_fd);
     timev.tv_sec = 0; timev.tv_usec = 0;
     ready_for_call = select(user_fd + 1, &read_fd, nullptr, nullptr, &timev);
+    // std::cerr << "select2\n" << ready_for_call;
     if (ready_for_call < 0) {
       std::cerr << "[connection.cpp] Error occurred in select(). \n";
       close(service_fd); close(user_fd);
@@ -201,8 +205,6 @@ void proxy_thread_func(int service_fd, int user_fd, std::atomic<bool> &flag_kill
       }
       send(service_fd, buffer, strlen(buffer), 0);
     }
-
-    std::this_thread::sleep_for(std::chrono::seconds(proxy_sleep_sec));
   }
   close(user_fd);
   close(service_fd);
