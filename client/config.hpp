@@ -9,5 +9,4 @@
 
   static const char *local_service = "0.0.0.0";
   static const int local_service_port = 8000;
-  static const int proxy_sleep_sec = 10;
 #endif //TUNNEL_CONFIG_HPP

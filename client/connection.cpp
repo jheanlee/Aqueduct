@@ -79,7 +79,6 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, int host_fd, sockaddr_in ho
     FD_SET(service_fd, &read_fd);
     timev.tv_sec = 0; timev.tv_usec = 0;
     ready_for_call = select(service_fd + 1, &read_fd, nullptr, nullptr, &timev);
-    std::cerr << "afterselect\n";
     if (ready_for_call < 0) {
       std::cerr << "[connection.cpp] Error occurred in select(). \n";
       close(service_fd); close(host_fd);
@@ -92,9 +91,7 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, int host_fd, sockaddr_in ho
         flag_close = true;
         break;
       }
-      std::cerr << "presend\n";
       send(host_fd, buffer, strlen(buffer), 0);
-      std::cerr << "aftersend\n";
     }
 
     FD_ZERO(&read_fd);
