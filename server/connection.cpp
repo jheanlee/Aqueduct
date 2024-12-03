@@ -156,6 +156,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::unordered
   }
 
   close(server_proxy_fd);
+  proxy_port_available.push_back(proxy_port);
 }
 
 void proxy_thread_func(int service_fd, int user_fd, std::atomic<bool> &flag_kill) {
@@ -170,7 +171,6 @@ void proxy_thread_func(int service_fd, int user_fd, std::atomic<bool> &flag_kill
     FD_SET(service_fd, &read_fd);
     timev.tv_sec = 0; timev.tv_usec = 0;
     ready_for_call = select(service_fd + 1, &read_fd, nullptr, nullptr, &timev);
-    // std::cerr << "select1\n" << ready_for_call;
     if (ready_for_call < 0) {
       std::cerr << "[connection.cpp] Error occurred in select(). \n";
       close(service_fd); close(user_fd);
@@ -190,7 +190,6 @@ void proxy_thread_func(int service_fd, int user_fd, std::atomic<bool> &flag_kill
     FD_SET(user_fd, &read_fd);
     timev.tv_sec = 0; timev.tv_usec = 0;
     ready_for_call = select(user_fd + 1, &read_fd, nullptr, nullptr, &timev);
-    // std::cerr << "select2\n" << ready_for_call;
     if (ready_for_call < 0) {
       std::cerr << "[connection.cpp] Error occurred in select(). \n";
       close(service_fd); close(user_fd);

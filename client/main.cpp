@@ -6,8 +6,11 @@
 #include "message.hpp"
 #include "config.hpp"
 #include "connection.hpp"
+#include "opt.hpp"
 
-int main() {
+int main(int argc, char *argv[]) {
+  opt_handler(argc, argv);
+
   int socket_fd = 0, status = 0;
   char inbuffer[1024] = {0}, outbuffer[1024] = {0};
   std::atomic<bool> flag_kill (false);
