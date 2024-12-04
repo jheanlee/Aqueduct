@@ -27,7 +27,7 @@ int send_message(int &socket_fd, char *buffer, size_t buffer_size, Message &mess
     std::memset(buffer, '\0', buffer_size);
     message.dump(buffer);
   } catch (int err) {
-    std::cerr << "[message.cpp] Error occurred in Message::dump() \n";
+    std::cerr << "[Warning] Unable to dump message (message)\n";
     return -1;
   }
 
@@ -43,7 +43,7 @@ int recv_message(int &socket_fd, char *buffer, size_t buffer_size, Message &mess
   try {
     message.load(buffer);
   } catch (int err) {
-    std::cerr << "[message.cpp] Error occurred in Message::load() \n" << buffer;
+    std::cerr << "[Warning] Unable to load message (message)\n" << buffer;
     return -1;
   }
 
@@ -58,7 +58,7 @@ int read_message_non_block(fd_set &read_fd, int &socket_fd, timeval &timev, char
   int ready_for_call = select(socket_fd + 1, &read_fd, nullptr, nullptr, &timev);
 
   if (ready_for_call < 0) {
-    std::cerr << "[message.cpp] Error occurred in select() \n";
+    std::cerr << "[Warning] Invalid file descriptor passed to select (message)\n";
     return -1;
   } else if (ready_for_call == 0) {
     return 0;

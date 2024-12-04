@@ -9,7 +9,7 @@ void send_heartbeat_message(int &socket_fd, char *buffer) {
   Message message{.type = HEARTBEAT, .string = ""};
 
   send_message(socket_fd, buffer, sizeof(buffer), message);
-  std::cout << "Sent: " << message.type << ", " << message.string << '\n';
+//  std::cout << "Sent: " << message.type << ", " << message.string << '\n';
 }
 
 void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &user_id) {
@@ -25,13 +25,13 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
 
     //  create socket
     service_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (service_fd == -1) { std::cerr << "[connection.cpp] Failed to create socket. \n"; exit(1); }
+    if (service_fd == -1) { std::cerr << "[Error] Failed to create socket for service (connection)\n"; exit(1); }
     
     //  connect
     service_status = connect(service_fd, (struct sockaddr *) &service_addr, sizeof(service_addr));
-    if (service_status == -1) { std::cerr << "[connection.cpp] Connection error. \n"; exit(1); }
+    if (service_status == -1) { std::cerr << "[Error] Unable to connect to service (connection)\n"; exit(1); }
 
-    std::cout << "Connected to service \n";
+    std::cout << "[Info] Connected to service\n";
 
     /// host
     int host_fd = 0, host_status = 0;
@@ -45,18 +45,18 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
     //  create socket
     host_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (host_fd == -1) {
-      std::cerr << "[connection.cpp] Failed to create socket. \n";
+      std::cerr << "[Error] Failed to create socket for host (connection)\n";
       exit(1);
     }
 
     //  connect
     host_status = connect(host_fd, (struct sockaddr *) &host_addr, sizeof(host_addr));
     if (host_status == -1) {
-      std::cerr << "[connection.cpp] Connection error. \n";
+      std::cerr << "[Error] Unable to connect to host (connection)\n";
       exit(1);
     }
 
-    std::cout << "Connected to host for id: "<< redirect_message.string << '\n';
+    std::cout << "[Info] Connected to host for redirect id: "<< redirect_message.string << '\n';
     send_message(host_fd, buffer, sizeof(buffer), redirect_message);
 
     proxy_threads.emplace_back(proxy_thread_func, std::ref(flag_kill), host_fd, host_addr, service_fd);
@@ -67,7 +67,7 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
 }
 
 void proxy_thread_func(std::atomic<bool> &flag_kill, int host_fd, sockaddr_in host_addr, int service_fd) {
-  std::cout << "Proxying started\n";
+  std::cout << "[Info] Proxying started\n";
   fd_set read_fd;
   timeval timev = {.tv_sec = 0, .tv_usec = 0};
   int ready_for_call = 0, nbytes = 0;
@@ -79,17 +79,17 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, int host_fd, sockaddr_in ho
     timev.tv_sec = 0; timev.tv_usec = 0;
     ready_for_call = select(service_fd + 1, &read_fd, nullptr, nullptr, &timev);
     if (ready_for_call < 0) {
-      std::cerr << "[connection.cpp] Error occurred in select(). \n";
+      std::cerr << "[Warning] Invalid file descriptor passed to select (connection::proxy_thread)\n";
       break;
     } else if (ready_for_call > 0) {
       memset(buffer, 0, sizeof(buffer));
       nbytes = recv(service_fd, buffer, sizeof(buffer), 0);
       if (nbytes <= 0) {
-        std::cout << "[connection.cpp] Service has closed connection. \n";
+        std::cout << "[Info] Service has closed connection\n";
         break;
       }
       if (send(host_fd, buffer, nbytes, 0) < 0) {
-        std::cerr << "[connection.cpp] Error occurred while sending buffer to user. \n";
+        std::cerr << "[Warning] Unable to send buffer to user (connection:proxy_thread)\n";
         break;
       }
     }
@@ -99,21 +99,21 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, int host_fd, sockaddr_in ho
     timev.tv_sec = 0; timev.tv_usec = 0;
     ready_for_call = select(host_fd + 1, &read_fd, nullptr, nullptr, &timev);
     if (ready_for_call < 0) {
-      std::cerr << "[connection.cpp] Error occurred in select(). \n";
+      std::cerr << "[Warning] Invalid file descriptor passed to select (connection::proxy_thread)\n";
       break;
     } else if (ready_for_call > 0) {
       memset(buffer, 0, sizeof(buffer));
       nbytes = recv(host_fd, buffer, sizeof(buffer), 0);
       if (nbytes <= 0) {
-        std::cout << "[connection.cpp] User has closed connection. \n";
+        std::cout << "[Info] External user has closed connection\n";
         break;
       }
       if (send(service_fd, buffer, nbytes, 0) < 0) {
-        std::cerr << "[connection.cpp] Error occurred while sending buffer to service. \n";
+        std::cerr << "[Warning] Error occurred while sending buffer to service (connection:proxy_thread)\n";
       }
     }
   }
 
   close(service_fd); close(host_fd);
-  std::cout << "[connection.cpp] Proxying ended\n";
+  std::cout << "[Info] Proxying ended\n";
 }

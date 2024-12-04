@@ -18,24 +18,24 @@ int main() {
 
   //  create socket
   socket_fd = socket(AF_INET, SOCK_STREAM, 0); // ipv4, tcp
-  if (socket_fd == -1) { std::cerr << "[main.cpp] Failed to create socket.\n"; exit(1);}
+  if (socket_fd == -1) { std::cerr << "[Error] Failed to create socket (main)\n"; exit(1);}
 
   //  bind socket
   status = bind(socket_fd, (struct sockaddr *) &server_addr, sizeof(server_addr));
-  if (status == -1) { std::cerr << "[main.cpp] Binding error.\n"; exit(1); }
+  if (status == -1) { std::cerr << "[Error] Binding error (main)\n"; exit(1); }
 
   // listeniing
   status = listen(socket_fd, connection_limit);
-  if (status == -1) { std::cerr << "[main.cpp] Listening error.\n"; exit(1); }
-  if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int)) == -1) { std::cerr << "[main.cpp] Setsockopt error. \n"; exit(1); }
+  if (status == -1) { std::cerr << "[Error] Listening error (main)\n"; exit(1); }
+  if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int)) == -1) { std::cerr << "[Error] Setsockopt error (main)\n"; exit(1); }
 
-  std::cout << "Waiting for connection...\n";
+  std::cout << "[Info] Waiting for connection...\n";
   socklen_t client_addrlen = sizeof(client_addr);
 
   int client_fd;
   while (true) {
     client_fd = accept(socket_fd, (struct sockaddr *) &client_addr, &client_addrlen);
-    std::cout << "Connection from " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << '\n';
+    std::cout << "[Info] Connection from " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << '\n';
 
     std::thread session_thread(session_thread_func, client_fd, client_addr, ref(external_user_id_map));
     session_thread.detach();
