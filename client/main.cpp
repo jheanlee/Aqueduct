@@ -72,4 +72,6 @@ int main(int argc, char *argv[]) {
     }
   }
   if (flag_service_thread) service_thread.join();
+
+  return 0;
 }

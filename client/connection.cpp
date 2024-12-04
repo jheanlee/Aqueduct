@@ -68,30 +68,30 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
 
 void proxy_thread_func(std::atomic<bool> &flag_kill, int host_fd, sockaddr_in host_addr, int service_fd) {
   std::cout << "Proxying started\n";
-  bool flag_close = false;
   fd_set read_fd;
   timeval timev = {.tv_sec = 0, .tv_usec = 0};
   int ready_for_call = 0, nbytes = 0;
-  char buffer[1024] = {0};
+  char buffer[2048];
 
-  while (!flag_kill && !flag_close) {
+  while (!flag_kill) {
     FD_ZERO(&read_fd);
     FD_SET(service_fd, &read_fd);
     timev.tv_sec = 0; timev.tv_usec = 0;
     ready_for_call = select(service_fd + 1, &read_fd, nullptr, nullptr, &timev);
     if (ready_for_call < 0) {
       std::cerr << "[connection.cpp] Error occurred in select(). \n";
-      close(service_fd); close(host_fd);
-      flag_close = true;
       break;
     } else if (ready_for_call > 0) {
+      memset(buffer, 0, sizeof(buffer));
       nbytes = recv(service_fd, buffer, sizeof(buffer), 0);
       if (nbytes <= 0) {
-        close(service_fd); close(host_fd);
-        flag_close = true;
+        std::cout << "[connection.cpp] Service has closed connection. \n";
         break;
       }
-      send(host_fd, buffer, strlen(buffer), 0);
+      if (send(host_fd, buffer, nbytes, 0) < 0) {
+        std::cerr << "[connection.cpp] Error occurred while sending buffer to user. \n";
+        break;
+      }
     }
 
     FD_ZERO(&read_fd);
@@ -100,19 +100,20 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, int host_fd, sockaddr_in ho
     ready_for_call = select(host_fd + 1, &read_fd, nullptr, nullptr, &timev);
     if (ready_for_call < 0) {
       std::cerr << "[connection.cpp] Error occurred in select(). \n";
-      close(service_fd); close(host_fd);
-      flag_close = true;
       break;
     } else if (ready_for_call > 0) {
+      memset(buffer, 0, sizeof(buffer));
       nbytes = recv(host_fd, buffer, sizeof(buffer), 0);
       if (nbytes <= 0) {
-        close(service_fd); close(host_fd);
-        flag_close = true;
+        std::cout << "[connection.cpp] User has closed connection. \n";
         break;
       }
-      send(service_fd, buffer, strlen(buffer), 0);
+      if (send(service_fd, buffer, nbytes, 0) < 0) {
+        std::cerr << "[connection.cpp] Error occurred while sending buffer to service. \n";
+      }
     }
   }
-  close(host_fd);
-  close(service_fd);
+
+  close(service_fd); close(host_fd);
+  std::cout << "[connection.cpp] Proxying ended\n";
 }
