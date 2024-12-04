@@ -18,6 +18,5 @@
   static const int first_message_timeout_sec = 30;
   static const int heartbeat_sleep_sec = 30;
   static const int heartbeat_timeout_sec = 30;
-  static const int proxy_sleep_sec = 10;
 
 #endif //TUNNEL_CONFIG_HPP

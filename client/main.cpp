@@ -6,8 +6,11 @@
 #include "message.hpp"
 #include "config.hpp"
 #include "connection.hpp"
+#include "opt.hpp"
 
-int main() {
+int main(int argc, char *argv[]) {
+  opt_handler(argc, argv);
+
   int socket_fd = 0, status = 0;
   char inbuffer[1024] = {0}, outbuffer[1024] = {0};
   std::atomic<bool> flag_kill (false);
@@ -22,41 +25,41 @@ int main() {
 
   //  create socket
   socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-  if (socket_fd == -1) { std::cerr << "[main.cpp] Failed to create socket. \n"; exit(1); }
+  if (socket_fd == -1) { std::cerr << "[Error] Failed to create socket (main)\n"; exit(1); }
 
   //  connect
   status = connect(socket_fd, (struct sockaddr *) &server_addr, sizeof(server_addr));
-  if (status == -1) { std::cerr << "[main.cpp] Connection error. \n"; exit(1); }
+  if (status == -1) { std::cerr << "[Error] Unable to connect to host (main)\n"; exit(1); }
 
   try {
     send_message(socket_fd, outbuffer, sizeof(outbuffer), message);
   } catch (int err) {
-    std::cerr << "[main.cpp] Error sending message. \n";
+    std::cerr << "[Warning] Unable to send message (main)\n";
   }
-  std::cout << "To: " << inet_ntoa(server_addr.sin_addr) << ':' << (int)ntohs(server_addr.sin_port) << " " \
-    << "Sent: " << message.type << ", " << message.string << '\n';
+//  std::cout << "To: " << inet_ntoa(server_addr.sin_addr) << ':' << (int)ntohs(server_addr.sin_port) << " " \
+//    << "Sent: " << message.type << ", " << message.string << '\n';
 
   while (!flag_kill) {
     int nbytes;
     try {
       nbytes = recv_message(socket_fd, inbuffer, sizeof(inbuffer), message);
     } catch (int err) {
-      std::cerr << "[main.cpp] Error receiving message.\n";
+      std::cerr << "[Warning] Unable to receive message (main)\n";
     }
     if (nbytes <= 0) {
       close(socket_fd);
-      std::cout << "Connection closed. \n";
+      std::cout << "[Info] Connection to host closed\n";
       flag_kill = true;
       break;
     } else {
-      std::cout << "Recv: " << message.type << ", " << message.string << '\n';
+//      std::cout << "Recv: " << message.type << ", " << message.string << '\n';
 
       switch (message.type) {
         case HEARTBEAT:
           send_heartbeat_message(socket_fd, outbuffer);
           break;
         case STREAM_PORT:
-          std::cout << "Streaming to " << host << ':' << message.string << '\n';
+          std::cout << "[Info] Started streaming to " << host << ':' << message.string << '\n';
           service_thread = std::thread(service_thread_func, std::ref(flag_kill), std::ref(user_id));
           flag_service_thread = true;
           break;
@@ -69,4 +72,6 @@ int main() {
     }
   }
   if (flag_service_thread) service_thread.join();
+
+  return 0;
 }

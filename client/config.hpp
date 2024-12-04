@@ -4,10 +4,9 @@
 
 #ifndef TUNNEL_CONFIG_HPP
   #define TUNNEL_CONFIG_HPP
-  static const char *host = "0.0.0.0";
-  static const int host_main_port = 3000;
+  extern const char *host;
+  extern int host_main_port;
 
-  static const char *local_service = "0.0.0.0";
-  static const int local_service_port = 8000;
-  static const int proxy_sleep_sec = 10;
+  extern const char *local_service;
+  extern int local_service_port;
 #endif //TUNNEL_CONFIG_HPP

@@ -14,10 +14,10 @@ void heartbeat_thread_func(int &client_fd, sockaddr_in &client_addr, std::atomic
   while (!flag_kill) {
     try {
       send_message(client_fd, outbuffer, sizeof(outbuffer), heartbeat_message);
-      std::cout << "To " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " " \
-        << "Sent: " << heartbeat_message.type << ", " << heartbeat_message.string << '\n';
+//      std::cout << "To " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " " \
+//        << "Sent: " << heartbeat_message.type << ", " << heartbeat_message.string << '\n';
     } catch (int err) {
-      std::cerr << "[connection.cpp] Error occurred sending message. \n";
+      std::cerr << "[Warninng] Unable to send message (connection::heartbeat)\n";
     }
 
     //  start timing
@@ -29,8 +29,7 @@ void heartbeat_thread_func(int &client_fd, sockaddr_in &client_addr, std::atomic
       duration = std::chrono::duration_cast<std::chrono::seconds> (std::chrono::system_clock::now() - time_point);
 
       if (duration > std::chrono::seconds(heartbeat_timeout_sec)) {
-        std::cout << inet_ntoa(client_addr.sin_addr) << ':' << (int) ntohs(client_addr.sin_port) << ' ' \
-          << "Heartbeat timeout. \n";
+        std::cout << "[Info] Heartbeat timeout: " << inet_ntoa(client_addr.sin_addr) << ':' << (int) ntohs(client_addr.sin_port) << '\n';
         flag_kill = true;
         return;
       }
@@ -68,8 +67,8 @@ void session_thread_func(int client_fd, sockaddr_in client_addr, std::unordered_
       flag_kill = true;
     } else if (recv_status > 0){
 
-      std::cout << "From "  << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " "     \
-        << "Recv: " << message.type << ", " << message.string << '\n';
+//      std::cout << "From "  << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " "     \
+//        << "Recv: " << message.type << ", " << message.string << '\n';
       switch (message.type) {
         case CONNECT:
           flag_first_msg = true;
@@ -100,7 +99,7 @@ void session_thread_func(int client_fd, sockaddr_in client_addr, std::unordered_
   if (flag_proxy_type) { proxy_thread.join(); }
 
   close(client_fd);
-  std::cout << "Connection with " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " closed.\n";
+  std::cout << "[Info] Connection closed: " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << '\n';
 }
 
 void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::unordered_map<std::string, std::pair<int, sockaddr_in>> &external_user_id, int &client_fd, sockaddr_in &client_addr) {
@@ -115,10 +114,10 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::unordered
 
   //  create socket
   server_proxy_fd = socket(AF_INET, SOCK_STREAM, 0);
-  if (server_proxy_fd == -1) { std::cerr << "[connection.cpp] Failed to create socket. \n"; exit(1); }
+  if (server_proxy_fd == -1) { std::cerr << "[Error] Failed to create socket (connection::proxy_service)\n"; exit(1); }
 
   //  set proxy port
-  if (proxy_port_available.empty()) { std::cerr << "[connection.cpp] no ports available \n"; flag_kill = true; return; }
+  if (proxy_port_available.empty()) { std::cerr << "[Warning] No ports available (connection::proxy_service)\n"; flag_kill = true; return; }
   for (int i = 0; i < proxy_port_available.size(); i++) {
     server_proxy_addr.sin_port = htons(proxy_port_available[i]);
 
@@ -129,7 +128,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::unordered
     if (status == -1) continue;
     if (setsockopt(server_proxy_fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int)) == -1) continue;
 
-    std::cout << "Opened proxy port at: " << proxy_port_available[i] << '\n';
+    std::cout << "[Info] Opened proxy port at: " << proxy_port_available[i] << '\n';
     proxy_port = proxy_port_available[i];
     proxy_port_available.erase(proxy_port_available.begin() + i);
     break;
@@ -141,71 +140,73 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::unordered
   while (!flag_kill) {
     socklen_t external_user_addrlen = sizeof(external_user_addr);
     external_user_fd = accept(server_proxy_fd, (struct sockaddr *) &external_user_addr, &external_user_addrlen);
-    std::cout << "Accepted connection from " << inet_ntoa(external_user_addr.sin_addr) << ':' << (int) ntohs(external_user_addr.sin_port) << '\n';
+    std::cout << "[Info] Accepted external connection: " << inet_ntoa(external_user_addr.sin_addr) << ':' << (int) ntohs(external_user_addr.sin_port) << '\n';
     uuid_generate_random(uuid);
     uuid_unparse_lower(uuid, uuid_str);
     message.type = REDIRECT;
     message.string = std::string(uuid_str);
     external_user_id.try_emplace(message.string, std::pair(external_user_fd, external_user_addr));
 
-    std::cout << "To " << inet_ntoa(client_addr.sin_addr) << ':' << (int) ntohs(client_addr.sin_port) << ' ' \
-      << "Sent: " << message.type << ", " << message.string << '\n';
+//    std::cout << "To " << inet_ntoa(client_addr.sin_addr) << ':' << (int) ntohs(client_addr.sin_port) << ' ' \
+//      << "Sent: " << message.type << ", " << message.string << '\n';
 
     send_message(client_fd, outbuffer, sizeof(outbuffer), message);
     std::this_thread::sleep_for(std::chrono::milliseconds(10));  //  period can be adjusted
   }
 
   close(server_proxy_fd);
+  proxy_port_available.push_back(proxy_port);
 }
 
 void proxy_thread_func(int service_fd, int user_fd, std::atomic<bool> &flag_kill) {
-  std::cout << "Proxying started\n";
+  std::cout << "[Info] Proxying started\n";
   fd_set read_fd;
   timeval timev = {.tv_sec = 0, .tv_usec = 0};
   int ready_for_call = 0, nbytes = 0;
-  char buffer[1024] = {0};
+  char buffer[2048];
 
   while (!flag_kill) {
     FD_ZERO(&read_fd);
     FD_SET(service_fd, &read_fd);
     timev.tv_sec = 0; timev.tv_usec = 0;
     ready_for_call = select(service_fd + 1, &read_fd, nullptr, nullptr, &timev);
-    // std::cerr << "select1\n" << ready_for_call;
     if (ready_for_call < 0) {
-      std::cerr << "[connection.cpp] Error occurred in select(). \n";
-      close(service_fd); close(user_fd);
-      flag_kill = true;
+      std::cerr << "[Warning] Invalid file descriptor passed to select (connection::proxy_thread)\n";
       break;
     } else if (ready_for_call > 0) {
+      memset(buffer, 0, sizeof(buffer));
       nbytes = recv(service_fd, buffer, sizeof(buffer), 0);
       if (nbytes <= 0) {
-        close(service_fd); close(user_fd);
-        flag_kill = true;
+        std::cout << "[Info] Service has closed connection\n";
         break;
       }
-      send(user_fd, buffer, strlen(buffer), 0);
+      if (send(user_fd, buffer, nbytes, 0) < 0) {
+        std::cerr << "[Warning] Unable to send buffer to user (connection:proxy_thread)\n";
+        break;
+      }
     }
 
     FD_ZERO(&read_fd);
     FD_SET(user_fd, &read_fd);
     timev.tv_sec = 0; timev.tv_usec = 0;
     ready_for_call = select(user_fd + 1, &read_fd, nullptr, nullptr, &timev);
-    // std::cerr << "select2\n" << ready_for_call;
     if (ready_for_call < 0) {
-      std::cerr << "[connection.cpp] Error occurred in select(). \n";
-      close(service_fd); close(user_fd);
-      flag_kill = true;
+      std::cerr << "[Warning] Invalid file descriptor passed to select (connection::proxy_thread)\n";
       break;
     } else if (ready_for_call > 0) {
+      memset(buffer, 0, sizeof(buffer));
       nbytes = recv(user_fd, buffer, sizeof(buffer), 0);
       if (nbytes <= 0) {
-        close(service_fd); close(user_fd);
-        flag_kill = true;
+        std::cout << "[Info] External user has closed connection\n";
         break;
       }
-      send(service_fd, buffer, strlen(buffer), 0);
+      if (send(service_fd, buffer, nbytes, 0) < 0) {
+        std::cerr << "[Warning] Error occurred while sending buffer to service (connection:proxy_thread)\n";
+      }
     }
   }
-  close(user_fd);
-  close(service_fd);
+
+  close(service_fd); close(user_fd);
+  flag_kill = true;
+  std::cout << "[Info] Proxying ended\n";
 }
