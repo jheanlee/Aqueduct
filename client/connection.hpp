@@ -5,17 +5,11 @@
 #ifndef TUNNEL_CONNECTION_HPP
   #define TUNNEL_CONNECTION_HPP
 
-  #include <thread>
   #include <atomic>
-  #include <queue>
-  #include <vector>
 
-  #include <unistd.h>
   #include <sys/socket.h>
   #include <arpa/inet.h>
 
-  #include "message.hpp"
-  #include "config.hpp"
   #include "thread_safe_queue.hpp"
 
   void send_heartbeat_message(int &socket_fd, char *buffer);

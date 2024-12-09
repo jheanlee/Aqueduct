@@ -5,16 +5,6 @@
 #ifndef TUNNEL_MESSAGE_HPP
   #define TUNNEL_MESSAGE_HPP
 
-  #include <string>
-  #include <cstring>
-  #include <exception>
-  #include <iostream>
-
-  #include <sys/socket.h>
-  #include <unistd.h>
-
-  #include "shared.hpp"
-
   #define CONNECT     '0'
   #define HEARTBEAT   '1'
   #define STREAM_PORT '2'

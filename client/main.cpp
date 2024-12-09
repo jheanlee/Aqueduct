@@ -2,6 +2,7 @@
 // Created by Jhean Lee on 2024/10/2.
 //
 
+#include <iostream>
 
 #include "message.hpp"
 #include "config.hpp"

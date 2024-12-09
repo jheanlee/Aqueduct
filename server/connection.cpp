@@ -1,8 +1,19 @@
 //
 // Created by Jhean Lee on 2024/10/2.
 //
+#include <iostream>
+#include <thread>
+#include <chrono>
+#include <utility>
+#include <cstring>
+
+#include <unistd.h>
+#include <uuid/uuid.h>
 
 #include "connection.hpp"
+#include "config.hpp"
+#include "message.hpp"
+#include "shared.hpp"
 
 void heartbeat_thread_func(int &client_fd, sockaddr_in &client_addr, std::atomic<bool> &flag_heartbeat_received, std::atomic<bool> &flag_kill) {
   char outbuffer[1024] = {0};

@@ -2,6 +2,10 @@
 // Created by Jhean Lee on 2024/10/2.
 //
 
+#include <cstring>
+#include <iostream>
+#include <sys/socket.h>
+
 #include "message.hpp"
 
 void Message::load(char *buffer) {

@@ -7,3 +7,4 @@ cmake-build-debug-17216221
 bin
 demo_service/.venv
 CMakeFiles
+.vscode

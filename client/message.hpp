@@ -6,11 +6,6 @@
   #define TUNNEL_MESSAGE_HPP
 
   #include <string>
-  #include <cstring>
-  #include <exception>
-  #include <iostream>
-
-  #include <sys/socket.h>
   #include <unistd.h>
 
   #include "shared.hpp"

@@ -5,7 +5,6 @@
 #ifndef TUNNEL_CONFIG_HPP
   #define TUNNEL_CONFIG_HPP
   #include <vector>
-  #include <numeric>
 
   static const char *host = "0.0.0.0";
   static const int main_port = 3000;
