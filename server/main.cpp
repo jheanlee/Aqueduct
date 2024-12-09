@@ -9,7 +9,7 @@
 int main() {
   int socket_fd = 0, status = 0, on = 1;
 
-  struct sockaddr_in server_addr{.sin_family = AF_INET, .sin_port = htons(main_port)}, client_addr;
+  struct sockaddr_in server_addr{.sin_family = AF_INET, .sin_port = htons(main_port)}, client_addr{};
   inet_pton(AF_INET, host, &server_addr.sin_addr);
 
   std::unordered_map<std::string, std::pair<int, sockaddr_in>> external_user_id_map; // id, {fd, addr}
@@ -35,7 +35,7 @@ int main() {
   int client_fd;
   while (true) {
     client_fd = accept(socket_fd, (struct sockaddr *) &client_addr, &client_addrlen);
-    std::cout << "[Info] Connection from " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << '\n';
+    std::cout << "[Info] Connection from: " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << '\n';
 
     std::thread session_thread(session_thread_func, client_fd, client_addr, ref(external_user_id_map));
     session_thread.detach();

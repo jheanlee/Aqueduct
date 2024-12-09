@@ -88,13 +88,12 @@ void session_thread_func(int client_fd, sockaddr_in client_addr, std::unordered_
             proxy_thread = std::thread(proxy_thread_func, client_fd, p.first, std::ref(flag_kill));
             flag_proxy_type = true;
           } else flag_kill = true;
-
-          break;
+          goto proxy;
       }
     }
   }
   flag_kill = true;
-
+  proxy:
   if (flag_connect_type) { heartbeat_thread.join(); proxy_service_port_thread.join(); }
   if (flag_proxy_type) { proxy_thread.join(); }
 
@@ -163,7 +162,7 @@ void proxy_thread_func(int service_fd, int user_fd, std::atomic<bool> &flag_kill
   fd_set read_fd;
   timeval timev = {.tv_sec = 0, .tv_usec = 0};
   int ready_for_call = 0, nbytes = 0;
-  char buffer[2048];
+  char buffer[32768];
 
   while (!flag_kill) {
     FD_ZERO(&read_fd);
