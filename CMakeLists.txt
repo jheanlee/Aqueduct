@@ -26,14 +26,14 @@ add_executable(client
         client/main.cpp
         client/message.cpp
         client/message.hpp
-        client/config.cpp
         client/config.hpp
         client/connection.cpp
         client/connection.hpp
         client/shared.cpp
         client/shared.hpp
         client/opt.cpp
-        client/opt.hpp)
+        client/opt.hpp
+        client/thread_safe_queue.hpp)
 
 if (UNIX AND NOT APPLE)
     find_library(UUID_LIB uuid REQUIRED)

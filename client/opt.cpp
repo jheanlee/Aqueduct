@@ -1,6 +1,8 @@
 //
 // Created by Jhean Lee on 2024/12/2.
 //
+#include <cstdlib>
+#include <iostream>
 
 #include "opt.hpp"
 

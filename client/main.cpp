@@ -2,11 +2,13 @@
 // Created by Jhean Lee on 2024/10/2.
 //
 
+#include <iostream>
 
 #include "message.hpp"
 #include "config.hpp"
 #include "connection.hpp"
 #include "opt.hpp"
+#include "thread_safe_queue.hpp"
 
 int main(int argc, char *argv[]) {
   opt_handler(argc, argv);
@@ -14,7 +16,7 @@ int main(int argc, char *argv[]) {
   int socket_fd = 0, status = 0;
   char inbuffer[1024] = {0}, outbuffer[1024] = {0};
   std::atomic<bool> flag_kill (false);
-  std::queue<std::string> user_id;
+  ThreadSafeQueue<std::string> user_id;
   bool flag_service_thread = false;
 
   std::thread service_thread;
@@ -64,7 +66,7 @@ int main(int argc, char *argv[]) {
           flag_service_thread = true;
           break;
         case REDIRECT:
-          user_id.emplace(message.string);
+          user_id.push(message.string);
           break;
       }
 

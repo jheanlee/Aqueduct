@@ -4,20 +4,11 @@
 
 #ifndef TUNNEL_CONNECTION_HPP
   #define TUNNEL_CONNECTION_HPP
-  #include <iostream>
-  #include <thread>
-  #include <chrono>
+
   #include <atomic>
   #include <unordered_map>
-  #include <utility>
 
-  #include <unistd.h>
   #include <arpa/inet.h>
-  #include <uuid/uuid.h>
-
-  #include "config.hpp"
-  #include "message.hpp"
-  #include "shared.hpp"
 
   void heartbeat_thread_func(int &client_fd, sockaddr_in &client_addr, std::atomic<bool> &flag_heartbeat_received, std::atomic<bool> &flag_kill);
   void session_thread_func(int client_fd, sockaddr_in client_addr, std::unordered_map<std::string, std::pair<int, sockaddr_in>> &external_user_id);

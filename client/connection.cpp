@@ -2,8 +2,16 @@
 // Created by Jhean Lee on 2024/10/30.
 //
 
-#include "connection.hpp"
+#include <thread>
+#include <vector>
+#include <iostream>
+#include <cstring>
 
+#include <unistd.h>
+
+#include "connection.hpp"
+#include "message.hpp"
+#include "config.hpp"
 
 void send_heartbeat_message(int &socket_fd, char *buffer) {
   Message message{.type = HEARTBEAT, .string = ""};
@@ -12,7 +20,7 @@ void send_heartbeat_message(int &socket_fd, char *buffer) {
 //  std::cout << "Sent: " << message.type << ", " << message.string << '\n';
 }
 
-void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &user_id) {
+void service_thread_func(std::atomic<bool> &flag_kill, ThreadSafeQueue<std::string> &user_id) {
   std::vector<std::thread> proxy_threads;
 
   /// service
@@ -71,7 +79,7 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, int host_fd, sockaddr_in ho
   fd_set read_fd;
   timeval timev = {.tv_sec = 0, .tv_usec = 0};
   int ready_for_call = 0, nbytes = 0;
-  char buffer[2048];
+  char buffer[32768];
 
   while (!flag_kill) {
     FD_ZERO(&read_fd);

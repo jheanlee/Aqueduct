@@ -3,6 +3,8 @@ tempCodeRunnerFile.cpp
 *.o
 cmake-build-debug
 cmake-build-debug-ssh
+cmake-build-debug-17216221
 bin
 demo_service/.venv
 CMakeFiles
+.vscode

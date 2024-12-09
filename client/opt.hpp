@@ -4,13 +4,8 @@
 
 #ifndef TUNNEL_OPT_HPP
   #define TUNNEL_OPT_HPP
-  #include <cstdlib>
-  #include <iostream>
 
-  #include <unistd.h>
   #include <getopt.h>
-
-  #include "config.hpp"
 
   static const char* short_options = "H:P:s:p:h";
   static struct option long_options[] = {

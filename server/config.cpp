@@ -1,6 +1,7 @@
 //
 // Created by Jhean Lee on 2024/10/2.
 //
+#include <numeric>
 
 #include "config.hpp"
 
