@@ -127,9 +127,10 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::unordered
   if (server_proxy_fd == -1) { std::cerr << "[Error] Failed to create socket (connection::proxy_service)\n"; exit(1); }
 
   //  set proxy port
-  if (proxy_port_available.empty()) { std::cerr << "[Warning] No ports available (connection::proxy_service)\n"; flag_kill = true; return; }
-  for (int i = 0; i < proxy_port_available.size(); i++) {
-    server_proxy_addr.sin_port = htons(proxy_port_available[i]);
+  std::unique_lock<std::mutex> lock(shared_resources::ports_mutex);
+  if (proxy_ports_available.empty()) { std::cerr << "[Warning] No ports available (connection::proxy_service)\n"; flag_kill = true; return; }
+  for (int i = 0; i < proxy_ports_available.size(); i++) {
+    server_proxy_addr.sin_port = htons(proxy_ports_available.front());
 
     status = bind(server_proxy_fd, (struct sockaddr *) &server_proxy_addr, sizeof(server_proxy_addr));
     if (status == -1) continue;
@@ -138,11 +139,12 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::unordered
     if (status == -1) continue;
     if (setsockopt(server_proxy_fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int)) == -1) continue;
 
-    std::cout << "[Info] Opened proxy port at: " << proxy_port_available[i] << '\n';
-    proxy_port = proxy_port_available[i];
-    proxy_port_available.erase(proxy_port_available.begin() + i);
+    std::cout << "[Info] Opened proxy port at: " << proxy_ports_available.front() << '\n';
+    proxy_port = proxy_ports_available.front();
+    proxy_ports_available.pop();
     break;
   }
+  lock.unlock();
 
   message.string = std::to_string((int) ntohs(server_proxy_addr.sin_port));
   send_message(client_fd, outbuffer, sizeof(outbuffer), message);
@@ -165,7 +167,9 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::unordered
   }
 
   close(server_proxy_fd);
-  proxy_port_available.push_back(proxy_port);
+  std::unique_lock<std::mutex> close_lock(shared_resources::ports_mutex);
+  proxy_ports_available.push(proxy_port);
+  close_lock.unlock();
 }
 
 void proxy_thread_func(int service_fd, int user_fd, std::atomic<bool> &flag_kill) {

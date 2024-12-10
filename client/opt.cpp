@@ -7,7 +7,7 @@
 #include "opt.hpp"
 
 void print_help(const char *binary_name) {
-  printf("Usage: %s [-H|--host-addr address ipv4-address] [-P|--host-port port] [-s|--service-addr ipv4-address] -p|--service-port port\n", binary_name);
+  printf("Usage: %s [-H|--host-addr address ipv4-address] [-P|--host-port port] -s|--service-addr ipv4-address [-p|--service-port port]\n", binary_name);
 }
 
 const char *host = "0.0.0.0";
@@ -55,6 +55,6 @@ void opt_handler(int argc, char * const argv[]) {
     exit(1);
   }
 
-  std::cout << "[INFO] Streaming host set to " << host << ':' << host_main_port << '\n';
-  std::cout << "[INFO] Local service set to " << local_service << ':' << local_service_port << '\n';
+  std::cout << "[Info] Streaming host set to " << host << ':' << host_main_port << '\n';
+  std::cout << "[Info] Local service set to " << local_service << ':' << local_service_port << '\n';
 }

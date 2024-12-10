@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.0)
 project(Tunnel)
 set(CMAKE_CXX_STANDARD 20)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}../../bin)
-
 if (APPLE)
     message(DEBUG "[OS] Apple")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lpthread")
@@ -21,7 +19,9 @@ add_executable(server
         server/message.cpp
         server/message.hpp
         server/shared.cpp
-        server/shared.hpp)
+        server/shared.hpp
+        server/opt.cpp
+        server/opt.hpp)
 add_executable(client
         client/main.cpp
         client/message.cpp
