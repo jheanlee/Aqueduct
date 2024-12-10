@@ -33,9 +33,11 @@ add_executable(client
         client/shared.hpp
         client/opt.cpp
         client/opt.hpp
-        client/thread_safe_queue.hpp)
+        client/thread_safe_queue.hpp
+)
 
 if (UNIX AND NOT APPLE)
     find_library(UUID_LIB uuid REQUIRED)
     target_link_libraries(server PRIVATE ${UUID_LIB})
 endif()
+add_executable(test test.cpp)
