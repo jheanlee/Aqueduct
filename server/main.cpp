@@ -8,16 +8,16 @@
 
 #include "config.hpp"
 #include "connection.hpp"
+#include "opt.hpp"
 
-int main() {
+int main(int argc, char *argv[]) {
   int socket_fd = 0, status = 0, on = 1;
-
-  struct sockaddr_in server_addr{.sin_family = AF_INET, .sin_port = htons(main_port)}, client_addr{};
+  struct sockaddr_in server_addr{.sin_family = AF_INET, .sin_port = htons(control_port)}, client_addr{};
   inet_pton(AF_INET, host, &server_addr.sin_addr);
-
   std::unordered_map<std::string, std::pair<int, sockaddr_in>> external_user_id_map; // id, {fd, addr}
 
-  init_proxy_port_available();
+  opt_handler(argc, argv);
+  init_proxy_ports_available();
 
   //  create socket
   socket_fd = socket(AF_INET, SOCK_STREAM, 0); // ipv4, tcp

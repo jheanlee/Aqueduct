@@ -1,11 +1,12 @@
 //
 // Created by Jhean Lee on 2024/10/2.
 //
-#include <numeric>
 
 #include "config.hpp"
 
-std::vector<int> proxy_port_available(200);
-void init_proxy_port_available() {
-  std::iota(std::begin(proxy_port_available), std::end(proxy_port_available), proxy_port_begin);
+std::queue<int> proxy_ports_available;
+void init_proxy_ports_available() {
+  for (int i = proxy_port_start; i < proxy_port_start + proxy_port_limit; i++) {
+      proxy_ports_available.push(i);
+  }
 }

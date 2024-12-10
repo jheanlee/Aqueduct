@@ -9,7 +9,6 @@
   #include <mutex>
   #include <condition_variable>
 
-
   template<typename T>
   class ThreadSafeQueue {
   private:
@@ -44,10 +43,14 @@
       return value;
     }
 
-
     bool empty() {
       std::lock_guard<std::mutex> lock(queue_mutex);
       return queue.empty();
+    }
+
+    size_t size() {
+      std::lock_guard<std::mutex> lock(queue_mutex);
+      return queue.size();
     }
   };
 

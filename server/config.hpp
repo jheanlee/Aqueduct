@@ -4,15 +4,16 @@
 
 #ifndef TUNNEL_CONFIG_HPP
   #define TUNNEL_CONFIG_HPP
-  #include <vector>
+  #include <queue>
 
   static const char *host = "0.0.0.0";
-  static const int main_port = 3000;
+  extern int control_port;
   static const int connection_limit = 5;
 
-  static const int proxy_port_begin = 51001;
-  extern std::vector<int> proxy_port_available;
-  void init_proxy_port_available();
+  extern int proxy_port_start;
+  extern int proxy_port_limit;
+  extern std::queue<int> proxy_ports_available;
+  void init_proxy_ports_available();
 
   static const int first_message_timeout_sec = 30;
   static const int heartbeat_sleep_sec = 30;

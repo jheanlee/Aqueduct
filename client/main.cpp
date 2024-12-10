@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
           send_heartbeat_message(socket_fd, outbuffer);
           break;
         case STREAM_PORT:
-          std::cout << "[Info] Started streaming to " << host << ':' << message.string << '\n';
+          std::cout << "[Info] Started streaming to " << readable_host << ':' << message.string << '\n';
           service_thread = std::thread(service_thread_func, std::ref(flag_kill), std::ref(user_id));
           flag_service_thread = true;
           break;
