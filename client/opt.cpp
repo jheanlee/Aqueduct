@@ -85,6 +85,6 @@ void opt_handler(int argc, char * const argv[]) {
     exit(1);
   }
 
-  std::cout << "[Info] Streaming host set to " << host << ':' << host_main_port << '\n';
+  std::cout << "[Info] Streaming host set to " << readable_host << '(' << host  << ')' << ':' << host_main_port << '\n';
   std::cout << "[Info] Local service set to " << local_service << ':' << local_service_port << '\n';
 }
