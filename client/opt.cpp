@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <cstring>
+#include <regex>
 
 #include <netdb.h>
 
@@ -30,6 +31,7 @@ int host_main_port = 3000;
 const char *local_service = "0.0.0.0";
 int local_service_port = -1;
 char hostname[NI_MAXHOST];
+std::regex ipv4("(\\d{1,3}(\\.\\d{1,3}){3})");
 
 void opt_handler(int argc, char * const argv[]) {
   int opt;
@@ -46,6 +48,11 @@ void opt_handler(int argc, char * const argv[]) {
     switch (opt) {
       case 'H':
         readable_host = optarg;
+        if (std::regex_match(readable_host, ipv4)) {
+          host = readable_host;
+          break;
+        }
+
         error = getaddrinfo(readable_host, nullptr, &hint, &result);
         if (error != 0) {
           std::cerr << "[Error] Unable to resolve host address (flag --host-addr)\n";
