@@ -7,4 +7,5 @@
 namespace shared_resources {
   std::mutex send_mutex;
   std::mutex ports_mutex;
+  std::mutex external_user_mutex;
 }

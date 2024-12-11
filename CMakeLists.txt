@@ -10,7 +10,7 @@ elseif (UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -luuid")
 endif()
 
-add_executable(server
+add_executable(sphere-linked-server
         server/main.cpp
         server/config.hpp
         server/config.cpp
@@ -22,7 +22,7 @@ add_executable(server
         server/shared.hpp
         server/opt.cpp
         server/opt.hpp)
-add_executable(client
+add_executable(sphere-linked-client
         client/main.cpp
         client/message.cpp
         client/message.hpp
@@ -33,10 +33,9 @@ add_executable(client
         client/shared.hpp
         client/opt.cpp
         client/opt.hpp
-        client/thread_safe_queue.hpp
 )
 
 if (UNIX AND NOT APPLE)
     find_library(UUID_LIB uuid REQUIRED)
-    target_link_libraries(server PRIVATE ${UUID_LIB})
+    target_link_libraries(sphere-linked-server PRIVATE ${UUID_LIB})
 endif()
