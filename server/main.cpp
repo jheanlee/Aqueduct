@@ -12,9 +12,10 @@
 
 int main(int argc, char *argv[]) {
   int socket_fd = 0, status = 0, on = 1;
+  std::unordered_map<std::string, std::pair<int, sockaddr_in>> external_user_id_map; // id, {fd, addr}
+
   struct sockaddr_in server_addr{.sin_family = AF_INET, .sin_port = htons(control_port)}, client_addr{};
   inet_pton(AF_INET, host, &server_addr.sin_addr);
-  std::unordered_map<std::string, std::pair<int, sockaddr_in>> external_user_id_map; // id, {fd, addr}
 
   opt_handler(argc, argv);
   init_proxy_ports_available();

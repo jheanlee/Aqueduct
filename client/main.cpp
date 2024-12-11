@@ -3,21 +3,26 @@
 //
 
 #include <iostream>
+#include <queue>
+#include <string>
+#include <thread>
+#include <chrono>
 
 #include "message.hpp"
 #include "config.hpp"
 #include "connection.hpp"
 #include "opt.hpp"
-#include "thread_safe_queue.hpp"
 
 int main(int argc, char *argv[]) {
   opt_handler(argc, argv);
 
+  bool flag_service_thread = false, flag_server_active = false;
   int socket_fd = 0, status = 0;
   char inbuffer[1024] = {0}, outbuffer[1024] = {0};
-  std::atomic<bool> flag_kill (false);
-  ThreadSafeQueue<std::string> user_id;
-  bool flag_service_thread = false;
+  std::atomic<bool> flag_kill(false);
+  std::queue<std::string> user_id;
+  std::chrono::system_clock::time_point timer;
+  std::chrono::seconds server_response_duration;
 
   std::thread service_thread;
 
@@ -33,28 +38,35 @@ int main(int argc, char *argv[]) {
   status = connect(socket_fd, (struct sockaddr *) &server_addr, sizeof(server_addr));
   if (status == -1) { std::cerr << "[Error] Unable to connect to host (main)\n"; exit(1); }
 
+  //  send connect message
   try {
     send_message(socket_fd, outbuffer, sizeof(outbuffer), message);
   } catch (int err) {
     std::cerr << "[Warning] Unable to send message (main)\n";
   }
-//  std::cout << "To: " << inet_ntoa(server_addr.sin_addr) << ':' << (int)ntohs(server_addr.sin_port) << " " \
-//    << "Sent: " << message.type << ", " << message.string << '\n';
+  timer = std::chrono::system_clock::now();
 
   while (!flag_kill) {
+    if (!flag_server_active) {
+      server_response_duration = std::chrono::duration_cast<std::chrono::seconds> (std::chrono::system_clock::now() - timer);
+      if (server_response_duration > std::chrono::seconds(60)) {
+        std::cerr << "[Error] Host response timed out\n"; flag_kill = true; break;
+      }
+    }
+
     int nbytes;
     try {
       nbytes = recv_message(socket_fd, inbuffer, sizeof(inbuffer), message);
     } catch (int err) {
       std::cerr << "[Warning] Unable to receive message (main)\n";
     }
+
     if (nbytes <= 0) {
       close(socket_fd);
       std::cout << "[Info] Connection to host closed\n";
-      flag_kill = true;
-      break;
+      flag_kill = true; break;
     } else {
-//      std::cout << "Recv: " << message.type << ", " << message.string << '\n';
+      flag_server_active = true;
 
       switch (message.type) {
         case HEARTBEAT:

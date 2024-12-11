@@ -12,7 +12,16 @@ int proxy_port_start = 51000;
 int proxy_port_limit = 200;
 
 void print_help(const char *binary_name) {
-  printf("Usage: %s -p|--control-port port -s|--port-start port -l|--port-limit limit\n", binary_name);
+  printf("sphere-linked-server [OPTIONS]\n"
+         "Options\n"
+         "    -h, --help                      Prints usage\n"
+         "    -p, --control-port <port>       Client will connect to localhost:<port>\n"
+         "                                    Should be identical with --host-port of client\n"
+         "                                    Default is 3000\n"
+         "    -s, --port-start <port>         The proxy port of the first client will be <port>, the last being (<port> + port-limit - 1)\n"
+         "                                    Default is 51000\n"
+         "    -l, --port-limit <count>        Proxy ports will have a limit of <count> ports\n"
+         "                                    Default is 200\n");
 }
 
 void opt_handler(int argc, char * const argv[]) {

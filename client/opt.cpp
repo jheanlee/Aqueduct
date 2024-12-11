@@ -10,7 +10,18 @@
 #include "opt.hpp"
 
 void print_help(const char *binary_name) {
-  printf("Usage: %s [-H|--host-addr address ipv4-address] [-P|--host-port port] -s|--service-addr ipv4-address [-p|--service-port port]\n", binary_name);
+  printf("sphere-linked-client [OPTIONS]\n"
+         "Option\n"
+         "    -h, --help                      Prints usage\n"
+         "    -H, --host-addr <ipv4|domain>   Sets host to <ipv4|domain>\n"
+         "                                    Default is 0.0.0.0\n"
+         "    -P, --host-port <port>          Uses host:<port> as control port (see --control-port of server)\n"
+         "                                    Default is 3000\n"
+         "    -s, --service-addr <ipv4>       Sets the address of service to be tunneled to <ipv4>\n"
+         "                                    Default is 0.0.0.0\n"
+         "    -p, --service-port <port>       Tunnels service:<port> to host\n"
+         "                                    This option is required\n");
+
 }
 
 const char *host = "0.0.0.0";
