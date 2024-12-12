@@ -7,7 +7,7 @@ if (APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lpthread")
 elseif (UNIX)
     message(DEBUG "[OS] Linux")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -luuid")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -luuid -lpthread")
 endif()
 
 add_executable(sphere-linked-server
