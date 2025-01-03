@@ -7,9 +7,13 @@
 #include "opt.hpp"
 #include "config.hpp"
 
-int control_port = 3000;
+bool feature_encrypt = true;
+int control_port = 30330;
+int ssl_control_port = 30331;
 int proxy_port_start = 51000;
 int proxy_port_limit = 200;
+const char *cert_path = "/Users/jheanlee/certificate.crt";
+const char *key_path = "/Users/jheanlee/private.key";
 
 void print_help(const char *binary_name) {
   printf("sphere-linked-server [OPTIONS]\n"

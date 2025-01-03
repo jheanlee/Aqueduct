@@ -37,13 +37,41 @@ int send_message(int &socket_fd, char *buffer, size_t buffer_size, Message &mess
     return -1;
   }
 
-  send(socket_fd, buffer, strlen(buffer), 0);
-  return 0;
+  return send(socket_fd, buffer, strlen(buffer), 0);
+}
+
+int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message) {
+  std::lock_guard<std::mutex> lock(shared_resources::ssl_send_mutex);
+
+  try {
+    std::memset(buffer, '\0', buffer_size);
+    message.dump(buffer);
+  } catch (int err) {
+    std::cerr << "[Warning] Unable to dump message (message)\n";
+    return -1;
+  }
+
+  return SSL_write(ssl, buffer, buffer_size);
 }
 
 int recv_message(int &socket_fd, char *buffer, size_t buffer_size, Message &message) {
   std::memset(buffer, '\0', buffer_size);
   int nbytes = recv(socket_fd, buffer, buffer_size, 0);
+  if (nbytes <= 0) return nbytes;
+
+  try {
+    message.load(buffer);
+  } catch (int err) {
+    std::cerr << "[Warning] Unable to load message (message)\n" << buffer;
+    return -1;
+  }
+
+  return nbytes;
+}
+
+int ssl_recv_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message) {
+  std::memset(buffer, '\0', buffer_size);
+  int nbytes = SSL_read(ssl, buffer, buffer_size);
   if (nbytes <= 0) return nbytes;
 
   try {
@@ -70,6 +98,19 @@ int read_message_non_block(fd_set &read_fd, int &socket_fd, timeval &timev, char
     return 0;
   } else {
     int recv_status = recv_message(socket_fd, buffer, buffer_size, message); // recv_status = nbytes
+    if (recv_status == 0) return -1;
+    return recv_status;
+  }
+  return -2;
+}
+
+int ssl_read_message_non_block(SSL *ssl, char *buffer, size_t buffer_size, Message &message) {
+  int ready_for_call = SSL_has_pending(ssl);
+
+  if (ready_for_call == 0) {
+    return 0;
+  } else {
+    int recv_status = ssl_recv_message(ssl, buffer, buffer_size, message);
     if (recv_status == 0) return -1;
     return recv_status;
   }
