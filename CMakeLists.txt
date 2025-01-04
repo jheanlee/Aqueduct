@@ -23,7 +23,8 @@ add_executable(sphere-linked-server
         server/opt.cpp
         server/opt.hpp
         server/socket_management.cpp
-        server/socket_management.hpp)
+        server/socket_management.hpp
+)
 add_executable(sphere-linked-client
         client/main.cpp
         client/message.cpp
@@ -35,10 +36,13 @@ add_executable(sphere-linked-client
         client/shared.hpp
         client/opt.cpp
         client/opt.hpp
+        client/socket_management.cpp
+        client/socket_management.hpp
 )
 
 find_package(OpenSSL REQUIRED)
 target_link_libraries(sphere-linked-server PRIVATE OpenSSL::SSL)
+target_link_libraries(sphere-linked-client PRIVATE OpenSSL::SSL)
 
 if (UNIX AND NOT APPLE)
     find_library(UUID_LIB uuid REQUIRED)

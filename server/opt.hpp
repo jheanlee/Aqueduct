@@ -7,11 +7,13 @@
 
   #include <getopt.h>
 
-  static const char *short_options = "s:l:p:h";
+  static const char *short_options = "s:l:p:k:c:h";
   static struct option long_options[] = {
           {"port-start",   required_argument, nullptr, 's'},
           {"port-limit",   required_argument, nullptr, 'l'},
           {"control-port", required_argument, nullptr, 'p'},
+          {"tls-private-key", required_argument, nullptr, 'k'},
+          {"tls-cert", required_argument, nullptr, 'c'},
           {"help",         no_argument,       nullptr, 'h'},
           {0,              0,                 0,       0},
   };

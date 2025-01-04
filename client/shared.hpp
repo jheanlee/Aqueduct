@@ -8,6 +8,7 @@
 
   namespace shared_resources {
     extern std::mutex send_mutex;
+    extern std::mutex ssl_send_mutex;
   }
 
 #endif //TUNNEL_SHARED_HPP

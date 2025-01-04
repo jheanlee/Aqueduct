@@ -27,7 +27,7 @@ void print_help(const char *binary_name) {
 
 const char *host = "0.0.0.0";
 const char *readable_host = "0.0.0.0";
-int host_main_port = 3000;
+int host_main_port = 30330;
 const char *local_service = "0.0.0.0";
 int local_service_port = -1;
 char hostname[NI_MAXHOST];

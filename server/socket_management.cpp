@@ -3,6 +3,7 @@
 //
 
 #include <arpa/inet.h>
+#include <openssl/err.h>
 #include "socket_management.hpp"
 
 void init_openssl() {
@@ -20,6 +21,7 @@ SSL_CTX *create_context() {
   if (!ctx) {
     std::cerr << "[Error] Unable to create SSL context (socket_management)\n"; exit(EXIT_FAILURE);
   }
+              SSL_CTX_set_max_proto_version(ctx, TLS1_2_VERSION); // TODO: remove this, for testing
   return ctx;
 }
 

@@ -2,18 +2,18 @@
 // Created by Jhean Lee on 2024/12/10.
 //
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 
 #include "opt.hpp"
 #include "config.hpp"
 
-bool feature_encrypt = true;
-int control_port = 30330;
-int ssl_control_port = 30331;
+//int control_port = 30330;
+int ssl_control_port = 30330;
 int proxy_port_start = 51000;
 int proxy_port_limit = 200;
-const char *cert_path = "/Users/jheanlee/certificate.crt";
-const char *key_path = "/Users/jheanlee/private.key";
+const char *cert_path = "/cert.crt";
+const char *key_path = "/private.key";
 
 void print_help(const char *binary_name) {
   printf("sphere-linked-server [OPTIONS]\n"
@@ -49,11 +49,17 @@ void opt_handler(int argc, char * const argv[]) {
         }
         break;
       case 'p':
-        control_port = std::strtol(optarg, &endptr, 10);
+        ssl_control_port = std::strtol(optarg, &endptr, 10);
         if (*endptr != '\0') {
           std::cerr << "[Error] Invalid character found in control port (flag --control-port)\n";
           exit(1);
         }
+        break;
+      case 'k':
+        key_path = optarg;
+        break;
+      case 'c':
+        cert_path = optarg;
         break;
       case 'h':
         print_help(argv[0]);
@@ -64,5 +70,7 @@ void opt_handler(int argc, char * const argv[]) {
     }
   }
 
-  std::cout << "[Info] Streaming host set to " << host << ':' << control_port << '\n';
+  std::cout << "[Info] TLS private key set to " << key_path << '\n';
+  std::cout << "[Info] TLS certificate set to " << cert_path << '\n';
+  std::cout << "[Info] Streaming host set to " << host << ':' << ssl_control_port << '\n';
 }

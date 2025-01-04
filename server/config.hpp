@@ -8,12 +8,11 @@
 
   #include <string>
 
-  extern bool feature_encrypt;
   extern const char *cert_path;
   extern const char *key_path;
 
   static const char *host = "0.0.0.0";
-  extern int control_port;
+//  extern int control_port;
   extern int ssl_control_port;
   static const int connection_limit = 5;
 
