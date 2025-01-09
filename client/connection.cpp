@@ -77,12 +77,12 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, SSL *host_ssl, int host_fd,
   ssize_t nbytes = 0;
   char buffer[32768];
   fd_set read_fd;
-  timeval timev = {.tv_sec = 0, .tv_usec = 0};
+  timeval timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
 
   while (!flag_kill) {
     // service -> host
     FD_ZERO(&read_fd); FD_SET(service_fd, &read_fd);
-    timev.tv_sec = 0; timev.tv_usec = 0;
+    timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
 
     ready_for_call = select(service_fd + 1, &read_fd, nullptr, nullptr, &timev);
     if (ready_for_call < 0) {
@@ -96,9 +96,9 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, SSL *host_ssl, int host_fd,
 
     // host -> service
     FD_ZERO(&read_fd); FD_SET(host_fd, &read_fd);
-    timev.tv_sec = 0; timev.tv_usec = 0;
+    timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
 
-    ready_for_call = SSL_pending(host_ssl);
+    ready_for_call = select(SSL_get_fd(host_ssl) + 1, &read_fd, nullptr, nullptr, &timev);
     if (ready_for_call > 0) {
       memset(buffer, 0, sizeof(buffer));
       nbytes = SSL_read(host_ssl, buffer, sizeof(buffer));

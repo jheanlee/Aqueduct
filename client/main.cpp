@@ -32,6 +32,9 @@ int main(int argc, char *argv[]) {
   struct sockaddr_in server_addr{.sin_family = AF_INET, .sin_port = htons(host_main_port)};
   inet_pton(AF_INET, host, &server_addr.sin_addr);
 
+  fd_set readfd;
+  timeval timev = {.tv_sec = select_timeout_session_sec, .tv_usec = select_timeout_session_millisec};
+
   //  create, connect socket
   server_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd == -1) { std::cerr << "[Error] Failed to create socket (main)\n"; cleanup_openssl(); exit(EXIT_FAILURE); }
@@ -41,7 +44,7 @@ int main(int argc, char *argv[]) {
   SSL_CTX *ctx = create_context();
   SSL *server_ssl = SSL_new(ctx);
   SSL_set_fd(server_ssl, server_fd);
-  if (SSL_connect(server_ssl) <= 0) { std::cerr << "[Error] Unable to SSL_accept (main)\n"; cleanup_openssl(); exit(EXIT_FAILURE); }
+  if (SSL_connect(server_ssl) <= 0) { std::cerr << "[Error] Unable to SSL_connect (main)\n"; cleanup_openssl(); exit(EXIT_FAILURE); }
 
   std::cout << "[Info] Connected to " << host << ':' << host_main_port << '\n';
 
@@ -59,9 +62,20 @@ int main(int argc, char *argv[]) {
       }
     }
 
+    FD_ZERO(&readfd);
+    FD_SET(server_fd, &readfd);
+    timev = {.tv_sec = select_timeout_session_sec, .tv_usec = select_timeout_session_millisec};
+    status = select(server_fd + 1, &readfd, nullptr, nullptr, &timev);
+
     int nbytes;
     try {
-      nbytes = ssl_recv_message(server_ssl, inbuffer, sizeof(inbuffer), message);
+      if (status < 0) {
+        std::cerr << "[Error] Invalid file descriptor passed to select (main)"; flag_kill = true; break;
+      } else if (status > 0) {
+        nbytes = ssl_recv_message(server_ssl, inbuffer, sizeof(inbuffer), message);
+      } else {
+        continue;
+      }
     } catch (int err) {
       std::cerr << "[Warning] Unable to receive message (main)\n";
     }

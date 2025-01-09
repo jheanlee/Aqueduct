@@ -30,12 +30,17 @@ const char *readable_host = "0.0.0.0";
 int host_main_port = 30330;
 const char *local_service = "0.0.0.0";
 int local_service_port = -1;
+int select_timeout_session_sec = 0;
+int select_timeout_session_millisec = 10;
+int select_timeout_proxy_sec = 0;
+int select_timeout_proxy_millisec = 1;
 char hostname[NI_MAXHOST];
 std::regex ipv4("(\\d{1,3}(\\.\\d{1,3}){3})");
 
 void opt_handler(int argc, char * const argv[]) {
   int opt;
   char *endptr;
+  int timeout = 0;
 
   struct addrinfo *result;
   struct addrinfo *addr_ptr;
@@ -88,6 +93,16 @@ void opt_handler(int argc, char * const argv[]) {
           std::cerr << "[Error] Invalid character found in service port (flag --service-port)\n";
           exit(1);
         }
+        break;
+      case Long_Opts::SESSION_SELECT_TIMEOUT:
+        timeout = std::strtol(optarg, &endptr, 10);
+        select_timeout_session_millisec = timeout % 1000;
+        select_timeout_session_sec = timeout / 1000;
+        break;
+      case Long_Opts::PROXY_SELECT_TIMEOUT:
+        timeout = std::strtol(optarg, &endptr, 10);
+        select_timeout_proxy_millisec = timeout % 1000;
+        select_timeout_proxy_sec = timeout / 1000;
         break;
       case 'h':
         print_help(argv[0]);

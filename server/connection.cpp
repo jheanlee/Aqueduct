@@ -212,6 +212,9 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
   char inbuffer[1024] = {0};
   Message message {.type = -1, .string = ""};
 
+  timeval timev = {.tv_sec = select_timeout_session_sec, .tv_usec = select_timeout_session_millisec};
+  fd_set readfd;
+
   std::thread heartbeat_thread; //  ensure connection is alive
   std::thread proxy_service_port_thread; // external_user <-> proxy_server connection, sends id to service(client)
   std::thread proxy_thread; //  external_user<->proxy_server <=== read/write i/o ===> proxy_server<->client(service)
@@ -224,7 +227,7 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
     //  if client does not send message to server within <first_message_timeout_sec>, close the connection
     if (!flag_first_msg) duration = std::chrono::duration_cast<std::chrono::seconds> (std::chrono::system_clock::now() - time_point);
 
-    recv_status = ssl_read_message_non_block(client_ssl, inbuffer, sizeof(inbuffer), message);
+    recv_status = ssl_read_message_non_block(client_ssl, readfd, timev, inbuffer, sizeof(inbuffer), message);
     if (recv_status < 0) {  //  error or connection closed
       flag_kill = true;
     } else if (recv_status > 0) {
@@ -238,7 +241,6 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
           proxy_service_port_thread = std::thread(proxy_service_port_thread_func, std::ref(flag_kill), std::ref(external_user_id), client_ssl, std::ref(client_addr));
           break;
         case HEARTBEAT:
-
           //  sets heartbeat flag to true (used by heartbeat_thread)
           flag_heartbeat_received = true;
           break;
@@ -283,21 +285,24 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::unordered
   Message message{.type = STREAM_PORT, .string = ""};
 
   //  create socket
-  service_proxy_fd = create_socket(server_proxy_addr);
+  service_proxy_fd = socket(AF_INET, SOCK_STREAM, 0); // ipv4, tcp
+  if (service_proxy_fd == -1) {
+    std::cerr << "[Error] Failed to create socket (socket_management)\n"; exit(EXIT_FAILURE);
+  }
 
   //  set proxy port
   std::unique_lock<std::mutex> ports_assign_lock(shared_resources::ports_mutex);
-  if (proxy_ports_available.empty()) { std::cerr << "[Warning] No ports available (connection::proxy_service)\n"; flag_kill = true; return; }
   while (!proxy_ports_available.empty()) {
     server_proxy_addr.sin_port = htons(proxy_ports_available.front());
 
-    if (bind_socket(service_proxy_fd, server_proxy_addr) < 0) { proxy_ports_available.pop(); continue; }
+    if (bind_socket(service_proxy_fd, server_proxy_addr) != 0) { proxy_ports_available.pop(); continue; }
 
     std::cout << "[Info] Opened proxy port at: " << proxy_ports_available.front() << '\n';
     proxy_port = proxy_ports_available.front();
     proxy_ports_available.pop();
     break;
   }
+  if (proxy_ports_available.empty()) { std::cerr << "[Warning] No ports available (connection::proxy_service)\n"; flag_kill = true; return; }
   ports_assign_lock.unlock();
 
   //  send the port to which the service is streamed to client (external users can connect to this port)
@@ -341,23 +346,26 @@ void proxy_thread_func(SSL *client_ssl, int external_user_fd, std::atomic<bool> 
   char buffer[32768];
 
   fd_set read_fd;
-  timeval timev = {.tv_sec = 0, .tv_usec = 0};
+  timeval timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
 
   while (!flag_kill) {
     // client -> external_user
-    ready_for_call = SSL_pending(client_ssl);
-    if (ready_for_call > 0) {
+    FD_ZERO(&read_fd); FD_SET(SSL_get_fd(client_ssl), &read_fd);
+    timev.tv_sec = select_timeout_proxy_sec; timev.tv_usec = select_timeout_proxy_millisec;
+    ready_for_call = select(SSL_get_fd(client_ssl) + 1, &read_fd, nullptr, nullptr, &timev);
+    if (ready_for_call < 0) {
+      std::cerr << "[Warning] Invalid file descriptor passed to select (connection::proxy_thread)\n";
+      break;
+    } else if (ready_for_call > 0) {
       memset(buffer, 0, sizeof(buffer));
       nbytes = SSL_read(client_ssl, buffer, sizeof(buffer));
-
       if (nbytes <= 0) { std::cout << "[Info] Connection has been closed\n"; break; }
-      if (send(external_user_fd, buffer, nbytes, 0) < 0) { std::cerr << "[Warning] Unable to send buffer to user (connection:proxy_thread)\n"; break; }
+      if (send(external_user_fd, buffer, nbytes, 0) < 0) { std::cerr << "[Warning] Error occurred while sending buffer to user (connection:proxy_thread)\n"; break; }
     }
 
     // external_user -> service
     FD_ZERO(&read_fd); FD_SET(external_user_fd, &read_fd);
-    timev.tv_sec = 0; timev.tv_usec = 0;
-
+    timev.tv_sec = select_timeout_proxy_sec; timev.tv_usec = select_timeout_proxy_millisec;
     ready_for_call = select(external_user_fd + 1, &read_fd, nullptr, nullptr, &timev);
     if (ready_for_call < 0) {
       std::cerr << "[Warning] Invalid file descriptor passed to select (connection::proxy_thread)\n";
@@ -369,9 +377,6 @@ void proxy_thread_func(SSL *client_ssl, int external_user_fd, std::atomic<bool> 
       if (SSL_write(client_ssl, buffer, nbytes) < 0) { std::cerr << "[Warning] Error occurred while sending buffer to client (connection:proxy_thread)\n"; break; }
     }
   }
-
-  SSL_shutdown(client_ssl);
-  SSL_free(client_ssl);
 
   close(external_user_fd);
   flag_kill = true;
