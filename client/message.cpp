@@ -31,7 +31,7 @@ int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &messag
     std::memset(buffer, '\0', buffer_size);
     message.dump(buffer);
   } catch (int err) {
-    std::cerr << "[Warning] Unable to dump message (message)\n";
+    std::cerr << "[Warning] Unable to dump message \033[2;90m(message)\033[0m\n";
     return -1;
   }
 
@@ -46,7 +46,7 @@ int ssl_recv_message(SSL *ssl, char *buffer, size_t buffer_size, Message &messag
   try {
     message.load(buffer);
   } catch (int err) {
-    std::cerr << "[Warning] Unable to load message (message)\n" << buffer;
+    std::cerr << "[Warning] Unable to load message \033[2;90m(message)\033[0m\n" << buffer;
     return -1;
   }
 

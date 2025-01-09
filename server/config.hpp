@@ -5,7 +5,6 @@
 #ifndef TUNNEL_CONFIG_HPP
   #define TUNNEL_CONFIG_HPP
   #include <queue>
-
   #include <string>
 
   extern const char *cert_path;

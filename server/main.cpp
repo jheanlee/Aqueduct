@@ -20,10 +20,8 @@ int main(int argc, char *argv[]) {
   std::thread control_thread;
   std::thread ssl_control_thread;
 
-//  control_thread = std::thread(control_thread_func, std::ref(flag_kill));
   ssl_control_thread = std::thread(ssl_control_thread_func, std::ref(flag_kill));
 
-//  control_thread.join();
   ssl_control_thread.join();
   return 0;
 }

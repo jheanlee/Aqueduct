@@ -7,7 +7,6 @@
   #include <mutex>
 
   namespace shared_resources {
-    extern std::mutex send_mutex;
     extern std::mutex ssl_send_mutex;
     extern std::mutex ports_mutex;
     extern std::mutex external_user_mutex;

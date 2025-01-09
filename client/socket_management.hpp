@@ -4,10 +4,9 @@
 
 #ifndef SPHERE_LINKED_SOCKET_MANAGEMENT_HPP
   #define SPHERE_LINKED_SOCKET_MANAGEMENT_HPP
-#include <iostream>
+  #include <iostream>
 
   #include <openssl/ssl.h>
-  #include <arpa/inet.h>
 
   #include "config.hpp"
 

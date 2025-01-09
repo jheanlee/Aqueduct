@@ -10,7 +10,7 @@
 
 #include "opt.hpp"
 
-void print_help(const char *binary_name) {
+void print_help() {
   printf("sphere-linked-client [OPTIONS]\n"
          "Option\n"
          "    -h, --help                      Prints usage\n"
@@ -105,7 +105,7 @@ void opt_handler(int argc, char * const argv[]) {
         select_timeout_proxy_sec = timeout / 1000;
         break;
       case 'h':
-        print_help(argv[0]);
+        print_help();
         exit(0);
       default:
         std::cerr << "[Error] Unknown flag. For help, please use --help (-h) flag.\n";
@@ -114,7 +114,7 @@ void opt_handler(int argc, char * const argv[]) {
   }
 
   if (local_service_port == -1) {
-    std::cerr << "[Error] Flag --service-port is not set.\n";
+    std::cerr << "[Error] Please specify the port of the service to stream with flag --service-port (-p).\n";
     exit(1);
   }
 
