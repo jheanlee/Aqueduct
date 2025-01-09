@@ -20,15 +20,26 @@ const char *key_path = "\0";
 
 void print_help() {  //  TODO: update
   printf("sphere-linked-server [OPTIONS]\n"
-         "Options\n"
-         "    -h, --help                      Prints usage\n"
-         "    -p, --control-port <port>       Client will connect to localhost:<port>\n"
-         "                                    Should be identical with --host-port of client\n"
-         "                                    Default is 3000\n"
-         "    -s, --port-start <port>         The proxy port of the first client will be <port>, the last being (<port> + port-limit - 1)\n"
-         "                                    Default is 51000\n"
-         "    -l, --port-limit <count>        Proxy ports will have a limit of <count> ports\n"
-         "                                    Default is 200\n");
+         "OPTIONS\n"
+         "    -h, --help                          Prints this page\n"
+         "    -p, --control-port <port>           Client will connect to localhost:<port>\n"
+         "                                        Should be identical with --host-port of client\n"
+         "                                        Default is 30330\n"
+         "    -s, --port-start <port>             The proxy port of the first client will be <port>, the last being (<port> + port-limit - 1)\n"
+         "                                        Default is 51000\n"
+         "    -l, --port-limit <count>            Proxy ports will have a limit of <count> ports\n"
+         "                                        Default is 200\n"
+         "    -k, --tls-key <path>                The path to a private key file used for TLS/SSL encryption\n"
+         "                                        This option is REQUIRED\n"
+         "    -c, --tls-cert <path>               The path to a certification file used for TLS/SSL encryption\n"
+         "                                        This certification must match the key\n"
+         "                                        This option is REQUIRED\n"
+         "    --session-select-timeout <time>     The time select() waits each call when accepting connections, see `man select` for more information\n"
+         "                                        timeval.sec would be (<time> / 1000), and timeval.usec would be (<time> %% 1000)\n"
+         "                                        Default is 10\n"
+         "    --proxy-select-timeout <time>       The time select() waits each call during proxying, see `man select` for more information\n"
+         "                                        timeval.sec would be (<time> / 1000), and timeval.usec would be (<time> %% 1000)\n"
+         "                                        Default is 1\n");
 }
 
 void opt_handler(int argc, char * const argv[]) {

@@ -23,7 +23,7 @@
           {0, 0,                              0,       0},
   };
 
-  void print_help(const char *binary_name);
+  void print_help();
   void opt_handler(int argc, char *const argv[]);
 
 #endif //TUNNEL_OPT_HPP

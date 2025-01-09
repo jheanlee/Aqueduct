@@ -12,16 +12,22 @@
 
 void print_help() {
   printf("sphere-linked-client [OPTIONS]\n"
-         "Option\n"
-         "    -h, --help                      Prints usage\n"
-         "    -H, --host-addr <ipv4|domain>   Sets host to <ipv4|domain>\n"
-         "                                    Default is 0.0.0.0\n"
-         "    -P, --host-port <port>          Uses host:<port> as control port (see --control-port of server)\n"
-         "                                    Default is 3000\n"
-         "    -s, --service-addr <ipv4>       Sets the address of service to be tunneled to <ipv4>\n"
-         "                                    Default is 0.0.0.0\n"
-         "    -p, --service-port <port>       Tunnels service:<port> to host\n"
-         "                                    This option is required\n");
+         "OPTIONS\n"
+         "    -h, --help                          Prints this page\n"
+         "    -H, --host-addr <ipv4|domain>       Sets host to <ipv4|domain>\n"
+         "                                        Default is 0.0.0.0\n"
+         "    -P, --host-port <port>              Uses host:<port> as control port (see --control-port of server)\n"
+         "                                        Default is 3000\n"
+         "    -s, --service-addr <ipv4>           Sets the address of service to be tunneled to <ipv4>\n"
+         "                                        Default is 0.0.0.0\n"
+         "    -p, --service-port <port>           Tunnels service:<port> to host\n"
+         "                                        This option is REQUIRED\n"
+         "    --session-select-timeout <time>     The time select() waits each call when accepting connections, see `man select` for more information\n"
+         "                                        timeval.sec would be (<time> / 1000), and timeval.usec would be (<time> %% 1000)\n"
+         "                                        Default is 10\n"
+         "    --proxy-select-timeout <time>       The time select() waits each call during proxying, see `man select` for more information\n"
+         "                                        timeval.sec would be (<time> / 1000), and timeval.usec would be (<time> %% 1000)\n"
+         "                                        Default is 1\n");
 
 }
 
