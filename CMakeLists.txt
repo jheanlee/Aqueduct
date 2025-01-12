@@ -1,14 +1,7 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 project(Sphere-Linked)
 set(CMAKE_CXX_STANDARD 20)
-
-if (APPLE)
-    message(DEBUG "[OS] Apple")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lpthread")
-elseif (UNIX)
-    message(DEBUG "[OS] Linux")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -luuid -lpthread")
-endif()
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a;.so")
 
 add_executable(sphere-linked-server
         server/main.cpp
@@ -40,6 +33,14 @@ add_executable(sphere-linked-client
         client/socket_management.hpp
 )
 
+find_package(Threads)
+target_link_libraries(sphere-linked-server PRIVATE Threads::Threads)
+target_link_libraries(sphere-linked-client PRIVATE Threads::Threads)
+
+target_link_libraries(sphere-linked-server PRIVATE ${CMAKE_DL_LIBS})
+target_link_libraries(sphere-linked-client PRIVATE ${CMAKE_DL_LIBS})
+
+set(OPENSSL_USE_STATIC_LIBS TRUE)
 find_package(OpenSSL REQUIRED)
 target_link_libraries(sphere-linked-server PRIVATE OpenSSL::SSL)
 target_link_libraries(sphere-linked-client PRIVATE OpenSSL::SSL)

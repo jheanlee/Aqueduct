@@ -8,6 +8,8 @@
 #include <thread>
 #include <chrono>
 
+#include <unistd.h>
+
 #include "message.hpp"
 #include "config.hpp"
 #include "connection.hpp"
