@@ -8,8 +8,6 @@
   #include <openssl/ssl.h>
   #include <arpa/inet.h>
 
-  #include "config.hpp"
-
   void init_openssl();
   void cleanup_openssl();
   SSL_CTX *create_context();
@@ -17,5 +15,7 @@
 
   int bind_socket(int &socket_fd, sockaddr_in &addr);
   int create_socket(sockaddr_in &addr);
+
+  void init_proxy_ports_available();
 
 #endif //SPHERE_LINKED_SOCKET_MANAGEMENT_HPP

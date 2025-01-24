@@ -5,6 +5,8 @@
 #include <iostream>
 
 #include "socket_management.hpp"
+#include "../common/shared.hpp"
+#include "../common/console.hpp"
 
 void init_openssl() {
   SSL_load_error_strings();
@@ -19,14 +21,16 @@ SSL_CTX *create_context() {
   const SSL_METHOD *method = TLS_server_method();
   SSL_CTX *ctx = SSL_CTX_new(method);
   if (!ctx) {
-    std::cerr << "[Error] Failed to create SSL context \033[2;90m(socket_management)\033[0m\n"; exit(EXIT_FAILURE);
+    console(ERROR, SSL_CREATE_CONTEXT_FAILED, nullptr, "socket_management::create_context");
+    exit(EXIT_FAILURE);
   }
   return ctx;
 }
 
 void config_context(SSL_CTX *ctx) {
   if (SSL_CTX_use_certificate_file(ctx, cert_path, SSL_FILETYPE_PEM) <= 0 || SSL_CTX_use_PrivateKey_file(ctx, key_path, SSL_FILETYPE_PEM) <= 0) {
-    std::cerr << "[Error] Failed to load certificate or key \033[2;90m(socket_management)\033[0m\n"; exit(EXIT_FAILURE);
+    console(ERROR, SSL_LOAD_CERT_KEY_FAILED, nullptr, "socket_management::config_context");
+    exit(EXIT_FAILURE);
   }
 }
 
@@ -47,23 +51,30 @@ int bind_socket(int &socket_fd, sockaddr_in &addr) {
 int create_socket(sockaddr_in &addr) {
   int socket_fd = socket(AF_INET, SOCK_STREAM, 0); // ipv4, tcp
   if (socket_fd == -1) {
-    std::cerr << "[Error] Failed to create socket \033[2;90m(socket_management)\033[0m\n"; exit(EXIT_FAILURE);
+    console(ERROR, SOCK_CREATE_FAILED, nullptr, "socket_management::create_socket");
+    exit(EXIT_FAILURE);
   }
 
   int status = bind_socket(socket_fd, addr);
   switch (status) {
     case -1:
-      std::cerr << "[Error] Binding error \033[2;90m(socket_management)\033[0m\n";
+      console(ERROR, SOCK_BIND_FAILED, nullptr, "socket_management::create_socket");
       exit(EXIT_FAILURE);
     case -2:
-      std::cerr << "[Error] Listening error \033[2;90m(socket_management)\033[0m\n";
+      console(ERROR, SOCK_LISTEN_FAILED, nullptr, "socket_management::create_socket");
       exit(EXIT_FAILURE);
     case -3:
-      std::cerr << "[Error] Setsockopt error \033[2;90m(socket_management)\033[0m\n";
+      console(ERROR, SOCK_SETSOCKOPT_FAILED, nullptr, "socket_management::create_socket");
       exit(EXIT_FAILURE);
     default:
       break;
   }
 
   return socket_fd;
+}
+
+void init_proxy_ports_available() {
+  for (int i = proxy_port_start; i < proxy_port_start + proxy_port_limit; i++) {
+    proxy_ports_available.push(i);
+  }
 }

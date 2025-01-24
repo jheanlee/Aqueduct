@@ -3,18 +3,26 @@
 //
 #include <iostream>
 #include <random>
+#include <cstring>
 
 #include <openssl/evp.h>
 
 #include "auth.hpp"
+#include "../common/shared.hpp"
 #include "../tunnel/socket_management.hpp"
+#include "../common/console.hpp"
 
 void open_db(sqlite3 **db) {
   if (sqlite3_open(db_path, db) != SQLITE_OK) {
     std::cerr << "[Error] Unable to open SQLite3 database \033[2;90m(auth::open_db)\033[0m\n";
+    console(ERROR, SQLITE_OPEN_FAILED, sqlite3_errmsg(*db), "auth::open_db");
     cleanup_openssl();
     exit(EXIT_FAILURE);
   }
+}
+
+void close_db(sqlite3 *db) {
+
 }
 
 void create_sqlite_functions(sqlite3 *db) {

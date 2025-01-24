@@ -4,22 +4,24 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_executable(sphere-linked-server
         server/main.cpp
-        server/tunnel/config.hpp
-        server/tunnel/config.cpp
         server/tunnel/connection.cpp
         server/tunnel/connection.hpp
         server/tunnel/message.cpp
         server/tunnel/message.hpp
-        server/tunnel/shared.cpp
-        server/tunnel/shared.hpp
-        server/tunnel/opt.cpp
-        server/tunnel/opt.hpp
+        server/common/shared.cpp
+        server/common/shared.hpp
+        server/common/opt.cpp
+        server/common/opt.hpp
         server/tunnel/socket_management.cpp
         server/tunnel/socket_management.hpp
         server/database/auth.cpp
         server/database/auth.hpp
         server/tunnel/input.cpp
         server/tunnel/input.hpp
+        server/common/console.cpp
+        server/common/console.hpp
+        server/common/signal_handler.cpp
+        server/common/signal_handler.hpp
 )
 add_executable(sphere-linked-client
         client/main.cpp

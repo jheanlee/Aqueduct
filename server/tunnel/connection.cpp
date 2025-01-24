@@ -1,7 +1,6 @@
 //
 // Created by Jhean Lee on 2024/10/2.
 //
-#include <iostream>
 #include <thread>
 #include <chrono>
 #include <utility>
@@ -13,12 +12,12 @@
 
 #include "socket_management.hpp"
 #include "connection.hpp"
-#include "config.hpp"
 #include "message.hpp"
-#include "shared.hpp"
+#include "../common/shared.hpp"
 #include "../database/auth.hpp"
+#include "../common/console.hpp"
 
-void ssl_control_thread_func(std::atomic<bool> &flag_kill) {
+void ssl_control_thread_func() {
   int socket_fd = 0, status = 0;
   fd_set readfd;
   timeval timev = {.tv_sec = select_timeout_session_sec, .tv_usec = select_timeout_session_millisec};
@@ -35,28 +34,37 @@ void ssl_control_thread_func(std::atomic<bool> &flag_kill) {
   //  create, bind, listen socket
   socket_fd = create_socket(server_addr);
 
-  std::cout << "[Info] Started accepting connection from client \033[2;90m(connection::ssl_control)\033[0m\n";
+  console(INFO, CONNECTION_LISTEN_STARTED, nullptr, "connection::control");
 
-  //  accept connections from client, turn plain socket into SSL connections
+  //  accept connections from client
   int client_fd = 0;
   socklen_t client_addrlen = sizeof(client_addr);
-  while (!flag_kill) {
+  while (!shared_resources::global_flag_kill) {
     FD_ZERO(&readfd); FD_SET(socket_fd, &readfd);
     timev = {.tv_sec = select_timeout_session_sec, .tv_usec = select_timeout_session_millisec};
 
     status = select(socket_fd + 1, &readfd, nullptr, nullptr, &timev);
     if (status == 0) continue;
-    else if (status < 0) { std::cerr << "[Error] Invalid file descriptor passed to select \033[2;90m(connection::ssl_control)\033[0m\n"; cleanup_openssl(); exit(EXIT_FAILURE); }
+    else if (status < 0) {
+      console(ERROR, SOCK_SELECT_INVALID_FD, nullptr, "connection::control");
+      continue;
+    }
     client_fd = accept(socket_fd, (struct sockaddr *) &client_addr, &client_addrlen);
 
-    if (client_fd < 0) { std::cerr << "[Error] accept() returned an error accepting connection from client \033[2;90m(connection::ssl_control)\033[0m\n"; cleanup_openssl(); exit(EXIT_FAILURE); }
+    if (client_fd < 0) {
+      console(ERROR, SOCK_ACCEPT_FAILED, nullptr, "connection::control");
+      continue;
+    }
 
     SSL *client_ssl;
     client_ssl = SSL_new(ctx);
     SSL_set_fd(client_ssl, client_fd);
-    if (SSL_accept(client_ssl) <= 0) { std::cerr << "[Error] SSL_accept() returned an error accepting connection from client \033[2;90m(connection::ssl_control)\033[0m\n"; cleanup_openssl(); exit(EXIT_FAILURE); }
+    if (SSL_accept(client_ssl) <= 0) {
+      console(ERROR, SSL_ACCEPT_FAILED, nullptr, "connection::control");
+      continue;
+    }
 
-    std::cout << "[Info] Accepted connection from: " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " \033[2;90m(connection::control)\033[0m\n";
+    console(INFO, CLIENT_CONNECTION_ACCEPTED, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::control");
     std::thread session_thread(ssl_session_thread_func, client_fd, client_ssl, client_addr, std::ref(external_user_id_map));
     session_thread.detach();
   }
@@ -84,7 +92,7 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
   std::chrono::system_clock::time_point time_point = std::chrono::system_clock::now();
   std::chrono::seconds duration = std::chrono::duration_cast<std::chrono::seconds> (std::chrono::system_clock::now() - time_point);
 
-  while (!flag_kill && (flag_first_msg || duration <= std::chrono::seconds(first_message_timeout_sec))) {
+  while (!shared_resources::global_flag_kill && !flag_kill && (flag_first_msg || duration <= std::chrono::seconds(first_message_timeout_sec))) {
 
     //  if client does not send message to server within <first_message_timeout_sec>, close the connection
     if (!flag_first_msg) duration = std::chrono::duration_cast<std::chrono::seconds> (std::chrono::system_clock::now() - time_point);
@@ -117,7 +125,7 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
             lock.unlock();
 
             //  external_user<->proxy_server <=== read/write io ===> proxy_server<->client(service)
-            proxy_thread = std::thread(proxy_thread_func, client_ssl, external_user.first, client_addr, std::ref(flag_kill));
+            proxy_thread = std::thread(proxy_thread_func, client_ssl, external_user.first, external_user.second, client_addr, std::ref(flag_kill));
             flag_proxy_type = true;
           } else flag_kill = true;
           goto proxy;
@@ -137,7 +145,7 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
   SSL_shutdown(client_ssl);
   SSL_free(client_ssl);
   close(client_fd);
-  std::cout << "[Info] Connection to client closed: " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " \033[2;90m(connection::ssl_session)\033[0m\n";
+  console(INFO, CONNECTION_CLOSED, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::sesstion");
 }
 
 void ssl_heartbeat_thread_func(SSL *client_ssl, sockaddr_in &client_addr, std::atomic<bool> &flag_heartbeat_received, std::atomic<bool> &flag_kill) {
@@ -152,7 +160,7 @@ void ssl_heartbeat_thread_func(SSL *client_ssl, sockaddr_in &client_addr, std::a
     try {
       ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), heartbeat_message);
     } catch (int err) {
-      std::cerr << "[Warninng] Unable to send message \033[2;90m(connection::heartbeat)\033[0m\n";
+      console(WARNING, MESSAGE_SEND_FAILED, nullptr, "connection::heartbeat");
     }
 
     //  start timing
@@ -164,7 +172,7 @@ void ssl_heartbeat_thread_func(SSL *client_ssl, sockaddr_in &client_addr, std::a
       heartbeat_duration = std::chrono::duration_cast<std::chrono::seconds> (std::chrono::system_clock::now() - timer);
 
       if (heartbeat_duration > std::chrono::seconds(heartbeat_timeout_sec)) {
-        std::cout << "[Info] Heartbeat timed out: " << inet_ntoa(client_addr.sin_addr) << ':' << (int) ntohs(client_addr.sin_port) << " \033[2;90m(connection::heartbeat)\033[0m\n";
+        console(INFO, HEARTBEAT_TIMEOUT, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::heartbeat");
         flag_kill = true; return;
       }
     }
@@ -174,13 +182,8 @@ void ssl_heartbeat_thread_func(SSL *client_ssl, sockaddr_in &client_addr, std::a
   }
 }
 
-static int callback(void *arg, int argc, char **argv, char **azColName) {
-  if (argc != 1) return SQLITE_ABORT;
-  if (strcmp(azColName[0], "result") != 0 || strcmp(argv[0], "1") != 0) return SQLITE_ABORT;
-  return 0;
-}
-
 void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bool> &flag_auth_received, std::string &auth, std::unordered_map<std::string, std::pair<int, sockaddr_in>> &external_user_id, SSL *client_ssl, sockaddr_in &client_addr) {
+  bool flag_port_found = false;
   int service_proxy_fd = 0, proxy_port = 0, external_user_fd = 0, status = 0;
   char inbuffer[1024] = {0}, outbuffer[1024] = {0}, uuid_str[37] = {0};
 
@@ -203,7 +206,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   if (auth.empty()) {
     message = {.type = AUTH_FAILED, .string = ""};
     ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
-    std::cout << "[INFO] authentication failed: " << inet_ntoa(client_addr.sin_addr) << ':' << (int) ntohs(client_addr.sin_port) << " \033[2;90m(connection::proxy_service)\033[0m\n";
+    console(INFO, AUTHENTICATION_FAILED, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::proxy_service");
     flag_kill = true;
     return;
   }
@@ -217,8 +220,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   if (sqlite3_prepare_v2(shared_resources::db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
     message = {.type = DB_ERROR, .string = ""};
     ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
-    std::cerr << "[Warning] failed to prepare sqlite statement \033[2;90m(connection::proxy_service)\033[0m\n" \
-              << "          additional information: " << sqlite3_errmsg(shared_resources::db) << '\n';
+    console(ERROR, SQLITE_PREPARE_FAILED, sqlite3_errmsg(shared_resources::db), "connection::proxy_service");
     flag_kill = true;
     return;
   }
@@ -227,8 +229,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
       sqlite3_bind_text(stmt, 2, auth.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK) {
     message = {.type = DB_ERROR, .string = ""};
     ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
-    std::cerr << "[Warning] failed to bind sqlite parameters \033[2;90m(connection::proxy_service)\033[0m\n" \
-              << "          additional information: " << sqlite3_errmsg(shared_resources::db) << '\n';
+    console(ERROR, SQLITE_BIND_PARAMETER_FAILED, sqlite3_errmsg(shared_resources::db), "connection::proxy_service");
     sqlite3_finalize(stmt);
     flag_kill = true;
     return;
@@ -240,8 +241,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   } else {
     message = {.type = DB_ERROR, .string = ""};
     ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
-    std::cerr << "[Warning] failed to retrieve data from db \033[2;90m(connection::proxy_service)\033[0m\n" \
-              << "          additional information: " << sqlite3_errmsg(shared_resources::db) << '\n';
+    console(ERROR, SQLITE_RETRIEVE_FAILED, sqlite3_errmsg(shared_resources::db), "connection::proxy_service");
     flag_kill = true;
     return;
   }
@@ -250,11 +250,11 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   if (sql_result == 1) {
     message = {.type = AUTH_SUCCESS, .string = ""};
     ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
-    std::cout << "[INFO] authentication success: " << inet_ntoa(client_addr.sin_addr) << ':' << (int) ntohs(client_addr.sin_port) << " \033[2;90m(connection::proxy_service)\033[0m\n";
+    console(INFO, AUTHENTICATION_SUCCESS, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::proxy_service");
   } else {
     message = {.type = AUTH_FAILED, .string = ""};
     ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
-    std::cout << "[INFO] authentication failed: " << inet_ntoa(client_addr.sin_addr) << ':' << (int) ntohs(client_addr.sin_port) << " \033[2;90m(connection::proxy_service)\033[0m\n";
+    console(INFO, AUTHENTICATION_FAILED, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::proxy_service");
     flag_kill = true;
     return;
   }
@@ -264,22 +264,29 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   //  create socket
   service_proxy_fd = socket(AF_INET, SOCK_STREAM, 0); // ipv4, tcp
   if (service_proxy_fd == -1) {
-    std::cerr << "[Warning] Failed to create socket \033[2;90m(connection::proxy_service)\033[0m\n"; flag_kill = true; return;
+    console(ERROR, SOCK_CREATE_FAILED, nullptr, "connection::proxy_service");
+    flag_kill = true;
+    return;
   }
 
   //  set proxy port
   std::unique_lock<std::mutex> ports_assign_lock(shared_resources::ports_mutex);
-  while (!proxy_ports_available.empty()) {
+  while (!flag_port_found && !proxy_ports_available.empty()) {
     server_proxy_addr.sin_port = htons(proxy_ports_available.front());
 
     if (bind_socket(service_proxy_fd, server_proxy_addr) != 0) { proxy_ports_available.pop(); continue; }
 
-    std::cout << "[Info] Opened proxy port at: " << host << ':' << proxy_ports_available.front() << " \033[2;90m(connection::proxy_service)\033[0m\n";
+    console(INFO, PROXY_PORT_NEW, (std::string(host) + ':' + std::to_string(proxy_ports_available.front())).c_str(), "connection::proxy_service");
     proxy_port = proxy_ports_available.front();
     proxy_ports_available.pop();
-    break;
+    flag_port_found = true;
   }
-  if (proxy_ports_available.empty()) { std::cerr << "[Warning] No ports available \033[2;90m(connection::proxy_service)\033[0m\n"; flag_kill = true; return; }
+  if (proxy_ports_available.empty() && !flag_port_found) {
+    console(WARNING, NO_PORT_AVAILABLE, nullptr, "connection::proxy_service");
+    flag_kill = true;
+    ports_assign_lock.unlock();
+    return;
+  }
   ports_assign_lock.unlock();
 
   //  send the port to which the service is streamed to client (external users can connect to this port)
@@ -293,11 +300,16 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
 
     status = select(service_proxy_fd + 1, &readfd, nullptr, nullptr, &timev);
     if (status == 0) continue;
-    else if (status < 0) { std::cerr << "[Warning] Invalid file descriptor passed to select \033[2;90m(connection::proxy_service)\033[0m\n"; close(service_proxy_fd); flag_kill = true; return; }
+    else if (status < 0) {
+      console(ERROR, SOCK_SELECT_INVALID_FD, nullptr, "connection::proxy_service");
+      close(service_proxy_fd);
+      flag_kill = true;
+      return;
+    }
 
     socklen_t external_user_addrlen = sizeof(external_user_addr);
     external_user_fd = accept(service_proxy_fd, (struct sockaddr *) &external_user_addr, &external_user_addrlen);
-    std::cout << "[Info] Accepted external connection from: " << inet_ntoa(external_user_addr.sin_addr) << ':' << (int) ntohs(external_user_addr.sin_port) << " \033[2;90m(connection::proxy_service)\033[0m\n";
+    console(INFO, EXTERNAL_CONNECTION_ACCEPTED, (std::string(inet_ntoa(external_user_addr.sin_addr)) + ':' + std::to_string((int)ntohs(external_user_addr.sin_port))).c_str(), "connection::proxy_service");
 
     //  generate uuid for this connection
     uuid_generate_random(uuid);
@@ -321,8 +333,8 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   ports_close_lock.unlock();
 }
 
-void proxy_thread_func(SSL *client_ssl, int external_user_fd, sockaddr_in client_addr, std::atomic<bool> &flag_kill) {
-  std::cout << "[Info] Proxying started to client: " << inet_ntoa(client_addr.sin_addr) << ':' << (int) ntohs(client_addr.sin_port) << " \033[2;90m(connnection::proxy)\033[0m\n";
+void proxy_thread_func(SSL *client_ssl, int external_user_fd, sockaddr_in external_user_addr, sockaddr_in client_addr, std::atomic<bool> &flag_kill) {
+  console(INFO, PROXYING_STARTED, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port)) + " <=> " + std::string(inet_ntoa(external_user_addr.sin_addr)) + ':' + std::to_string((int)ntohs(external_user_addr.sin_port))).c_str(), "connection::proxy");
 
   int ready_for_call = 0;
   ssize_t nbytes = 0;
@@ -337,13 +349,20 @@ void proxy_thread_func(SSL *client_ssl, int external_user_fd, sockaddr_in client
     timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
     ready_for_call = select(SSL_get_fd(client_ssl) + 1, &read_fd, nullptr, nullptr, &timev);
     if (ready_for_call < 0) {
-      std::cerr << "[Warning] Invalid file descriptor passed to select() \033[2;90m(connection::proxy_thread)\033[0m\n";
+      console(ERROR, SOCK_SELECT_INVALID_FD, nullptr, "connection::proxy");
       break;
     } else if (ready_for_call > 0) {
       memset(buffer, 0, sizeof(buffer));
       nbytes = SSL_read(client_ssl, buffer, sizeof(buffer));
-      if (nbytes <= 0) { std::cout << "[Info] Connection has been closed by client \033[2;90m(connection::proxy_thread)\033[0m\n"; break; }
-      if (send(external_user_fd, buffer, nbytes, 0) < 0) { std::cerr << "[Warning] Error occurred while sending buffer to user \033[2;90m(connection:proxy_thread)\033[0m\n"; break; }
+      if (nbytes <= 0) {
+        console(INFO, CONNECTION_CLOSED_BY_CLIENT, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::proxy");
+        break;
+      }
+
+      if (send(external_user_fd, buffer, nbytes, 0) < 0) {
+        console(ERROR, BUFFER_SEND_ERROR_TO_CLIENT, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port)) + " => " + std::string(inet_ntoa(external_user_addr.sin_addr)) + ':' + std::to_string((int)ntohs(external_user_addr.sin_port))).c_str(), "connection::proxy");
+        break;
+      }
     }
 
     // external_user -> service
@@ -351,17 +370,23 @@ void proxy_thread_func(SSL *client_ssl, int external_user_fd, sockaddr_in client
     timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
     ready_for_call = select(external_user_fd + 1, &read_fd, nullptr, nullptr, &timev);
     if (ready_for_call < 0) {
-      std::cerr << "[Warning] Invalid file descriptor passed to select \033[2;90m(connection::proxy_thread)\033[0m\n";
+      console(ERROR, SOCK_SELECT_INVALID_FD, nullptr, "connection::proxy");
       break;
     } else if (ready_for_call > 0) {
       memset(buffer, 0, sizeof(buffer));
       nbytes = recv(external_user_fd, buffer, sizeof(buffer), 0);
-      if (nbytes <= 0) { std::cout << "[Info] Connection has been closed by external user \033[2;90m(connection::proxy_thread)\033[0m\n"; break; }
-      if (SSL_write(client_ssl, buffer, nbytes) < 0) { std::cerr << "[Warning] Error occurred while sending buffer to client \033[2;90m(connection:proxy_thread)\033[0m\n"; break; }
+      if (nbytes <= 0) {
+        console(INFO, CONNECTION_CLOSED_BY_EXTERNAL_USER, (std::string(inet_ntoa(external_user_addr.sin_addr)) + ':' + std::to_string((int)ntohs(external_user_addr.sin_port))).c_str(), "connection::proxy");
+        break;
+      }
+      if (SSL_write(client_ssl, buffer, nbytes) < 0) {
+        console(ERROR, BUFFER_SEND_ERROR_TO_CLIENT, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port)) + " <= " + std::string(inet_ntoa(external_user_addr.sin_addr)) + ':' + std::to_string((int)ntohs(external_user_addr.sin_port))).c_str(), "connection::proxy");
+        break;
+      }
     }
   }
 
   close(external_user_fd);
   flag_kill = true;
-  std::cout << "[Info] Proxying to client ended: " << inet_ntoa(client_addr.sin_addr) << ':' << (int) ntohs(client_addr.sin_port) << " \033[2;90m(connection::proxy)\033[0m\n";
+  console(INFO, PROXYING_ENDED, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port)) + " <=> " + std::string(inet_ntoa(external_user_addr.sin_addr)) + ':' + std::to_string((int)ntohs(external_user_addr.sin_port))).c_str(), "connection::proxy");
 }

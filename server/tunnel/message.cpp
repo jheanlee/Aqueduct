@@ -3,12 +3,11 @@
 //
 #include <string>
 #include <cstring>
-#include <iostream>
 #include <unistd.h>
 
-#include "shared.hpp"
+#include "../common/shared.hpp"
 #include "message.hpp"
-#include "config.hpp"
+#include "../common/console.hpp"
 
 void Message::load(char *buffer) {
   if (strlen(buffer) == 0) throw -1;
@@ -33,7 +32,7 @@ int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &messag
     std::memset(buffer, '\0', buffer_size);
     message.dump(buffer);
   } catch (int err) {
-    std::cerr << "[Warning] Unable to dump message \033[2;90m(message)\033[0m\n";
+    console(WARNING, MESSAGE_DUMP_FAILED, nullptr, "message::message::dump");
     return -1;
   }
 
@@ -48,7 +47,7 @@ int ssl_recv_message(SSL *ssl, char *buffer, size_t buffer_size, Message &messag
   try {
     message.load(buffer);
   } catch (int err) {
-    std::cerr << "[Warning] Unable to load message \033[2;90m(message)\033[0m\n" << buffer;
+    console(WARNING, MESSAGE_LOAD_FAILED, nullptr, "message::message::load");
     return -1;
   }
 
@@ -63,7 +62,7 @@ int ssl_read_message_non_block(SSL *ssl, fd_set &read_fd, timeval &timev, char *
   int ready_for_call = select(SSL_get_fd(ssl) + 1, &read_fd, nullptr, nullptr, &timev);
 
   if (ready_for_call < 0) {
-      std::cerr << "[Warning] Invalid file descriptor passed to select \033[2;90m(message)\033[0m\n";
+    console(ERROR, SOCK_SELECT_INVALID_FD, nullptr, "message::read_message_non_block");
       return -1;
   } else if (ready_for_call == 0) {
     return 0;
@@ -72,5 +71,4 @@ int ssl_read_message_non_block(SSL *ssl, fd_set &read_fd, timeval &timev, char *
     if (recv_status == 0) return -1;
     return recv_status;
   }
-  return -2;
 }

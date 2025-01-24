@@ -3,10 +3,11 @@
 //
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
+#include <string>
 
 #include "opt.hpp"
-#include "config.hpp"
+#include "shared.hpp"
+#include "console.hpp"
 
 int ssl_control_port = 30330;
 int proxy_port_start = 51000;
@@ -18,11 +19,13 @@ int select_timeout_proxy_millisec = 1;
 const char *cert_path = "\0";
 const char *key_path = "\0";
 const char *db_path = "./sphere-linked.sqlite";
+bool verbose = false;
 
-void print_help() {
+static void print_help() {
   printf("sphere-linked-server [OPTIONS]\n"
          "OPTIONS\n"
          "    -h, --help                          Prints this page\n"
+         "    -V, --verbose                       Outputs detailed information\n"
          "    -p, --control-port <port>           Client will connect to localhost:<port>\n"
          "                                        Should be identical with --host-port of client\n"
          "                                        Default is 30330\n"
@@ -55,43 +58,43 @@ void opt_handler(int argc, char * const argv[]) {
       case 's':
         proxy_port_start = std::strtol(optarg, &endptr, 10);
         if (*endptr != '\0') {
-          std::cerr << "[Error] Invalid character found in starting port (flag --port-start)\n";
+          console(ERROR, PORT_INVALID_CHARACTER, nullptr, "opt::opt_handler");
           exit(EXIT_FAILURE);
         }
         if (proxy_port_start <= 0 || proxy_port_start > 65535) {
-          std::cerr << "[Error] Invalid starting port value (flag --port-start)\n";
+          console(ERROR, PORT_INVALID_RANGE, nullptr, "opt::opt_handler");
           exit(EXIT_FAILURE);
         }
         if (proxy_port_start < 1024) {
-          std::cerr << "[Warning] Well-known ports (range 0-1023) passed to starting port (flag --port-start). These ports are typically restricted by system\n";
+          console(WARNING, PORT_WELL_KNOWN, nullptr, "opt::opt_handler");
         }
         break;
       case 'l':
         proxy_port_limit = std::strtol(optarg, &endptr, 10);
         if (*endptr != '\0') {
-          std::cerr << "[Error] Invalid character found in port number limit (flag --port-limit)\n";
+          console(ERROR, PORT_INVALID_CHARACTER, nullptr, "opt::opt_handler");
           exit(EXIT_FAILURE);
         }
         if (proxy_port_limit < 1) {
-          std::cerr << "[Error] Invalid port limit (flag --port-limit)\n";
+          console(ERROR, PORT_INVALID_LIMIT, nullptr, "opt::opt_handler");
           exit(EXIT_FAILURE);
         }
         if (proxy_port_start + proxy_port_limit - 1 > 65535) {
-          std::cerr << "[Warning] Proxy port numbers may exceed port range (65535) (flag --port-limit)\n";
+          console(WARNING, PORT_INVALID_RANGE, nullptr, "opt::opt_handler");
         }
         break;
       case 'p':
         ssl_control_port = std::strtol(optarg, &endptr, 10);
         if (*endptr != '\0') {
-          std::cerr << "[Error] Invalid character found in control port (flag --control-port)\n";
+          console(ERROR, PORT_INVALID_CHARACTER, nullptr, "opt::opt_handler");
           exit(EXIT_FAILURE);
         }
-        if (proxy_port_start <= 0 || proxy_port_start > 65535) {
-          std::cerr << "[Error] Invalid starting port value (flag --control-port)\n";
+        if (ssl_control_port <= 0 || ssl_control_port > 65535) {
+          console(ERROR, PORT_INVALID_RANGE, nullptr, "opt::opt_handler");
           exit(EXIT_FAILURE);
         }
-        if (proxy_port_start < 1024) {
-          std::cerr << "[Warning] Well-known ports (range 0-1023) passed to starting port (flag --control-port). These ports are typically restricted by system\n";
+        if (ssl_control_port < 1024) {
+          console(WARNING, PORT_WELL_KNOWN, nullptr, "opt::opt_handler");
         }
         break;
       case 'k':
@@ -113,26 +116,29 @@ void opt_handler(int argc, char * const argv[]) {
       case 'd':
         db_path = optarg;
         break;
+      case 'V':
+        verbose = true;
+        break;
       case 'h':
         print_help();
         exit(EXIT_SUCCESS);
       default:
-        std::cerr << "[Error] Unknown flag. For help, please use the --help (-h) flag.\n";
+        console(ERROR, OPTION_UNKNOWN, nullptr, "opt::opt_handler");
         exit(EXIT_FAILURE);
     }
   }
 
   if (strlen(key_path) == 0 || key_path[0] == '\0') {
-    std::cerr << "[Error] Please specify your private key path with the --tls-key (-k) flag\n";
+    console(ERROR, OPTION_KEY_NOT_SET, nullptr, "opt::opt_handler");
     exit(EXIT_FAILURE);
   }
   if (strlen(cert_path) == 0 || cert_path[0] == '\0') {
-    std::cerr << "[Error] Please specify your certificate path with the --tls-cert (-c) flag\n";
+    console(ERROR, OPTION_CERT_NOT_SET, nullptr, "opt::opt_handler");
     exit(EXIT_FAILURE);
   }
 
-  std::cout << "[Info] TLS private key set to " << key_path << '\n';
-  std::cout << "[Info] TLS certificate set to " << cert_path << '\n';
-  std::cout << "[Info] Database file set to " << db_path << '\n';
-  std::cout << "[Info] Streaming host set to " << host << ':' << ssl_control_port << '\n';
+  console(INFO, INFO_CERT_PATH, cert_path, "opt::opt_handler");
+  console(INFO, INFO_KEY_PATH, key_path, "opt::opt_handler");
+  console(INFO, INFO_DB_PATH, db_path, "opt::opt_handler");
+  console(INFO, INFO_HOST, (std::string(host) + ':' + std::to_string(ssl_control_port)).c_str(), "opt::opt_handler");
 }
