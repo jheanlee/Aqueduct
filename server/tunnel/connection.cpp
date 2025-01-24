@@ -6,6 +6,7 @@
 #include <chrono>
 #include <utility>
 #include <cstring>
+#include <string>
 
 #include <unistd.h>
 #include <uuid/uuid.h>
@@ -15,6 +16,7 @@
 #include "config.hpp"
 #include "message.hpp"
 #include "shared.hpp"
+#include "../database/auth.hpp"
 
 void ssl_control_thread_func(std::atomic<bool> &flag_kill) {
   int socket_fd = 0, status = 0;
@@ -64,6 +66,80 @@ void ssl_control_thread_func(std::atomic<bool> &flag_kill) {
   SSL_CTX_free(ctx);
 }
 
+void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_addr, std::unordered_map<std::string, std::pair<int, sockaddr_in>> &external_user_id) {
+  bool flag_first_msg = false, flag_connect_type = false, flag_proxy_type = false;
+  std::atomic<bool> flag_heartbeat_received(false), flag_kill(false), flag_auth_received(false);
+  int recv_status = 0;
+  char inbuffer[1024] = {0};
+  std::string auth;
+  Message message {.type = -1, .string = ""};
+
+  timeval timev = {.tv_sec = select_timeout_session_sec, .tv_usec = select_timeout_session_millisec};
+  fd_set readfd;
+
+  std::thread heartbeat_thread; //  ensure connection is alive
+  std::thread proxy_service_port_thread; // external_user <-> proxy_server connection, sends id to service(client)
+  std::thread proxy_thread; //  external_user<->proxy_server <=== read/write i/o ===> proxy_server<->client(service)
+
+  std::chrono::system_clock::time_point time_point = std::chrono::system_clock::now();
+  std::chrono::seconds duration = std::chrono::duration_cast<std::chrono::seconds> (std::chrono::system_clock::now() - time_point);
+
+  while (!flag_kill && (flag_first_msg || duration <= std::chrono::seconds(first_message_timeout_sec))) {
+
+    //  if client does not send message to server within <first_message_timeout_sec>, close the connection
+    if (!flag_first_msg) duration = std::chrono::duration_cast<std::chrono::seconds> (std::chrono::system_clock::now() - time_point);
+
+    recv_status = ssl_read_message_non_block(client_ssl, readfd, timev, inbuffer, sizeof(inbuffer), message);
+    if (recv_status < 0) {  //  error or connection closed
+      flag_kill = true;
+    } else if (recv_status > 0) {
+      switch (message.type) {
+        case CONNECT:
+          flag_first_msg = true; flag_connect_type = true;
+
+          //  ensure connection is alive
+          heartbeat_thread = std::thread(ssl_heartbeat_thread_func, client_ssl, std::ref(client_addr), std::ref(flag_heartbeat_received), std::ref(flag_kill));
+          //  external_user <-> proxy_server connection, sends id to service(client)
+          proxy_service_port_thread = std::thread(proxy_service_port_thread_func, std::ref(flag_kill), std::ref(flag_auth_received), std::ref(auth), std::ref(external_user_id), client_ssl, std::ref(client_addr));
+          break;
+        case HEARTBEAT:
+          //  sets heartbeat flag to true (used by heartbeat_thread)
+          flag_heartbeat_received = true;
+          break;
+        case REDIRECT:
+          flag_first_msg = true;
+
+          if (external_user_id.find(message.string) != external_user_id.end()) {
+            //  open proxy_thread for client-accepted external_user (by id)
+            std::unique_lock<std::mutex> lock(shared_resources::external_user_mutex);
+            std::pair<int, sockaddr_in> external_user = external_user_id[message.string];
+            external_user_id.erase(message.string);
+            lock.unlock();
+
+            //  external_user<->proxy_server <=== read/write io ===> proxy_server<->client(service)
+            proxy_thread = std::thread(proxy_thread_func, client_ssl, external_user.first, client_addr, std::ref(flag_kill));
+            flag_proxy_type = true;
+          } else flag_kill = true;
+          goto proxy;
+        case AUTHENTICATION:
+          flag_auth_received = true;
+          auth = message.string;
+          break;
+      }
+    }
+  }
+  flag_kill = true;
+  proxy:
+  if (flag_connect_type) { heartbeat_thread.join(); proxy_service_port_thread.join(); }
+  if (flag_proxy_type) { proxy_thread.join(); }
+
+  //  clean up
+  SSL_shutdown(client_ssl);
+  SSL_free(client_ssl);
+  close(client_fd);
+  std::cout << "[Info] Connection to client closed: " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " \033[2;90m(connection::ssl_session)\033[0m\n";
+}
+
 void ssl_heartbeat_thread_func(SSL *client_ssl, sockaddr_in &client_addr, std::atomic<bool> &flag_heartbeat_received, std::atomic<bool> &flag_kill) {
   char outbuffer[1024] = {0};
   Message heartbeat_message = {.type = HEARTBEAT, .string = ""};
@@ -98,78 +174,15 @@ void ssl_heartbeat_thread_func(SSL *client_ssl, sockaddr_in &client_addr, std::a
   }
 }
 
-void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_addr, std::unordered_map<std::string, std::pair<int, sockaddr_in>> &external_user_id) {
-  bool flag_first_msg = false, flag_connect_type = false, flag_proxy_type = false;
-  std::atomic<bool> flag_heartbeat_received(false), flag_kill(false);
-  int recv_status = 0;
-  char inbuffer[1024] = {0};
-  Message message {.type = -1, .string = ""};
-
-  timeval timev = {.tv_sec = select_timeout_session_sec, .tv_usec = select_timeout_session_millisec};
-  fd_set readfd;
-
-  std::thread heartbeat_thread; //  ensure connection is alive
-  std::thread proxy_service_port_thread; // external_user <-> proxy_server connection, sends id to service(client)
-  std::thread proxy_thread; //  external_user<->proxy_server <=== read/write i/o ===> proxy_server<->client(service)
-
-  std::chrono::system_clock::time_point time_point = std::chrono::system_clock::now();
-  std::chrono::seconds duration = std::chrono::duration_cast<std::chrono::seconds> (std::chrono::system_clock::now() - time_point);
-
-  while (!flag_kill && (flag_first_msg || duration <= std::chrono::seconds(first_message_timeout_sec))) {
-
-    //  if client does not send message to server within <first_message_timeout_sec>, close the connection
-    if (!flag_first_msg) duration = std::chrono::duration_cast<std::chrono::seconds> (std::chrono::system_clock::now() - time_point);
-
-    recv_status = ssl_read_message_non_block(client_ssl, readfd, timev, inbuffer, sizeof(inbuffer), message);
-    if (recv_status < 0) {  //  error or connection closed
-      flag_kill = true;
-    } else if (recv_status > 0) {
-      switch (message.type) {
-        case CONNECT:
-          flag_first_msg = true; flag_connect_type = true;
-
-          //  ensure connection is alive
-          heartbeat_thread = std::thread(ssl_heartbeat_thread_func, client_ssl, std::ref(client_addr), std::ref(flag_heartbeat_received), std::ref(flag_kill));
-          //  external_user <-> proxy_server connection, sends id to service(client)
-          proxy_service_port_thread = std::thread(proxy_service_port_thread_func, std::ref(flag_kill), std::ref(external_user_id), client_ssl, std::ref(client_addr));
-          break;
-        case HEARTBEAT:
-          //  sets heartbeat flag to true (used by heartbeat_thread)
-          flag_heartbeat_received = true;
-          break;
-        case REDIRECT:
-          flag_first_msg = true;
-
-          if (external_user_id.find(message.string) != external_user_id.end()) {
-            //  open proxy_thread for client-accepted external_user (by id)
-            std::unique_lock<std::mutex> lock(shared_resources::external_user_mutex);
-            std::pair<int, sockaddr_in> external_user = external_user_id[message.string];
-            external_user_id.erase(message.string);
-            lock.unlock();
-
-            //  external_user<->proxy_server <=== read/write io ===> proxy_server<->client(service)
-            proxy_thread = std::thread(proxy_thread_func, client_ssl, external_user.first, client_addr, std::ref(flag_kill));
-            flag_proxy_type = true;
-          } else flag_kill = true;
-          goto proxy;
-      }
-    }
-  }
-  flag_kill = true;
-  proxy:
-  if (flag_connect_type) { heartbeat_thread.join(); proxy_service_port_thread.join(); }
-  if (flag_proxy_type) { proxy_thread.join(); }
-
-  //  clean up
-  SSL_shutdown(client_ssl);
-  SSL_free(client_ssl);
-  close(client_fd);
-  std::cout << "[Info] Connection to client closed: " << inet_ntoa(client_addr.sin_addr) << ':' << (int)ntohs(client_addr.sin_port) << " \033[2;90m(connection::ssl_session)\033[0m\n";
+static int callback(void *arg, int argc, char **argv, char **azColName) {
+  if (argc != 1) return SQLITE_ABORT;
+  if (strcmp(azColName[0], "result") != 0 || strcmp(argv[0], "1") != 0) return SQLITE_ABORT;
+  return 0;
 }
 
-void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::unordered_map<std::string, std::pair<int, sockaddr_in>> &external_user_id, SSL *client_ssl, sockaddr_in &client_addr) {
+void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bool> &flag_auth_received, std::string &auth, std::unordered_map<std::string, std::pair<int, sockaddr_in>> &external_user_id, SSL *client_ssl, sockaddr_in &client_addr) {
   int service_proxy_fd = 0, proxy_port = 0, external_user_fd = 0, status = 0;
-  char outbuffer[1024] = {0}, uuid_str[37] = {0};
+  char inbuffer[1024] = {0}, outbuffer[1024] = {0}, uuid_str[37] = {0};
 
   fd_set readfd;
   timeval timev = {.tv_sec = select_timeout_session_sec, .tv_usec = select_timeout_session_millisec};
@@ -178,12 +191,80 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::unordered
   inet_pton(AF_INET, host, &server_proxy_addr.sin_addr);
 
   uuid_t uuid;
-  Message message{.type = STREAM_PORT, .string = ""};
+  Message message = {.type = AUTHENTICATION, .string = ""};
+
+  //  authentication
+  std::string salt;
+  generate_salt(salt, 8);
+  message.string = salt;
+  ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
+
+  while (!flag_kill && !flag_auth_received) std::this_thread::yield();
+  if (auth.empty()) {
+    message = {.type = AUTH_FAILED, .string = ""};
+    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
+    std::cout << "[INFO] authentication failed: " << inet_ntoa(client_addr.sin_addr) << ':' << (int) ntohs(client_addr.sin_port) << " \033[2;90m(connection::proxy_service)\033[0m\n";
+    flag_kill = true;
+    return;
+  }
+
+  const char sql[256] = "SELECT EXISTS("
+                        "SELECT auth.token FROM auth "
+                        "WHERE base32_encode(sha256(auth.token || ?)) = ?"
+                        ") AS sql_result";
+  sqlite3_stmt *stmt = nullptr;
+
+  if (sqlite3_prepare_v2(shared_resources::db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+    message = {.type = DB_ERROR, .string = ""};
+    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
+    std::cerr << "[Warning] failed to prepare sqlite statement \033[2;90m(connection::proxy_service)\033[0m\n" \
+              << "          additional information: " << sqlite3_errmsg(shared_resources::db) << '\n';
+    flag_kill = true;
+    return;
+  }
+
+  if (sqlite3_bind_text(stmt, 1, salt.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK ||
+      sqlite3_bind_text(stmt, 2, auth.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK) {
+    message = {.type = DB_ERROR, .string = ""};
+    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
+    std::cerr << "[Warning] failed to bind sqlite parameters \033[2;90m(connection::proxy_service)\033[0m\n" \
+              << "          additional information: " << sqlite3_errmsg(shared_resources::db) << '\n';
+    sqlite3_finalize(stmt);
+    flag_kill = true;
+    return;
+  }
+
+  int sql_result = 0;
+  if (sqlite3_step(stmt) == SQLITE_ROW) {
+    sql_result = sqlite3_column_int(stmt, 0);
+  } else {
+    message = {.type = DB_ERROR, .string = ""};
+    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
+    std::cerr << "[Warning] failed to retrieve data from db \033[2;90m(connection::proxy_service)\033[0m\n" \
+              << "          additional information: " << sqlite3_errmsg(shared_resources::db) << '\n';
+    flag_kill = true;
+    return;
+  }
+  sqlite3_finalize(stmt);
+
+  if (sql_result == 1) {
+    message = {.type = AUTH_SUCCESS, .string = ""};
+    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
+    std::cout << "[INFO] authentication success: " << inet_ntoa(client_addr.sin_addr) << ':' << (int) ntohs(client_addr.sin_port) << " \033[2;90m(connection::proxy_service)\033[0m\n";
+  } else {
+    message = {.type = AUTH_FAILED, .string = ""};
+    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
+    std::cout << "[INFO] authentication failed: " << inet_ntoa(client_addr.sin_addr) << ':' << (int) ntohs(client_addr.sin_port) << " \033[2;90m(connection::proxy_service)\033[0m\n";
+    flag_kill = true;
+    return;
+  }
+
+  message = {.type = STREAM_PORT, .string = ""};
 
   //  create socket
   service_proxy_fd = socket(AF_INET, SOCK_STREAM, 0); // ipv4, tcp
   if (service_proxy_fd == -1) {
-    std::cerr << "[Error] Failed to create socket \033[2;90m(connection::proxy_service)\033[0m\n"; exit(EXIT_FAILURE);
+    std::cerr << "[Warning] Failed to create socket \033[2;90m(connection::proxy_service)\033[0m\n"; flag_kill = true; return;
   }
 
   //  set proxy port
@@ -212,7 +293,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::unordered
 
     status = select(service_proxy_fd + 1, &readfd, nullptr, nullptr, &timev);
     if (status == 0) continue;
-    else if (status < 0) { std::cerr << "[Error] Invalid file descriptor passed to select \033[2;90m(connection::ssl_control)\033[0m\n"; cleanup_openssl(); exit(EXIT_FAILURE); }
+    else if (status < 0) { std::cerr << "[Warning] Invalid file descriptor passed to select \033[2;90m(connection::proxy_service)\033[0m\n"; close(service_proxy_fd); flag_kill = true; return; }
 
     socklen_t external_user_addrlen = sizeof(external_user_addr);
     external_user_fd = accept(service_proxy_fd, (struct sockaddr *) &external_user_addr, &external_user_addrlen);
@@ -230,14 +311,13 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::unordered
     user_id_lock.unlock();
 
     ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
 
   //  clean up
   close(service_proxy_fd);
   //  mark the port as available
   std::unique_lock<std::mutex> ports_close_lock(shared_resources::ports_mutex);
-  proxy_ports_available.push(proxy_port);
+  if (proxy_port != 0) proxy_ports_available.push(proxy_port);
   ports_close_lock.unlock();
 }
 

@@ -3,26 +3,32 @@
 //
 
 #ifndef TUNNEL_MESSAGE_HPP
-#define TUNNEL_MESSAGE_HPP
+  #define TUNNEL_MESSAGE_HPP
 
-#include <openssl/ssl.h>
+  #include <openssl/ssl.h>
 
-#define CONNECT     '0'
-#define HEARTBEAT   '1'
-#define STREAM_PORT '2'
-#define REDIRECT    '3'
+  #define MESSAGE_MAX_STRING_SIZE 127
 
-class Message {
-public:
-  char type;
-  std::string string;
+  #define CONNECT         '0'
+  #define HEARTBEAT       '1'
+  #define STREAM_PORT     '2'
+  #define REDIRECT        '3'
+  #define AUTHENTICATION  '4'
+  #define AUTH_SUCCESS    '5'
+  #define AUTH_FAILED     '6'
+  #define DB_ERROR        '7'
 
-  void load(char *buffer);
-  void dump(char *buffer) const;
+  class Message {
+  public:
+    char type;
+    std::string string;
 
-};
+    void load(char *buffer);
+    void dump(char *buffer) const;
 
-int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message);
-int ssl_recv_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message);
+  };
+
+  int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message);
+  int ssl_recv_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message);
 
 #endif //TUNNEL_MESSAGE_HPP

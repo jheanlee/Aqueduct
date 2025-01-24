@@ -27,7 +27,10 @@ void print_help() {
          "                                        Default is 10\n"
          "    --proxy-select-timeout <time>       The time select() waits each call during proxying, see `man select` for more information\n"
          "                                        timeval.sec would be (<time> / 1000), and timeval.usec would be (<time> %% 1000)\n"
-         "                                        Default is 1\n");
+         "                                        Default is 1\n"
+         "    -t, --token <token>                 Token for accessing server\n"
+         "                                        This option is REQUIRED\n"
+  );
 
 }
 
@@ -42,6 +45,7 @@ int select_timeout_proxy_sec = 0;
 int select_timeout_proxy_millisec = 1;
 char hostname[NI_MAXHOST];
 std::regex ipv4("(\\d{1,3}(\\.\\d{1,3}){3})");
+std::string token;
 
 void opt_handler(int argc, char * const argv[]) {
   int opt;
@@ -110,6 +114,9 @@ void opt_handler(int argc, char * const argv[]) {
         select_timeout_proxy_millisec = timeout % 1000;
         select_timeout_proxy_sec = timeout / 1000;
         break;
+      case 't':
+        token = std::string(optarg);
+        break;
       case 'h':
         print_help();
         exit(0);
@@ -121,6 +128,10 @@ void opt_handler(int argc, char * const argv[]) {
 
   if (local_service_port == -1) {
     std::cerr << "[Error] Please specify the port of the service to stream with flag --service-port (-p).\n";
+    exit(1);
+  }
+  if (token.empty()) {
+    std::cerr << "[Error] Please enter an access token with flag --token (-t).\n";
     exit(1);
   }
 

@@ -10,7 +10,7 @@
 
 void Message::load(char *buffer) {
   if (strlen(buffer) == 0) throw -1;
-  if (strlen(buffer) > 64) throw -1;
+  if (strlen(buffer) > MESSAGE_MAX_STRING_SIZE + 1) throw -1;
 
   type = buffer[0];
   string = std::string(buffer + 1);
@@ -18,7 +18,7 @@ void Message::load(char *buffer) {
 
 void Message::dump(char *buffer) const {
   if (type == '\0') throw -1;
-  if (string.size() > 63) throw -1;
+  if (string.size() > MESSAGE_MAX_STRING_SIZE) throw -1;
 
   buffer[0] = type;
   strcat(buffer, string.c_str());

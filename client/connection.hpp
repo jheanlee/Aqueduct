@@ -13,6 +13,7 @@
   #include <openssl/ssl.h>
 
   void send_heartbeat_message(SSL *server_ssl, char *buffer);
+  void send_auth_message(SSL *server_ssl, char *buffer, size_t buffer_size, std::string &salt);
   void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &user_id);
   void proxy_thread_func(std::atomic<bool> &flag_kill, SSL *host_ssl, int host_fd, sockaddr_in host_addr, int service_fd);
 

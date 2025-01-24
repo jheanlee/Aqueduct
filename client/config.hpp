@@ -15,4 +15,6 @@
 
   extern const char *local_service;
   extern int local_service_port;
+
+  extern std::string token;
 #endif //TUNNEL_CONFIG_HPP

@@ -17,8 +17,9 @@ int select_timeout_proxy_sec = 0;
 int select_timeout_proxy_millisec = 1;
 const char *cert_path = "\0";
 const char *key_path = "\0";
+const char *db_path = "./sphere-linked.sqlite";
 
-void print_help() {  //  TODO: update
+void print_help() {
   printf("sphere-linked-server [OPTIONS]\n"
          "OPTIONS\n"
          "    -h, --help                          Prints this page\n"
@@ -39,7 +40,9 @@ void print_help() {  //  TODO: update
          "                                        Default is 10\n"
          "    --proxy-select-timeout <time>       The time select() waits each call during proxying, see `man select` for more information\n"
          "                                        timeval.sec would be (<time> / 1000), and timeval.usec would be (<time> %% 1000)\n"
-         "                                        Default is 1\n");
+         "                                        Default is 1\n"
+         "    -d, --database <path>               The path to database file\n"
+         "                                        Default is ./sphere-linked.sqlite\n");
 }
 
 void opt_handler(int argc, char * const argv[]) {
@@ -107,6 +110,9 @@ void opt_handler(int argc, char * const argv[]) {
         select_timeout_proxy_millisec = timeout % 1000;
         select_timeout_proxy_sec = timeout / 1000;
         break;
+      case 'd':
+        db_path = optarg;
+        break;
       case 'h':
         print_help();
         exit(EXIT_SUCCESS);
@@ -127,5 +133,6 @@ void opt_handler(int argc, char * const argv[]) {
 
   std::cout << "[Info] TLS private key set to " << key_path << '\n';
   std::cout << "[Info] TLS certificate set to " << cert_path << '\n';
+  std::cout << "[Info] Database file set to " << db_path << '\n';
   std::cout << "[Info] Streaming host set to " << host << ':' << ssl_control_port << '\n';
 }

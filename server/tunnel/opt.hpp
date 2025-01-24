@@ -7,7 +7,7 @@
 
   #include <getopt.h>
 
-  static const char *short_options = "s:l:p:k:c:h";
+  static const char *short_options = "s:l:p:k:c:d:h";
   enum Long_Opts {
     SESSION_SELECT_TIMEOUT = 256,
     PROXY_SELECT_TIMEOUT = 257,
@@ -20,6 +20,7 @@
           {"tls-cert", required_argument, nullptr, 'c'},
           {"session-select-timeout", required_argument, nullptr, Long_Opts::SESSION_SELECT_TIMEOUT},
           {"proxy-select-timeout", required_argument, nullptr, Long_Opts::PROXY_SELECT_TIMEOUT},
+          {"database", required_argument, nullptr, 'd'},
           {"help",         no_argument,       nullptr, 'h'},
           {0,              0,                 0,       0},
   };

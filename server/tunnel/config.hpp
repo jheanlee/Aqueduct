@@ -28,4 +28,6 @@
   extern int select_timeout_proxy_sec;
   extern int select_timeout_proxy_millisec;
 
+  extern const char *db_path;
+
 #endif //TUNNEL_CONFIG_HPP

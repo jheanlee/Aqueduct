@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
 
   std::thread service_thread;
 
-  Message message{.type = CONNECT, .string = ""}; // TODO: send token
+  Message message{.type = CONNECT, .string = ""};
   struct sockaddr_in server_addr{.sin_family = AF_INET, .sin_port = htons(host_main_port)};
   inet_pton(AF_INET, host, &server_addr.sin_addr);
 
@@ -64,11 +64,11 @@ int main(int argc, char *argv[]) {
       }
     }
 
+    //  reading message without blocking
     FD_ZERO(&readfd);
     FD_SET(server_fd, &readfd);
     timev = {.tv_sec = select_timeout_session_sec, .tv_usec = select_timeout_session_millisec};
     status = select(server_fd + 1, &readfd, nullptr, nullptr, &timev);
-
     int nbytes;
     try {
       if (status < 0) {
@@ -103,6 +103,21 @@ int main(int argc, char *argv[]) {
           break;
         case REDIRECT:
           user_id.push(message.string);
+          break;
+        case AUTHENTICATION:
+          send_auth_message(server_ssl, outbuffer, sizeof(outbuffer), message.string);
+          std::cout << "[Info] Authentication request sent \033[2;90m(main)\033[0m\n";
+          break;
+        case AUTH_SUCCESS:
+          std::cout << "[Info] Authentication success \033[2;90m(main)\033[0m\n";
+          break;
+        case AUTH_FAILED:
+          flag_kill = true;
+          std::cerr << "[Error] Authentication failed \033[2;90m(main)\033[0m\n";
+          break;
+        case DB_ERROR:
+          flag_kill = true;
+          std::cerr << "[Error] Server encountered an error with database \033[2;90m(main)\033[0m\n";
           break;
       }
 

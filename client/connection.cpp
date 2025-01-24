@@ -20,6 +20,75 @@ void send_heartbeat_message(SSL *server_ssl, char *buffer) {
   ssl_send_message(server_ssl, buffer, sizeof(buffer), message);
 }
 
+static int sha256(const unsigned char *data, size_t data_size, unsigned char *output, size_t output_size) {
+  EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+  if (ctx == nullptr) {
+    return -1;
+  }
+  if (!EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr)) {
+    EVP_MD_CTX_free(ctx);
+    return -2;
+  }
+  if (!EVP_DigestUpdate(ctx, data, strlen(reinterpret_cast<const char *>(data)))) {
+    EVP_MD_CTX_free(ctx);
+    return -3;
+  }
+
+  if (output_size < 32) return -4;
+
+  unsigned int hash_len;
+  if (!EVP_DigestFinal_ex(ctx, output, &hash_len)) {
+    EVP_MD_CTX_free(ctx);
+    return -5;
+  }
+
+  EVP_MD_CTX_free(ctx);
+  return hash_len;
+}
+
+static const char base32_encoding_table[33] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+static int encode_base32(const unsigned char *src, size_t src_size, std::string &output) {
+  int output_index = 0;
+  int bit_buffer = 0;
+  int bit_counter = 0;
+
+  output = "";
+
+  for (int i = 0; i < src_size; i++) {
+    bit_buffer = (bit_buffer << 8) | src[i];
+    bit_counter += 8;
+
+    while (bit_counter >= 5) {
+      output.push_back(base32_encoding_table[(bit_buffer >> (bit_counter - 5)) & 0x1F]);
+      output_index++;
+      bit_counter -= 5;
+    }
+  }
+
+  if (bit_counter > 0) {
+    output.push_back(base32_encoding_table[(bit_buffer << (5 - bit_counter)) & 0x1F]);
+    output_index++;
+  }
+
+  while (output_index % 8 != 0) {
+    output.push_back('=');
+    output_index++;
+  }
+
+  return output_index;
+}
+
+void send_auth_message(SSL *server_ssl, char *buffer, size_t buffer_size, std::string &salt) {
+  Message message{.type = AUTHENTICATION, .string = token + salt};
+  unsigned char hash[EVP_MAX_MD_SIZE];
+  int len = sha256(reinterpret_cast<const unsigned char *>(message.string.c_str()), message.string.size(), hash, sizeof(hash));
+  if (len < 0) {
+    std::cerr << "[Error] unable to hash sha256 \033[2;90m(connection::auth)\033[0m\n\n";
+  }
+  encode_base32(hash, len, message.string);
+  ssl_send_message(server_ssl, buffer, buffer_size, message);
+}
+
 void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &user_id) {
   std::vector<std::thread> proxy_threads;
 
