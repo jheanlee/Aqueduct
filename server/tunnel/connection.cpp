@@ -333,18 +333,19 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   ports_close_lock.unlock();
 }
 
+//  TODO: use poll()
 void proxy_thread_func(SSL *client_ssl, int external_user_fd, sockaddr_in external_user_addr, sockaddr_in client_addr, std::atomic<bool> &flag_kill) {
   console(INFO, PROXYING_STARTED, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port)) + " <=> " + std::string(inet_ntoa(external_user_addr.sin_addr)) + ':' + std::to_string((int)ntohs(external_user_addr.sin_port))).c_str(), "connection::proxy");
 
-  int ready_for_call = 0;
+  int ready_for_call = 0, ready_for_write = 0;
   ssize_t nbytes = 0;
   char buffer[32768];
 
-  fd_set read_fd;
+  fd_set read_fd, write_fd;
   timeval timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
 
   while (!flag_kill) {
-    // client -> external_user
+    //  client -> external_user
     FD_ZERO(&read_fd); FD_SET(SSL_get_fd(client_ssl), &read_fd);
     timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
     ready_for_call = select(SSL_get_fd(client_ssl) + 1, &read_fd, nullptr, nullptr, &timev);
@@ -352,6 +353,7 @@ void proxy_thread_func(SSL *client_ssl, int external_user_fd, sockaddr_in extern
       console(ERROR, SOCK_SELECT_INVALID_FD, nullptr, "connection::proxy");
       break;
     } else if (ready_for_call > 0) {
+      //  read from client
       memset(buffer, 0, sizeof(buffer));
       nbytes = SSL_read(client_ssl, buffer, sizeof(buffer));
       if (nbytes <= 0) {
@@ -359,13 +361,26 @@ void proxy_thread_func(SSL *client_ssl, int external_user_fd, sockaddr_in extern
         break;
       }
 
+      //  send to external_user
+      FD_ZERO(&write_fd); FD_SET(external_user_fd, &write_fd);
+      timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
+      ready_for_write = select(external_user_fd + 1, nullptr, &write_fd, nullptr, &timev);
+      while (!flag_kill && ready_for_write == 0) {
+        FD_ZERO(&write_fd); FD_SET(external_user_fd, &write_fd);
+        timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
+        ready_for_write = select(external_user_fd + 1, nullptr, &write_fd, nullptr, &timev);
+      }
+      if (ready_for_write < 0) {
+        console(ERROR, SOCK_SELECT_INVALID_FD, nullptr, "connection::proxy");
+        break;
+      }
       if (send(external_user_fd, buffer, nbytes, 0) < 0) {
         console(ERROR, BUFFER_SEND_ERROR_TO_CLIENT, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port)) + " => " + std::string(inet_ntoa(external_user_addr.sin_addr)) + ':' + std::to_string((int)ntohs(external_user_addr.sin_port))).c_str(), "connection::proxy");
         break;
       }
     }
 
-    // external_user -> service
+    //  external_user -> client
     FD_ZERO(&read_fd); FD_SET(external_user_fd, &read_fd);
     timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
     ready_for_call = select(external_user_fd + 1, &read_fd, nullptr, nullptr, &timev);
@@ -373,10 +388,25 @@ void proxy_thread_func(SSL *client_ssl, int external_user_fd, sockaddr_in extern
       console(ERROR, SOCK_SELECT_INVALID_FD, nullptr, "connection::proxy");
       break;
     } else if (ready_for_call > 0) {
+      //  read from external user
       memset(buffer, 0, sizeof(buffer));
       nbytes = recv(external_user_fd, buffer, sizeof(buffer), 0);
       if (nbytes <= 0) {
         console(INFO, CONNECTION_CLOSED_BY_EXTERNAL_USER, (std::string(inet_ntoa(external_user_addr.sin_addr)) + ':' + std::to_string((int)ntohs(external_user_addr.sin_port))).c_str(), "connection::proxy");
+        break;
+      }
+
+      //  send to client
+      FD_ZERO(&write_fd); FD_SET(SSL_get_fd(client_ssl), &write_fd);
+      timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
+      ready_for_write = select(SSL_get_fd(client_ssl) + 1, nullptr, &write_fd, nullptr, &timev);
+      while (!flag_kill && ready_for_write == 0) {
+        FD_ZERO(&write_fd); FD_SET(SSL_get_fd(client_ssl), &write_fd);
+        timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
+        ready_for_write = select(SSL_get_fd(client_ssl) + 1, nullptr, &write_fd, nullptr, &timev);
+      }
+      if (ready_for_write < 0) {
+        console(ERROR, SOCK_SELECT_INVALID_FD, nullptr, "connection::proxy");
         break;
       }
       if (SSL_write(client_ssl, buffer, nbytes) < 0) {
