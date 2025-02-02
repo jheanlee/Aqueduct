@@ -5,8 +5,9 @@
 #include <cstring>
 #include <iostream>
 
-#include "shared.hpp"
+#include "../common/shared.hpp"
 #include "message.hpp"
+#include "../common/console.hpp"
 
 void Message::load(char *buffer) {
   if (strlen(buffer) == 0) throw -1;
@@ -31,7 +32,7 @@ int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &messag
     std::memset(buffer, '\0', buffer_size);
     message.dump(buffer);
   } catch (int err) {
-    std::cerr << "[Warning] Unable to dump message \033[2;90m(message)\033[0m\n";
+    console(ERROR, MESSAGE_DUMP_FAILED, nullptr, "message::message::dump");
     return -1;
   }
 
@@ -46,7 +47,7 @@ int ssl_recv_message(SSL *ssl, char *buffer, size_t buffer_size, Message &messag
   try {
     message.load(buffer);
   } catch (int err) {
-    std::cerr << "[Warning] Unable to load message \033[2;90m(message)\033[0m\n" << buffer;
+    console(ERROR, MESSAGE_LOAD_FAILED, nullptr, "message::message::load");
     return -1;
   }
 

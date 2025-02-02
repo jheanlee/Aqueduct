@@ -76,6 +76,5 @@
     SIGNAL,
   };
 
-void console(Level level, Code code, const char *detail, const std::string &function);
-
+  void console(Level level, Code code, const char *detail, const std::string &function);
 #endif //SPHERE_LINKED_CONSOLE_HPP

@@ -2,13 +2,13 @@
 // Created by Jhean Lee on 2024/12/2.
 //
 #include <cstdlib>
-#include <iostream>
 #include <cstring>
 #include <regex>
 
 #include <netdb.h>
 
 #include "opt.hpp"
+#include "console.hpp"
 
 void print_help() {
   printf("sphere-linked-client [OPTIONS]\n"
@@ -46,6 +46,7 @@ int select_timeout_proxy_millisec = 1;
 char hostname[NI_MAXHOST];
 std::regex ipv4("(\\d{1,3}(\\.\\d{1,3}){3})");
 std::string token;
+bool verbose = false;
 
 void opt_handler(int argc, char * const argv[]) {
   int opt;
@@ -70,15 +71,15 @@ void opt_handler(int argc, char * const argv[]) {
 
         error = getaddrinfo(readable_host, nullptr, &hint, &result);
         if (error != 0) {
-          std::cerr << "[Error] Unable to resolve host address (flag --host-addr)\n";
-          exit(1);
+          console(ERROR, RESOLVE_HOST_FAILED, nullptr, "option");
+          exit(EXIT_FAILURE);
         }
         addr_ptr = result;
         while (addr_ptr != nullptr) {
           error = getnameinfo(addr_ptr->ai_addr, addr_ptr->ai_addrlen, hostname, NI_MAXHOST, NULL, 0, 0);
           if (error != 0) {
-            std::cerr << "[Error] Unable to resolve host address (flag --host-addr)";
-            exit(1);
+            console(ERROR, RESOLVE_HOST_FAILED, nullptr, "option");
+            exit(EXIT_FAILURE);
           }
           if (*hostname != '\0') {
             host = hostname;
@@ -90,8 +91,12 @@ void opt_handler(int argc, char * const argv[]) {
       case 'P':
         host_main_port = std::strtol(optarg, &endptr, 10);
         if (*endptr != '\0') {
-          std::cerr << "[Error] Invalid character found in host port (flag --host-port)\n";
-          exit(1);
+          console(ERROR, PORT_INVALID_CHARACTER, nullptr, "option");
+          exit(EXIT_FAILURE);
+        }
+        if (host_main_port < 1 || host_main_port > 65535) {
+          console(ERROR, PORT_INVALID_RANGE, nullptr, "option");
+          exit(EXIT_FAILURE);
         }
         break;
       case 's':
@@ -100,8 +105,11 @@ void opt_handler(int argc, char * const argv[]) {
       case 'p':
         local_service_port = std::strtol(optarg, &endptr, 10);
         if (*endptr != '\0') {
-          std::cerr << "[Error] Invalid character found in service port (flag --service-port)\n";
-          exit(1);
+          console(ERROR, PORT_INVALID_CHARACTER, nullptr, "option");
+          exit(EXIT_FAILURE);
+        }
+        if (local_service_port < 1 || local_service_port > 65535) {
+          console(ERROR, PORT_INVALID_RANGE, nullptr, "option");
         }
         break;
       case Long_Opts::SESSION_SELECT_TIMEOUT:
@@ -117,24 +125,27 @@ void opt_handler(int argc, char * const argv[]) {
       case 't':
         token = std::string(optarg);
         break;
+      case 'v':
+        verbose = true;
+        break;
       case 'h':
         print_help();
-        exit(0);
+        exit(EXIT_SUCCESS);
       default:
-        std::cerr << "[Error] Unknown flag. For help, please use --help (-h) flag.\n";
-        exit(1);
+        console(ERROR, OPTION_UNKNOWN, nullptr, "option");
+        exit(EXIT_FAILURE);
     }
   }
 
   if (local_service_port == -1) {
-    std::cerr << "[Error] Please specify the port of the service to stream with flag --service-port (-p).\n";
-    exit(1);
+    console(ERROR, OPTION_SERVICE_PORT_NOT_SET, nullptr, "option");
+    exit(EXIT_FAILURE);
   }
   if (token.empty()) {
-    std::cerr << "[Error] Please enter an access token with flag --token (-t).\n";
-    exit(1);
+    console(ERROR, OPTION_TOKEN_NOT_SET, nullptr, "option");
+    exit(EXIT_FAILURE);
   }
 
-  std::cout << "[Info] Streaming host set to " << readable_host << '(' << host  << ')' << ':' << host_main_port << '\n';
-  std::cout << "[Info] Local service set to " << local_service << ':' << local_service_port << '\n';
+  console(INFO, INFO_HOST, (std::string(readable_host) + '(' + std::string(host) + ')' + ':' + std::to_string(host_main_port)).c_str(), "option");
+  console(INFO, INFO_SERVICE, (std::string(local_service) + ':' + std::to_string(local_service_port)).c_str(), "option");
 }

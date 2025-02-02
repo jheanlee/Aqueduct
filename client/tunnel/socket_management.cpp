@@ -3,6 +3,7 @@
 //
 
 #include "socket_management.hpp"
+#include "../common/console.hpp"
 
 void init_openssl() {
   SSL_load_error_strings();
@@ -17,7 +18,7 @@ SSL_CTX *create_context() {
   const SSL_METHOD *method = TLS_client_method();
   SSL_CTX *ctx = SSL_CTX_new(method);
   if (!ctx) {
-    std::cerr << "[Error] Unable to create SSL context \033[2;90m(socket_management)\033[0m\n"; exit(EXIT_FAILURE);
+    console(ERROR, SSL_CREATE_CONTEXT_FAILED, nullptr, "socket_management::create_context");
   }
   return ctx;
 }

@@ -101,10 +101,10 @@ void console(Level level, Code code, const char *detail, const std::string &func
       output += "Certificate for TLS connection is not set. Please specify the path to the certificate using the --tls-cert option ";
       break;
     case PORT_INVALID_CHARACTER:
-      output += "Invalid port number passed as port number ";
+      output += "Invalid value passed as port number ";
       break;
     case PORT_INVALID_RANGE:
-      output += "Invalid port range passed. Port numbers should be in the range of 1-65565 ";
+      output += "Invalid port range passed. Port numbers must be within the range of 1-65565 ";
       break;
     case PORT_WELL_KNOWN:
       output += "Well-known ports (range 1-1023) passed. May require escalated privilages to bind ";
@@ -193,7 +193,9 @@ void console(Level level, Code code, const char *detail, const std::string &func
 
   if (verbose) {
     output += FAINT_GRAY;
+    output += '(';
     output += function;
+    output += ')';
     output += RESET;
   }
   output += '\n';

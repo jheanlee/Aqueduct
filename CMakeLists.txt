@@ -25,17 +25,19 @@ add_executable(sphere-linked-server
 )
 add_executable(sphere-linked-client
         client/main.cpp
-        client/message.cpp
-        client/message.hpp
-        client/config.hpp
-        client/connection.cpp
-        client/connection.hpp
-        client/shared.cpp
-        client/shared.hpp
-        client/opt.cpp
-        client/opt.hpp
-        client/socket_management.cpp
-        client/socket_management.hpp
+        client/tunnel/message.cpp
+        client/tunnel/message.hpp
+        client/common/config.hpp
+        client/tunnel/connection.cpp
+        client/tunnel/connection.hpp
+        client/common/shared.cpp
+        client/common/shared.hpp
+        client/common/opt.cpp
+        client/common/opt.hpp
+        client/tunnel/socket_management.cpp
+        client/tunnel/socket_management.hpp
+        client/common/console.cpp
+        client/common/console.hpp
 )
 
 find_package(Threads)

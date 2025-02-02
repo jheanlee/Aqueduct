@@ -12,8 +12,9 @@
 
 #include "connection.hpp"
 #include "message.hpp"
-#include "config.hpp"
+#include "../common/config.hpp"
 #include "socket_management.hpp"
+#include "../common/console.hpp"
 
 void send_heartbeat_message(SSL *server_ssl, char *buffer) {
   Message message{.type = HEARTBEAT, .string = ""};
@@ -83,7 +84,7 @@ void send_auth_message(SSL *server_ssl, char *buffer, size_t buffer_size, std::s
   unsigned char hash[EVP_MAX_MD_SIZE];
   int len = sha256(reinterpret_cast<const unsigned char *>(message.string.c_str()), message.string.size(), hash, sizeof(hash));
   if (len < 0) {
-    std::cerr << "[Error] unable to hash sha256 \033[2;90m(connection::auth)\033[0m\n\n";
+    console(ERROR, SHA256_FAILED, nullptr, "connnection::auth");
   }
   encode_base32(hash, len, message.string);
   ssl_send_message(server_ssl, buffer, buffer_size, message);
@@ -102,12 +103,20 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
 
     //  create socket (service)
     service_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (service_fd == -1) { std::cerr << "[Error] Failed to create socket for service \033[2;90m(connection::service)\033[0m\n"; cleanup_openssl(); exit(EXIT_FAILURE); }
+    if (service_fd == -1) {
+      console(ERROR, SOCK_CREATE_FAILED, "for service ", "connnection::service");
+      cleanup_openssl();
+      exit(EXIT_FAILURE);
+    }
     
     //  connect (service)
-    if (connect(service_fd, (struct sockaddr *) &service_addr, sizeof(service_addr))) { std::cerr << "[Error] Failed to connect to service \033[2;90m(connection::service)\033[0m\n"; cleanup_openssl(); exit(EXIT_FAILURE); }
+    if (connect(service_fd, (struct sockaddr *) &service_addr, sizeof(service_addr))) {
+      console(ERROR, SOCK_CONNECT_FAILED, "for service ", "connection::service");
+      cleanup_openssl();
+      exit(EXIT_FAILURE);
+    }
 
-    std::cout << "[Info] Connected to service \033[2;90m(connection::service)\033[0m\n";
+    console(INFO, CONNECTED_TO_SERVICE, nullptr, "connection::service");
 
     // ##host##
     int host_fd = 0;
@@ -121,27 +130,39 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
 
     //  create, connect socket (host)
     host_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (host_fd == -1) { std::cerr << "[Error] Failed to create socket for host \033[2;90m(connection::service)\033[0m\n"; cleanup_openssl(); exit(EXIT_FAILURE); }
-    if (connect(host_fd, (struct sockaddr *) &host_addr, sizeof(host_addr))) { std::cerr << "[Error] Failed to connect to host \033[2;90m(connection::service)\033[0m\n"; cleanup_openssl(); exit(EXIT_FAILURE); }
+    if (host_fd == -1) {
+      console(ERROR, SOCK_CREATE_FAILED, "for host ", "connection::service");
+      cleanup_openssl();
+      exit(EXIT_FAILURE);
+    }
+    if (connect(host_fd, (struct sockaddr *) &host_addr, sizeof(host_addr))) {
+      console(ERROR, SOCK_CONNECT_FAILED, "for host ", "connection::service");
+      cleanup_openssl();
+      exit(EXIT_FAILURE);
+    }
 
     //  ssl context, turn plain socket into ssl connection
     SSL_CTX *ctx = create_context();
     SSL *host_ssl = SSL_new(ctx);
     SSL_set_fd(host_ssl, host_fd);
-    if (SSL_connect(host_ssl) <= 0) { std::cerr << "[Error] Unable to SSL_connect \033[2;90m(connection::service)\033[0m\n"; cleanup_openssl(); exit(EXIT_FAILURE); }
+    if (SSL_connect(host_ssl) <= 0) {
+      console(ERROR, SSL_CONNECT_FAILED, nullptr, "connection::service");
+      cleanup_openssl();
+      exit(EXIT_FAILURE);
+    }
 
-    std::cout << "[Info] Connected to host for redirect id: "<< redirect_message.string << " \033[2;90m(connection::service)\033[0m\n";
+    console(INFO, CONNECTED_FOR_ID, redirect_message.string.c_str(), "connection::service");
 
     ssl_send_message(host_ssl, buffer, sizeof(buffer), redirect_message);
-    proxy_threads.emplace_back(proxy_thread_func, std::ref(flag_kill), host_ssl, host_fd, host_addr, service_fd);
+    proxy_threads.emplace_back(proxy_thread_func, std::ref(flag_kill), host_ssl, host_fd, redirect_message.string, service_fd);
   }
 
   for (std::thread &t : proxy_threads) t.join();
   close(service_fd);
 }
 
-void proxy_thread_func(std::atomic<bool> &flag_kill, SSL *host_ssl, int host_fd, sockaddr_in host_addr, int service_fd) {
-  std::cout << "[Info] Proxying started \033[2;90m(connection::proxy)\033[0m\n";
+void proxy_thread_func(std::atomic<bool> &flag_kill, SSL *host_ssl, int host_fd, std::string redirect_id, int service_fd) {
+  console(INFO, PROXYING_STARTED, redirect_id.c_str(), "connection::proxy");
 
   int ready_for_call = 0;
   ssize_t nbytes = 0;
@@ -149,19 +170,26 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, SSL *host_ssl, int host_fd,
   fd_set read_fd;
   timeval timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
 
-  while (!flag_kill) {
+  while (!flag_kill) {  //  TODO select write
     // service -> host
     FD_ZERO(&read_fd); FD_SET(service_fd, &read_fd);
     timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
 
     ready_for_call = select(service_fd + 1, &read_fd, nullptr, nullptr, &timev);
     if (ready_for_call < 0) {
-      std::cerr << "[Warning] Invalid file descriptor passed to select \033[2;90m(connection::proxy)\033[0m\n"; break;
+      console(ERROR, SOCK_SELECT_INVALID_FD, nullptr, "connection::proxy");
+      break;
     } else if (ready_for_call > 0) {
       memset(buffer, 0, sizeof(buffer));
       nbytes = recv(service_fd, buffer, sizeof(buffer), 0);
-      if (nbytes <= 0) { std::cout << "[Info] Connection has been closed by service \033[2;90m(connection::proxy)\033[0m\n"; break; }
-      if (SSL_write(host_ssl, buffer, nbytes) < 0) { std::cerr << "[Warning] Failed to send buffer to host \033[2;90m(connection:proxy)\033[0m\n"; break; }
+      if (nbytes <= 0) {
+        console(INFO, CONNECTION_CLOSED_BY_SERVICE, redirect_id.c_str(), "connection::proxy");
+        break;
+      }
+      if (SSL_write(host_ssl, buffer, nbytes) < 0) {
+        console(ERROR, BUFFER_SEND_ERROR_TO_HOST, redirect_id.c_str(), "connnection::proxy");
+        break;
+      }
     }
 
     // host -> service
@@ -172,12 +200,17 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, SSL *host_ssl, int host_fd,
     if (ready_for_call > 0) {
       memset(buffer, 0, sizeof(buffer));
       nbytes = SSL_read(host_ssl, buffer, sizeof(buffer));
-      if (nbytes <= 0) { std::cout << "[Info] Connection has been closed by host \033[2;90m(connection::proxy)\033[0m\n"; break; }
-      if (send(service_fd, buffer, nbytes, 0) < 0) { std::cerr << "[Warning] Error occurred while sending buffer to service \033[2;90m(connection:proxy)\033[0m\n"; }
+      if (nbytes <= 0) {
+        console(INFO, CONNECTION_CLOSED_BY_HOST, redirect_id.c_str(), "connection::proxy");
+        break;
+      }
+      if (send(service_fd, buffer, nbytes, 0) < 0) {
+        console(ERROR, BUFFER_SEND_ERROR_TO_SERVICE, redirect_id.c_str(), "connection::proxy");
+      }
     }
   }
   SSL_shutdown(host_ssl);
   SSL_free(host_ssl);
   close(service_fd); close(host_fd);
-  std::cout << "[Info] Proxying ended \033[2;90m(connection::proxy)\033[0m\n";
+  console(INFO, PROXYING_ENDED, redirect_id.c_str(), "connection::proxy");
 }
