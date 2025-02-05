@@ -9,3 +9,4 @@ namespace shared_resources {
   std::mutex ports_mutex;
   std::mutex external_user_mutex;
 }
+std::queue<int> proxy_ports_available;

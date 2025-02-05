@@ -8,7 +8,7 @@
 
   #include <openssl/ssl.h>
 
-  #include "config.hpp"
+  #include "../common/config.hpp"
 
   void init_openssl();
   void cleanup_openssl();

@@ -10,4 +10,6 @@
     extern std::mutex ssl_send_mutex;
   }
 
+  extern bool verbose;
+
 #endif //TUNNEL_SHARED_HPP

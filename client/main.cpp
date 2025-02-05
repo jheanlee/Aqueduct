@@ -2,26 +2,29 @@
 // Created by Jhean Lee on 2024/10/2.
 //
 
-#include <iostream>
 #include <queue>
 #include <string>
 #include <thread>
 #include <chrono>
 
 #include <unistd.h>
+#include <poll.h>
 
-#include "message.hpp"
-#include "config.hpp"
-#include "connection.hpp"
-#include "opt.hpp"
-#include "socket_management.hpp"
+#include "tunnel/message.hpp"
+#include "common/config.hpp"
+#include "tunnel/connection.hpp"
+#include "common/opt.hpp"
+#include "tunnel/socket_management.hpp"
+#include "common/console.hpp"
+#include "common/signal_handler.hpp"
 
 int main(int argc, char *argv[]) {
+  register_signal();
   opt_handler(argc, argv);
   init_openssl();
 
   bool flag_service_thread = false, flag_server_active = false;
-  int server_fd = 0, status = 0;
+  int server_fd = 0, status = 0, nbytes = 0;
   char inbuffer[1024] = {0}, outbuffer[1024] = {0};
   std::atomic<bool> flag_kill(false);
   std::queue<std::string> user_id;
@@ -30,56 +33,65 @@ int main(int argc, char *argv[]) {
 
   std::thread service_thread;
 
-  Message message{.type = CONNECT, .string = ""}; // TODO: send token
+  struct pollfd pfds[1];
+
+  Message message{.type = CONNECT, .string = ""};
   struct sockaddr_in server_addr{.sin_family = AF_INET, .sin_port = htons(host_main_port)};
   inet_pton(AF_INET, host, &server_addr.sin_addr);
 
-  fd_set readfd;
-  timeval timev = {.tv_sec = select_timeout_session_sec, .tv_usec = select_timeout_session_millisec};
-
   //  create, connect socket
   server_fd = socket(AF_INET, SOCK_STREAM, 0);
-  if (server_fd == -1) { std::cerr << "[Error] Failed to create socket \033[2;90m(main)\033[0m\n"; cleanup_openssl(); exit(EXIT_FAILURE); }
-  if (connect(server_fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) == -1) { std::cerr << "[Error] Failed to connect to host \033[2;90m(main)\033[0m\n"; cleanup_openssl(); exit(EXIT_FAILURE); }
+  if (server_fd == -1) {
+    console(ERROR, SOCK_CREATE_FAILED, nullptr, "main");
+    cleanup_openssl();
+    exit(EXIT_FAILURE);
+  }
+  if (connect(server_fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) == -1) {
+    console(ERROR, SOCK_CONNECT_FAILED, "to host", "main");
+    cleanup_openssl();
+    exit(EXIT_FAILURE);
+  }
 
   //  ssl context, turn plain socket into ssl connection
   SSL_CTX *ctx = create_context();
   SSL *server_ssl = SSL_new(ctx);
   SSL_set_fd(server_ssl, server_fd);
-  if (SSL_connect(server_ssl) <= 0) { std::cerr << "[Error] Failed to SSL_connect \033[2;90m(main)\033[0m\n"; cleanup_openssl(); exit(EXIT_FAILURE); }
+  if (SSL_connect(server_ssl) <= 0) {
+    console(ERROR, SSL_CONNECT_FAILED, nullptr, "main");
+    cleanup_openssl();
+    exit(EXIT_FAILURE);
+  }
 
-  std::cout << "[Info] Connected to " << host << ':' << host_main_port << " \033[2;90m(main)\033[0m\n";
+  console(INFO, CONNECTED_TO_HOST, (std::string(host) + ':' + std::to_string(host_main_port)).c_str(), "main");
 
   //  send CONNECT message
   if (ssl_send_message(server_ssl, outbuffer, sizeof(outbuffer), message) <= 0){
-    std::cerr << "[Warning] Failed to send message \033[2;90m(main)\033[0m\n";
+    console(ERROR, MESSAGE_SEND_FAILED, (std::string(host) + ':' + std::to_string(host_main_port)).c_str(), "main");
   }
   timer = std::chrono::system_clock::now();
 
   while (!flag_kill) {
-    if (!flag_server_active) {  //  ensure server is alive
+    if (!flag_server_active) {  //  ensure server is responsive
       server_response_duration = std::chrono::duration_cast<std::chrono::seconds> (std::chrono::system_clock::now() - timer);
       if (server_response_duration > std::chrono::seconds(60)) {
-        std::cerr << "[Error] Host response timed out \033[2;90m(main)\033[0m\n"; flag_kill = true; break;
+        console(ERROR, HOST_RESPONSE_TIMEOUT, nullptr, "main");
+        flag_kill = true;
+        break;
       }
     }
 
-    FD_ZERO(&readfd);
-    FD_SET(server_fd, &readfd);
-    timev = {.tv_sec = select_timeout_session_sec, .tv_usec = select_timeout_session_millisec};
-    status = select(server_fd + 1, &readfd, nullptr, nullptr, &timev);
+    //  reading message without blocking
+    pfds[0] = {.fd = server_fd, .events = POLLIN | POLLPRI};
+    status = poll(pfds, 1, timeout_session_millisec);
 
-    int nbytes;
-    try {
-      if (status < 0) {
-        std::cerr << "[Error] Invalid file descriptor passed to select \033[2;90m(main)\033[0m\n"; flag_kill = true; break;
-      } else if (status > 0) {
-        nbytes = ssl_recv_message(server_ssl, inbuffer, sizeof(inbuffer), message);
-      } else {
-        continue;
-      }
-    } catch (int err) {
-      std::cerr << "[Warning] Failed to receive message \033[2;90m(main)\033[0m\n";
+    if (status < 0) {
+      console(ERROR, SOCK_POLL_ERR, nullptr, "main");
+      flag_kill = true;
+      break;
+    } else if (status > 0) {
+      nbytes = ssl_recv_message(server_ssl, inbuffer, sizeof(inbuffer), message);
+    } else {
+      continue;
     }
 
     if (nbytes <= 0) {
@@ -87,22 +99,37 @@ int main(int argc, char *argv[]) {
       SSL_free(server_ssl);
       SSL_CTX_free(ctx);
       close(server_fd);
-      std::cout << "[Info] Connection to host closed \033[2;90m(main)\033[0m\n";
-      flag_kill = true; break;
+      console(INFO, CONNECTION_CLOSED, (std::string(host) + ':' + std::to_string(host_main_port)).c_str(), "main");
+      flag_kill = true;
+      break;
     } else {
       flag_server_active = true;
-
       switch (message.type) {
         case HEARTBEAT:
           send_heartbeat_message(server_ssl, outbuffer);
           break;
         case STREAM_PORT:
-          std::cout << "[Info] Started streaming to " << readable_host << ':' << message.string << " \033[2;90m(main)\033[0m\n";
+          console(INFO, STREAM_PORT_OPENED, (std::string(readable_host) + ':' + message.string).c_str(), "main");
           service_thread = std::thread(service_thread_func, std::ref(flag_kill), std::ref(user_id));
           flag_service_thread = true;
           break;
         case REDIRECT:
           user_id.push(message.string);
+          break;
+        case AUTHENTICATION:
+          send_auth_message(server_ssl, outbuffer, sizeof(outbuffer), message.string);
+          console(INFO, AUTHENTICATION_REQUEST_SENT, nullptr, "main");
+          break;
+        case AUTH_SUCCESS:
+          console(INFO, AUTHENTICATION_SUCCESS, nullptr, "main");
+          break;
+        case AUTH_FAILED:
+          flag_kill = true;
+          console(ERROR, AUTHENTICATION_FAILED, nullptr, "main");
+          break;
+        case DB_ERROR:
+          flag_kill = true;
+          console(ERROR, SERVER_DATABASE_ERROR, nullptr, "main");
           break;
       }
 

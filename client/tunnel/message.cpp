@@ -3,14 +3,14 @@
 //
 #include <string>
 #include <cstring>
-#include <iostream>
 
-#include "shared.hpp"
+#include "../common/shared.hpp"
 #include "message.hpp"
+#include "../common/console.hpp"
 
 void Message::load(char *buffer) {
   if (strlen(buffer) == 0) throw -1;
-  if (strlen(buffer) > 64) throw -1;
+  if (strlen(buffer) > MESSAGE_MAX_STRING_SIZE + 1) throw -1;
 
   type = buffer[0];
   string = std::string(buffer + 1);
@@ -18,7 +18,7 @@ void Message::load(char *buffer) {
 
 void Message::dump(char *buffer) const {
   if (type == '\0') throw -1;
-  if (string.size() > 63) throw -1;
+  if (string.size() > MESSAGE_MAX_STRING_SIZE) throw -1;
 
   buffer[0] = type;
   strcat(buffer, string.c_str());
@@ -31,7 +31,7 @@ int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &messag
     std::memset(buffer, '\0', buffer_size);
     message.dump(buffer);
   } catch (int err) {
-    std::cerr << "[Warning] Unable to dump message \033[2;90m(message)\033[0m\n";
+    console(ERROR, MESSAGE_DUMP_FAILED, nullptr, "message::message::dump");
     return -1;
   }
 
@@ -46,7 +46,7 @@ int ssl_recv_message(SSL *ssl, char *buffer, size_t buffer_size, Message &messag
   try {
     message.load(buffer);
   } catch (int err) {
-    std::cerr << "[Warning] Unable to load message \033[2;90m(message)\033[0m\n" << buffer;
+    console(ERROR, MESSAGE_LOAD_FAILED, nullptr, "message::message::load");
     return -1;
   }
 
