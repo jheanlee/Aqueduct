@@ -26,11 +26,9 @@ sphere-linked-server [OPTIONS]
     -c, --tls-cert <path>               The path to a certification file used for TLS/SSL encryption
                                         This certification must match the key
                                         This option is REQUIRED
-    --session-select-timeout <time>     The time select() waits each call when accepting connections, see `man select` for more information
-                                        timeval.sec would be (<time> / 1000), and timeval.usec would be (<time> % 1000)
+    --session-select-timeout <time>     The time poll() waits each call when accepting connections, see `man poll` for more information
                                         Default is 10
-    --proxy-select-timeout <time>       The time select() waits each call during proxying, see `man select` for more information
-                                        timeval.sec would be (<time> / 1000), and timeval.usec would be (<time> % 1000)
+    --proxy-select-timeout <time>       The time poll() waits each call during proxying, see `man poll` for more information
                                         Default is 1
 ```
 
@@ -56,11 +54,9 @@ sphere-linked-client [OPTIONS]
                                         Default is 0.0.0.0
     -p, --service-port <port>           Tunnels service:<port> to host
                                         This option is REQUIRED
-    --session-select-timeout <time>     The time select() waits each call when accepting connections, see `man select` for more information
-                                        timeval.sec would be (<time> / 1000), and timeval.usec would be (<time> % 1000)
+    --session-select-timeout <time>     The time poll() waits each call when accepting connections, see `man poll` for more information
                                         Default is 10
-    --proxy-select-timeout <time>       The time select() waits each call during proxying, see `man select` for more information
-                                        timeval.sec would be (<time> / 1000), and timeval.usec would be (<time> % 1000)
+    --proxy-select-timeout <time>       The time poll() waits each call during proxying, see `man poll` for more information
                                         Default is 1
 ```
 

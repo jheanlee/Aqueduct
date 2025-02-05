@@ -18,7 +18,7 @@ void register_signal() {
   signal(SIGFPE, signal_handler);
   signal(SIGILL, signal_handler);
   signal(SIGABRT, signal_handler);
-  signal(SIGPIPE, signal_handler);
+  signal(SIGPIPE, SIG_IGN);
 }
 
 void signal_handler(int signal) {

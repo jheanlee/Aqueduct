@@ -12,10 +12,8 @@
 int ssl_control_port = 30330;
 int proxy_port_start = 51000;
 int proxy_port_limit = 200;
-int select_timeout_session_sec = 0;
-int select_timeout_session_millisec = 10;
-int select_timeout_proxy_sec = 0;
-int select_timeout_proxy_millisec = 1;
+int timeout_session_millisec = 10;
+int timeout_proxy_millisec = 1;
 const char *cert_path = "\0";
 const char *key_path = "\0";
 const char *db_path = "./sphere-linked.sqlite";
@@ -38,11 +36,9 @@ static void print_help() {
          "    -c, --tls-cert <path>               The path to a certification file used for TLS/SSL encryption\n"
          "                                        This certification must match the key\n"
          "                                        This option is REQUIRED\n"
-         "    --session-select-timeout <time>     The time select() waits each call when accepting connections, see `man select` for more information\n"
-         "                                        timeval.sec would be (<time> / 1000), and timeval.usec would be (<time> %% 1000)\n"
+         "    --session-select-timeout <time>     The time poll() waits each call when accepting connections, see `man poll` for more information\n"
          "                                        Default is 10\n"
-         "    --proxy-select-timeout <time>       The time select() waits each call during proxying, see `man select` for more information\n"
-         "                                        timeval.sec would be (<time> / 1000), and timeval.usec would be (<time> %% 1000)\n"
+         "    --proxy-select-timeout <time>       The time poll() waits each call during proxying, see `man poll` for more information\n"
          "                                        Default is 1\n"
          "    -d, --database <path>               The path to database file\n"
          "                                        Default is ./sphere-linked.sqlite\n");
@@ -103,15 +99,11 @@ void opt_handler(int argc, char * const argv[]) {
       case 'c':
         cert_path = optarg;
         break;
-      case Long_Opts::SESSION_SELECT_TIMEOUT:
-        timeout = std::strtol(optarg, &endptr, 10);
-        select_timeout_session_millisec = timeout % 1000;
-        select_timeout_session_sec = timeout / 1000;
+      case Long_Opts::SESSION_TIMEOUT:
+        timeout_session_millisec = std::strtol(optarg, &endptr, 10);
         break;
-      case Long_Opts::PROXY_SELECT_TIMEOUT:
-        timeout = std::strtol(optarg, &endptr, 10);
-        select_timeout_proxy_millisec = timeout % 1000;
-        select_timeout_proxy_sec = timeout / 1000;
+      case Long_Opts::PROXY_TIMEOUT:
+        timeout_proxy_millisec = std::strtol(optarg, &endptr, 10);
         break;
       case 'd':
         db_path = optarg;

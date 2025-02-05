@@ -3,7 +3,6 @@
 //
 #include <string>
 #include <cstring>
-#include <iostream>
 
 #include "../common/shared.hpp"
 #include "message.hpp"

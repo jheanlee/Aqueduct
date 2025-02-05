@@ -22,11 +22,9 @@ void print_help() {
          "                                        Default is 0.0.0.0\n"
          "    -p, --service-port <port>           Tunnels service:<port> to host\n"
          "                                        This option is REQUIRED\n"
-         "    --session-select-timeout <time>     The time select() waits each call when accepting connections, see `man select` for more information\n"
-         "                                        timeval.sec would be (<time> / 1000), and timeval.usec would be (<time> %% 1000)\n"
+         "    --session-select-timeout <time>     The time poll() waits each call when accepting connections, see `man poll` for more information\n"
          "                                        Default is 10\n"
-         "    --proxy-select-timeout <time>       The time select() waits each call during proxying, see `man select` for more information\n"
-         "                                        timeval.sec would be (<time> / 1000), and timeval.usec would be (<time> %% 1000)\n"
+         "    --proxy-select-timeout <time>       The time poll() waits each call during proxying, see `man poll` for more information\n"
          "                                        Default is 1\n"
          "    -t, --token <token>                 Token for accessing server\n"
          "                                        This option is REQUIRED\n"
@@ -39,10 +37,8 @@ const char *readable_host = "0.0.0.0";
 int host_main_port = 30330;
 const char *local_service = "0.0.0.0";
 int local_service_port = -1;
-int select_timeout_session_sec = 0;
-int select_timeout_session_millisec = 10;
-int select_timeout_proxy_sec = 0;
-int select_timeout_proxy_millisec = 1;
+int timeout_session_millisec = 10;
+int timeout_proxy_millisec = 1;
 char hostname[NI_MAXHOST];
 std::regex ipv4("(\\d{1,3}(\\.\\d{1,3}){3})");
 std::string token;
@@ -112,15 +108,11 @@ void opt_handler(int argc, char * const argv[]) {
           console(ERROR, PORT_INVALID_RANGE, nullptr, "option");
         }
         break;
-      case Long_Opts::SESSION_SELECT_TIMEOUT:
-        timeout = std::strtol(optarg, &endptr, 10);
-        select_timeout_session_millisec = timeout % 1000;
-        select_timeout_session_sec = timeout / 1000;
+      case Long_Opts::SESSION_TIMEOUT:
+        timeout_session_millisec = std::strtol(optarg, &endptr, 10);
         break;
-      case Long_Opts::PROXY_SELECT_TIMEOUT:
-        timeout = std::strtol(optarg, &endptr, 10);
-        select_timeout_proxy_millisec = timeout % 1000;
-        select_timeout_proxy_sec = timeout / 1000;
+      case Long_Opts::PROXY_TIMEOUT:
+        timeout_proxy_millisec = std::strtol(optarg, &endptr, 10);
         break;
       case 't':
         token = std::string(optarg);

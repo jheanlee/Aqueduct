@@ -54,16 +54,12 @@ int ssl_recv_message(SSL *ssl, char *buffer, size_t buffer_size, Message &messag
   return nbytes;
 }
 
-int ssl_read_message_non_block(SSL *ssl, fd_set &read_fd, timeval &timev, char *buffer, size_t buffer_size, Message &message) {
-  FD_ZERO(&read_fd);
-  FD_SET(SSL_get_fd(ssl), &read_fd);
-  timev.tv_sec = select_timeout_session_sec; timev.tv_usec = select_timeout_session_millisec;
-
-  int ready_for_call = select(SSL_get_fd(ssl) + 1, &read_fd, nullptr, nullptr, &timev);
-
+int ssl_read_message_non_block(SSL *ssl, pollfd *pfds, char *buffer, size_t buffer_size, Message &message) {
+  pfds[0] = {.fd = SSL_get_fd(ssl), .events = POLLIN | POLLPRI};
+  int ready_for_call = poll(pfds, 1, timeout_session_millisec);
   if (ready_for_call < 0) {
-    console(ERROR, SOCK_SELECT_INVALID_FD, nullptr, "message::read_message_non_block");
-      return -1;
+    console(ERROR, SOCK_POLL_ERR, nullptr, "message::read_message_non_block");
+    return -1;
   } else if (ready_for_call == 0) {
     return 0;
   } else {

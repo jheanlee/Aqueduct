@@ -5,7 +5,8 @@
 #ifndef TUNNEL_MESSAGE_HPP
   #define TUNNEL_MESSAGE_HPP
 
-#include <openssl/ssl.h>
+  #include <openssl/ssl.h>
+  #include <poll.h>
 
   #define MESSAGE_MAX_STRING_SIZE 127
 
@@ -29,6 +30,6 @@
 
   int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message);
   int ssl_recv_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message);
-  int ssl_read_message_non_block(SSL *ssl, fd_set &read_fd, timeval &timev, char *buffer, size_t buffer_size, Message &message);
+  int ssl_read_message_non_block(SSL *ssl, pollfd *pfds, char *buffer, size_t buffer_size, Message &message);
 
 #endif //TUNNEL_MESSAGE_HPP

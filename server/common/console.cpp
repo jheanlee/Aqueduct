@@ -55,8 +55,8 @@ void console(Level level, Code code, const char *detail, const std::string &func
     case SOCK_SETSOCKOPT_FAILED:
       output += "Failed to set socket options ";
       break;
-    case SOCK_SELECT_INVALID_FD:
-      output += "Invalid file descriptor has been passed to select ";
+    case SOCK_POLL_ERR:
+      output += "An error has been returned by poll(), errno: ";
       break;
     case SSL_CREATE_CONTEXT_FAILED:
       output += "Failed to create SSL context ";
@@ -155,10 +155,10 @@ void console(Level level, Code code, const char *detail, const std::string &func
       output += "Connection has been closed: ";
       break;
     case CONNECTION_CLOSED_BY_CLIENT:
-      output += "Connection has been closed by client: ";
+      output += "Proxy connection has been closed by client: ";
       break;
     case CONNECTION_CLOSED_BY_EXTERNAL_USER:
-      output += "Connection has been closed by external user ";
+      output += "Proxy connection has been closed by external user ";
       break;
     case HEARTBEAT_TIMEOUT:
       output += "Client heartbeat timed out: ";

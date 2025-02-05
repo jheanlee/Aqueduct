@@ -4,11 +4,11 @@
 
 #include <thread>
 #include <vector>
-#include <iostream>
 #include <cstring>
 
 #include <unistd.h>
 #include <sys/socket.h>
+#include <poll.h>
 
 #include "connection.hpp"
 #include "message.hpp"
@@ -116,7 +116,7 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
       exit(EXIT_FAILURE);
     }
 
-    console(INFO, CONNECTED_TO_SERVICE, nullptr, "connection::service");
+    console(INFO, CONNECTED_TO_SERVICE, (std::string(local_service) + ':' + std::to_string(local_service_port)).c_str(), "connection::service");
 
     // ##host##
     int host_fd = 0;
@@ -164,51 +164,88 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
 void proxy_thread_func(std::atomic<bool> &flag_kill, SSL *host_ssl, int host_fd, std::string redirect_id, int service_fd) {
   console(INFO, PROXYING_STARTED, redirect_id.c_str(), "connection::proxy");
 
-  int ready_for_call = 0;
+  int ready_for_call = 0, ready_for_write = 0, write_status = 0;
   ssize_t nbytes = 0;
   char buffer[32768];
-  fd_set read_fd;
-  timeval timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
+  struct pollfd pfds[1];
 
-  while (!flag_kill) {  //  TODO select write
-    // service -> host
-    FD_ZERO(&read_fd); FD_SET(service_fd, &read_fd);
-    timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
-
-    ready_for_call = select(service_fd + 1, &read_fd, nullptr, nullptr, &timev);
+  while (!flag_kill) {
+    //  service -> host
+    pfds[0] = {.fd = service_fd, .events = POLLIN | POLLPRI};
+    ready_for_call = poll(pfds, 1, timeout_proxy_millisec);
     if (ready_for_call < 0) {
-      console(ERROR, SOCK_SELECT_INVALID_FD, nullptr, "connection::proxy");
+      console(ERROR, SOCK_POLL_ERR, std::to_string(errno).c_str(), "connection::proxy");
       break;
     } else if (ready_for_call > 0) {
+      //  read from service
       memset(buffer, 0, sizeof(buffer));
       nbytes = recv(service_fd, buffer, sizeof(buffer), 0);
       if (nbytes <= 0) {
         console(INFO, CONNECTION_CLOSED_BY_SERVICE, redirect_id.c_str(), "connection::proxy");
         break;
       }
-      if (SSL_write(host_ssl, buffer, nbytes) < 0) {
-        console(ERROR, BUFFER_SEND_ERROR_TO_HOST, redirect_id.c_str(), "connnection::proxy");
+
+      //  send to host
+      pfds[0] = {.fd = SSL_get_fd(host_ssl), .events = POLLOUT | POLLWRBAND};
+      ready_for_write = poll(pfds, 1, timeout_proxy_millisec);
+      while (!flag_kill && ready_for_write == 0) {
+        ready_for_write = poll(pfds, 1, timeout_proxy_millisec);
+      }
+      if (ready_for_write < 0) {
+        console(ERROR, SOCK_POLL_ERR, std::to_string(errno).c_str(), "connection::proxy");
+        break;
+      }
+
+      write_status = SSL_write(host_ssl, buffer, nbytes);
+      if (write_status < 0) {
+        if (write_status == -1 && SSL_get_error(host_ssl, write_status) == SSL_ERROR_SYSCALL) {
+          console(INFO, CONNECTION_CLOSED_BY_HOST, redirect_id.c_str(), "connection::proxy");
+        } else {
+          console(ERROR, BUFFER_SEND_ERROR_TO_HOST, redirect_id.c_str(), "connnection::proxy");
+        }
+        break;
+      } else if (write_status == 0) {
+        console(INFO, CONNECTION_CLOSED_BY_HOST, redirect_id.c_str(), "connection::proxy");
         break;
       }
     }
 
-    // host -> service
-    FD_ZERO(&read_fd); FD_SET(host_fd, &read_fd);
-    timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
-
-    ready_for_call = select(SSL_get_fd(host_ssl) + 1, &read_fd, nullptr, nullptr, &timev);
-    if (ready_for_call > 0) {
+    //  host -> service
+    pfds[0] = {.fd = SSL_get_fd(host_ssl), .events = POLLIN | POLLPRI};
+    ready_for_call = poll(pfds, 1, timeout_proxy_millisec);
+    if (ready_for_call < 0) {
+      console(ERROR, SOCK_POLL_ERR, std::to_string(errno).c_str(), "connection::proxy");
+      break;
+    } else if (ready_for_call > 0) {
+      //  read from host
       memset(buffer, 0, sizeof(buffer));
       nbytes = SSL_read(host_ssl, buffer, sizeof(buffer));
       if (nbytes <= 0) {
         console(INFO, CONNECTION_CLOSED_BY_HOST, redirect_id.c_str(), "connection::proxy");
         break;
       }
-      if (send(service_fd, buffer, nbytes, 0) < 0) {
-        console(ERROR, BUFFER_SEND_ERROR_TO_SERVICE, redirect_id.c_str(), "connection::proxy");
+
+      //  send to service
+      pfds[0] = {.fd = service_fd, .events = POLLOUT | POLLWRBAND};
+      ready_for_write = poll(pfds, 1, timeout_proxy_millisec);
+      while (!flag_kill && ready_for_write == 0) {
+        ready_for_write = poll(pfds, 1, timeout_proxy_millisec);
+      }
+      if (ready_for_write < 0) {
+        console(ERROR, SOCK_POLL_ERR, std::to_string(errno).c_str(), "connection::proxy");
+        break;
+      }
+      if (send(service_fd, buffer, nbytes, MSG_NOSIGNAL) < 0) {
+        if (errno == EPIPE) {
+          console(INFO, CONNECTION_CLOSED_BY_SERVICE, redirect_id.c_str(), "connection::proxy");
+        } else {
+          console(ERROR, BUFFER_SEND_ERROR_TO_SERVICE, redirect_id.c_str(), "connection::proxy");
+        }
+        break;
       }
     }
   }
+  //  clean up
   SSL_shutdown(host_ssl);
   SSL_free(host_ssl);
   close(service_fd); close(host_fd);

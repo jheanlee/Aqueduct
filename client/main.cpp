@@ -8,6 +8,7 @@
 #include <chrono>
 
 #include <unistd.h>
+#include <poll.h>
 
 #include "tunnel/message.hpp"
 #include "common/config.hpp"
@@ -15,8 +16,10 @@
 #include "common/opt.hpp"
 #include "tunnel/socket_management.hpp"
 #include "common/console.hpp"
+#include "common/signal_handler.hpp"
 
 int main(int argc, char *argv[]) {
+  register_signal();
   opt_handler(argc, argv);
   init_openssl();
 
@@ -30,12 +33,11 @@ int main(int argc, char *argv[]) {
 
   std::thread service_thread;
 
+  struct pollfd pfds[1];
+
   Message message{.type = CONNECT, .string = ""};
   struct sockaddr_in server_addr{.sin_family = AF_INET, .sin_port = htons(host_main_port)};
   inet_pton(AF_INET, host, &server_addr.sin_addr);
-
-  fd_set readfd;
-  timeval timev = {.tv_sec = select_timeout_session_sec, .tv_usec = select_timeout_session_millisec};
 
   //  create, connect socket
   server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -79,13 +81,11 @@ int main(int argc, char *argv[]) {
     }
 
     //  reading message without blocking
-    FD_ZERO(&readfd);
-    FD_SET(server_fd, &readfd);
-    timev = {.tv_sec = select_timeout_session_sec, .tv_usec = select_timeout_session_millisec};
-    status = select(server_fd + 1, &readfd, nullptr, nullptr, &timev);
+    pfds[0] = {.fd = server_fd, .events = POLLIN | POLLPRI};
+    status = poll(pfds, 1, timeout_session_millisec);
 
     if (status < 0) {
-      console(ERROR, SOCK_SELECT_INVALID_FD, nullptr, "main");
+      console(ERROR, SOCK_POLL_ERR, nullptr, "main");
       flag_kill = true;
       break;
     } else if (status > 0) {

@@ -38,6 +38,8 @@ add_executable(sphere-linked-client
         client/tunnel/socket_management.hpp
         client/common/console.cpp
         client/common/console.hpp
+        client/common/signal_handler.cpp
+        client/common/signal_handler.hpp
 )
 
 find_package(Threads)

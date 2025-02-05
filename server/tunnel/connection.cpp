@@ -9,6 +9,7 @@
 
 #include <unistd.h>
 #include <uuid/uuid.h>
+#include <poll.h>
 
 #include "socket_management.hpp"
 #include "connection.hpp"
@@ -19,10 +20,10 @@
 
 void ssl_control_thread_func() {
   int socket_fd = 0, status = 0;
-  fd_set readfd;
-  timeval timev = {.tv_sec = select_timeout_session_sec, .tv_usec = select_timeout_session_millisec};
   SSL_CTX *ctx;
   std::unordered_map<std::string, std::pair<int, sockaddr_in>> external_user_id_map; // id, {external_user_fd, addr}
+
+  struct pollfd pfds[1];
 
   struct sockaddr_in server_addr{.sin_family = AF_INET, .sin_port = htons(ssl_control_port)}, client_addr{};
   inet_pton(AF_INET, host, &server_addr.sin_addr);
@@ -39,14 +40,14 @@ void ssl_control_thread_func() {
   //  accept connections from client
   int client_fd = 0;
   socklen_t client_addrlen = sizeof(client_addr);
-  while (!shared_resources::global_flag_kill) {
-    FD_ZERO(&readfd); FD_SET(socket_fd, &readfd);
-    timev = {.tv_sec = select_timeout_session_sec, .tv_usec = select_timeout_session_millisec};
 
-    status = select(socket_fd + 1, &readfd, nullptr, nullptr, &timev);
+  pfds[0] = {.fd = socket_fd, .events = POLLIN | POLLPRI};
+  while (!shared_resources::global_flag_kill) {
+    status = poll(pfds, 1, timeout_session_millisec);
+
     if (status == 0) continue;
     else if (status < 0) {
-      console(ERROR, SOCK_SELECT_INVALID_FD, nullptr, "connection::control");
+      console(ERROR, SOCK_POLL_ERR, std::to_string(errno).c_str(), "connection::control");
       continue;
     }
     client_fd = accept(socket_fd, (struct sockaddr *) &client_addr, &client_addrlen);
@@ -82,8 +83,7 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
   std::string auth;
   Message message {.type = -1, .string = ""};
 
-  timeval timev = {.tv_sec = select_timeout_session_sec, .tv_usec = select_timeout_session_millisec};
-  fd_set readfd;
+  struct pollfd pfds[1];
 
   std::thread heartbeat_thread; //  ensure connection is alive
   std::thread proxy_service_port_thread; // external_user <-> proxy_server connection, sends id to service(client)
@@ -97,7 +97,7 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
     //  if client does not send message to server within <first_message_timeout_sec>, close the connection
     if (!flag_first_msg) duration = std::chrono::duration_cast<std::chrono::seconds> (std::chrono::system_clock::now() - time_point);
 
-    recv_status = ssl_read_message_non_block(client_ssl, readfd, timev, inbuffer, sizeof(inbuffer), message);
+    recv_status = ssl_read_message_non_block(client_ssl, pfds, inbuffer, sizeof(inbuffer), message);
     if (recv_status < 0) {  //  error or connection closed
       flag_kill = true;
     } else if (recv_status > 0) {
@@ -187,8 +187,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   int service_proxy_fd = 0, proxy_port = 0, external_user_fd = 0, status = 0;
   char inbuffer[1024] = {0}, outbuffer[1024] = {0}, uuid_str[37] = {0};
 
-  fd_set readfd;
-  timeval timev = {.tv_sec = select_timeout_session_sec, .tv_usec = select_timeout_session_millisec};
+  struct pollfd pfds[1];
 
   struct sockaddr_in server_proxy_addr = {.sin_family = AF_INET}, external_user_addr = {.sin_family = AF_INET};
   inet_pton(AF_INET, host, &server_proxy_addr.sin_addr);
@@ -294,14 +293,12 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
 
   //  accept external connections (end users)
+  pfds[0] = {.fd = service_proxy_fd, .events = POLLIN | POLLPRI};
   while (!flag_kill) {
-    FD_ZERO(&readfd); FD_SET(service_proxy_fd, &readfd);
-    timev = {.tv_sec = select_timeout_session_sec, .tv_usec = select_timeout_session_millisec};
-
-    status = select(service_proxy_fd + 1, &readfd, nullptr, nullptr, &timev);
+    status = poll(pfds, 1, timeout_proxy_millisec);
     if (status == 0) continue;
     else if (status < 0) {
-      console(ERROR, SOCK_SELECT_INVALID_FD, nullptr, "connection::proxy_service");
+      console(ERROR, SOCK_POLL_ERR, std::to_string(errno).c_str(), "connection::proxy_service");
       close(service_proxy_fd);
       flag_kill = true;
       return;
@@ -333,24 +330,21 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   ports_close_lock.unlock();
 }
 
-//  TODO: use poll()
 void proxy_thread_func(SSL *client_ssl, int external_user_fd, sockaddr_in external_user_addr, sockaddr_in client_addr, std::atomic<bool> &flag_kill) {
   console(INFO, PROXYING_STARTED, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port)) + " <=> " + std::string(inet_ntoa(external_user_addr.sin_addr)) + ':' + std::to_string((int)ntohs(external_user_addr.sin_port))).c_str(), "connection::proxy");
 
-  int ready_for_call = 0, ready_for_write = 0;
+  int ready_for_call = 0, ready_for_write = 0, write_status = 0;
   ssize_t nbytes = 0;
   char buffer[32768];
 
-  fd_set read_fd, write_fd;
-  timeval timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
+  struct pollfd pfds[1];
 
   while (!flag_kill) {
     //  client -> external_user
-    FD_ZERO(&read_fd); FD_SET(SSL_get_fd(client_ssl), &read_fd);
-    timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
-    ready_for_call = select(SSL_get_fd(client_ssl) + 1, &read_fd, nullptr, nullptr, &timev);
+    pfds[0] = {.fd = SSL_get_fd(client_ssl), .events = POLLIN | POLLPRI};
+    ready_for_call = poll(pfds, 1, timeout_proxy_millisec);
     if (ready_for_call < 0) {
-      console(ERROR, SOCK_SELECT_INVALID_FD, nullptr, "connection::proxy");
+      console(ERROR, SOCK_POLL_ERR, std::to_string(errno).c_str(), "connection::proxy");
       break;
     } else if (ready_for_call > 0) {
       //  read from client
@@ -362,30 +356,30 @@ void proxy_thread_func(SSL *client_ssl, int external_user_fd, sockaddr_in extern
       }
 
       //  send to external_user
-      FD_ZERO(&write_fd); FD_SET(external_user_fd, &write_fd);
-      timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
-      ready_for_write = select(external_user_fd + 1, nullptr, &write_fd, nullptr, &timev);
+      pfds[0] = {.fd = external_user_fd, .events = POLLOUT | POLLWRBAND};
+      ready_for_write = poll(pfds, 1, timeout_proxy_millisec);
       while (!flag_kill && ready_for_write == 0) {
-        FD_ZERO(&write_fd); FD_SET(external_user_fd, &write_fd);
-        timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
-        ready_for_write = select(external_user_fd + 1, nullptr, &write_fd, nullptr, &timev);
+        ready_for_write = poll(pfds, 1, timeout_proxy_millisec);
       }
       if (ready_for_write < 0) {
-        console(ERROR, SOCK_SELECT_INVALID_FD, nullptr, "connection::proxy");
+        console(ERROR, SOCK_POLL_ERR, std::to_string(errno).c_str(), "connection::proxy");
         break;
       }
-      if (send(external_user_fd, buffer, nbytes, 0) < 0) {
-        console(ERROR, BUFFER_SEND_ERROR_TO_CLIENT, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port)) + " => " + std::string(inet_ntoa(external_user_addr.sin_addr)) + ':' + std::to_string((int)ntohs(external_user_addr.sin_port))).c_str(), "connection::proxy");
+      if (send(external_user_fd, buffer, nbytes, MSG_NOSIGNAL) < 0) {
+        if (errno == EPIPE) {
+          console(INFO, CONNECTION_CLOSED_BY_EXTERNAL_USER, (std::string(inet_ntoa(external_user_addr.sin_addr)) + ':' + std::to_string((int)ntohs(external_user_addr.sin_port))).c_str(), "connection::proxy");
+        } else {
+          console(ERROR, BUFFER_SEND_ERROR_TO_CLIENT, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port)) + " => " + std::string(inet_ntoa(external_user_addr.sin_addr)) + ':' + std::to_string((int)ntohs(external_user_addr.sin_port))).c_str(), "connection::proxy");
+        }
         break;
       }
     }
 
     //  external_user -> client
-    FD_ZERO(&read_fd); FD_SET(external_user_fd, &read_fd);
-    timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
-    ready_for_call = select(external_user_fd + 1, &read_fd, nullptr, nullptr, &timev);
+    pfds[0] = {.fd = external_user_fd, .events = POLLIN | POLLPRI};
+    ready_for_call = poll(pfds, 1, timeout_proxy_millisec);
     if (ready_for_call < 0) {
-      console(ERROR, SOCK_SELECT_INVALID_FD, nullptr, "connection::proxy");
+      console(ERROR, SOCK_POLL_ERR, std::to_string(errno).c_str(), "connection::proxy");
       break;
     } else if (ready_for_call > 0) {
       //  read from external user
@@ -397,20 +391,26 @@ void proxy_thread_func(SSL *client_ssl, int external_user_fd, sockaddr_in extern
       }
 
       //  send to client
-      FD_ZERO(&write_fd); FD_SET(SSL_get_fd(client_ssl), &write_fd);
-      timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
-      ready_for_write = select(SSL_get_fd(client_ssl) + 1, nullptr, &write_fd, nullptr, &timev);
+      pfds[0] = {.fd = SSL_get_fd(client_ssl), .events = POLLOUT | POLLWRBAND};
+      ready_for_write = poll(pfds, 1, timeout_proxy_millisec);
       while (!flag_kill && ready_for_write == 0) {
-        FD_ZERO(&write_fd); FD_SET(SSL_get_fd(client_ssl), &write_fd);
-        timev = {.tv_sec = select_timeout_proxy_sec, .tv_usec = select_timeout_proxy_millisec};
-        ready_for_write = select(SSL_get_fd(client_ssl) + 1, nullptr, &write_fd, nullptr, &timev);
+        ready_for_write = poll(pfds, 1, timeout_proxy_millisec);
       }
       if (ready_for_write < 0) {
-        console(ERROR, SOCK_SELECT_INVALID_FD, nullptr, "connection::proxy");
+        console(ERROR, SOCK_POLL_ERR, std::to_string(errno).c_str(), "connection::proxy");
         break;
       }
-      if (SSL_write(client_ssl, buffer, nbytes) < 0) {
-        console(ERROR, BUFFER_SEND_ERROR_TO_CLIENT, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port)) + " <= " + std::string(inet_ntoa(external_user_addr.sin_addr)) + ':' + std::to_string((int)ntohs(external_user_addr.sin_port))).c_str(), "connection::proxy");
+
+      write_status = SSL_write(client_ssl, buffer, nbytes);
+      if (write_status < 0) {
+        if (write_status == -1 && SSL_get_error(client_ssl, write_status)) {
+          console(INFO, CONNECTION_CLOSED_BY_CLIENT, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::proxy");
+        } else {
+          console(ERROR, BUFFER_SEND_ERROR_TO_CLIENT, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port)) + " <= " + std::string(inet_ntoa(external_user_addr.sin_addr)) + ':' + std::to_string((int)ntohs(external_user_addr.sin_port))).c_str(), "connection::proxy");
+        }
+        break;
+      } else if (write_status == 0) {
+        console(INFO, CONNECTION_CLOSED_BY_CLIENT, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::proxy");
         break;
       }
     }
