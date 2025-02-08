@@ -7,27 +7,31 @@
 
 #include <openssl/evp.h>
 
-#include "auth.hpp"
+#include "database.hpp"
 #include "../common/shared.hpp"
 #include "../tunnel/socket_management.hpp"
 #include "../common/console.hpp"
 
+std::string shared_resources::db_salt;
+
 void open_db(sqlite3 **db) {
   if (sqlite3_open(db_path, db) != SQLITE_OK) {
-    std::cerr << "[Error] Unable to open SQLite3 database \033[2;90m(auth::open_db)\033[0m\n";
     console(ERROR, SQLITE_OPEN_FAILED, sqlite3_errmsg(*db), "auth::open_db");
     cleanup_openssl();
     exit(EXIT_FAILURE);
   }
 }
 
-void close_db(sqlite3 *db) {
-
-}
-
 void create_sqlite_functions(sqlite3 *db) {
   sqlite3_create_function(db, "sha256", 1, SQLITE_UTF8, nullptr, sqlite_sha256, nullptr, nullptr);
   sqlite3_create_function(db, "base32_encode", 1, SQLITE_UTF8, nullptr, sqlite_encode_base32, nullptr, nullptr);
+  sqlite3_create_function(db, "generate_salt", 0, SQLITE_UTF8, nullptr, sqlite_generate_salt, nullptr, nullptr);
+}
+
+static int salt_callback(void *, int count, char **values, char **columns) {
+  if (count != 1) return 1;
+  shared_resources::db_salt = values[0];
+  return 0;
 }
 
 void check_tables(sqlite3 *db) {
@@ -40,8 +44,36 @@ void check_tables(sqlite3 *db) {
                          "notes TEXT"
                          ");";
   if (sqlite3_exec(db, sql_auth, nullptr, nullptr, &errmsg) != SQLITE_OK) {
-    std::cerr << "[Error] SQLite CREATE TABLE failed\n";
-    std::cerr << "        additional information: \n" << errmsg << '\n';
+    console(ERROR, SQLITE_CREATE_TABLE_FAILED, errmsg, "auth::check_tables");
+    sqlite3_free(errmsg);
+    cleanup_openssl();
+    exit(EXIT_FAILURE);
+  }
+
+  //  salt table
+  const char *sql_salt = "CREATE TABLE IF NOT EXISTS salt("
+                         "salt TEXT PRIMARY KEY"
+                         ");";
+  if (sqlite3_exec(db, sql_salt, nullptr, nullptr, &errmsg) != SQLITE_OK) {
+    console(ERROR, SQLITE_CREATE_TABLE_FAILED, errmsg, "auth::check_tables");
+    sqlite3_free(errmsg);
+    cleanup_openssl();
+    exit(EXIT_FAILURE);
+  }
+  //  generate salt if not exist
+  const char *sql_salt_exist = "INSERT INTO salt (salt)"
+                               "SELECT generate_salt()"
+                               "WHERE NOT EXISTS(SELECT 1 FROM salt);";
+  if (sqlite3_exec(db, sql_salt_exist, nullptr, nullptr, &errmsg) != SQLITE_OK) {
+    console(ERROR, SQLITE_RETRIEVE_FAILED, errmsg, "auth::check_tables");
+    sqlite3_free(errmsg);
+    cleanup_openssl();
+    exit(EXIT_FAILURE);
+  }
+  //  get salt from db
+  const char *sql_get_salt = "SELECT salt.salt FROM salt;";
+  if (sqlite3_exec(db, sql_get_salt, salt_callback, nullptr, &errmsg) != SQLITE_OK) {
+    console(ERROR, SQLITE_RETRIEVE_FAILED, errmsg, "auth::check_tables");
     sqlite3_free(errmsg);
     cleanup_openssl();
     exit(EXIT_FAILURE);
@@ -50,7 +82,7 @@ void check_tables(sqlite3 *db) {
 
 void sqlite_sha256(sqlite3_context *context, int argc, sqlite3_value **argv) {
   if (argc != 1) {
-    sqlite3_result_error(context, "SHA256 requires 1 argument\n", -1);
+    sqlite3_result_error(context, "SHA256 expects 1 argument\n", -1);
     return;
   }
   const unsigned char *data = sqlite3_value_text(argv[0]);
@@ -85,7 +117,7 @@ void sqlite_sha256(sqlite3_context *context, int argc, sqlite3_value **argv) {
 
 void sqlite_encode_base32(sqlite3_context *context, int argc, sqlite3_value **argv) {
   if (argc != 1) {
-    sqlite3_result_error(context, "base32 encoding requires 1 argument\n", -1);
+    sqlite3_result_error(context, "base32 encoding expects 1 argument\n", -1);
     return;
   }
   const unsigned char *data = static_cast<const unsigned char *>(sqlite3_value_blob(argv[0]));
@@ -100,6 +132,18 @@ void sqlite_encode_base32(sqlite3_context *context, int argc, sqlite3_value **ar
   }
 
   sqlite3_result_text(context, reinterpret_cast<const char *>(encoded), encoded_len, SQLITE_TRANSIENT);
+}
+
+void sqlite_generate_salt(sqlite3_context *context, int argc, sqlite3_value **argv) {
+  if (argc != 0) {
+    sqlite3_result_error(context, "salt generation expects no argument", -1);
+    return;
+  }
+
+  std::string salt;
+  generate_salt(salt, 8);
+
+  sqlite3_result_text(context, salt.c_str(), 8, SQLITE_TRANSIENT);
 }
 
 static const char base32_encoding_table[33] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
