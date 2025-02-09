@@ -196,7 +196,6 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   Message message = {.type = AUTHENTICATION, .string = ""};
 
   //  authentication
-  message.string = shared_resources::db_salt;
   ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
 
   while (!flag_kill && !flag_auth_received) std::this_thread::yield();
@@ -210,7 +209,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
 
   const char sql[256] = "SELECT EXISTS("
                         "SELECT auth.token FROM auth "
-                        "WHERE auth.token = ?"
+                        "WHERE auth.token = base32_encode(sha256(? || ?))"
                         ") AS sql_result";
   sqlite3_stmt *stmt = nullptr;
 
@@ -222,7 +221,8 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
     return;
   }
 
-  if (sqlite3_bind_text(stmt, 1, auth.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK) {
+  if (sqlite3_bind_text(stmt, 1, auth.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK  ||
+      sqlite3_bind_text(stmt, 2, shared_resources::db_salt.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK)  {
     message = {.type = DB_ERROR, .string = ""};
     ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
     console(ERROR, SQLITE_BIND_PARAMETER_FAILED, sqlite3_errmsg(shared_resources::db), "connection::proxy_service");

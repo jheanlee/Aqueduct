@@ -34,23 +34,26 @@ void opt_handler(int argc, char * const argv[]) {
   std::string name, notes;
 
   CLI::App app{"Sphere-Linked-server"};
-  app.require_subcommand(0, 1);
+  app.get_formatter()->column_width(35);
+  app.require_subcommand(1, 1);
+
+  app.add_flag("-v,--verbose", verbose, "Output detailed information");
+  app.add_option("-d,--database", db_path_str, "The path to database file") -> capture_default_str();
+
+  CLI::App *run = app.add_subcommand("run", "Run the main tunneling service")->fallthrough();
+  run->add_option("-k,--tls-key", key_path_str, "The path to a private key file used for TLS encryption") -> required();
+  run->add_option("-c,--tls-cert", cert_path_str, "The path to a certification file used for TLS encryption") -> required();
+
+  run->add_option("-p,--control", ssl_control_port, "Client will connect via 0.0.0.0:<port>") -> capture_default_str();
+  run->add_option("-s,--port-start", proxy_port_start, "The proxy port of the first client will be <port>, the last being (<port> + port-limit - 1)") -> capture_default_str();
+  run->add_option("-l,--port-limit", proxy_port_limit, "Proxy ports will have a limit of <count> ports") -> capture_default_str();
+
+  run->add_option("--session-timeout", timeout_session_millisec, "The time(ms) poll() waits each call when accepting connections. See `man poll` for more information") -> capture_default_str();
+  run->add_option("--proxy-timeout", timeout_session_millisec, "The time(ms) poll() waits each call during proxying. See `man poll` for more information") -> capture_default_str();
 
   CLI::App *token = app.add_subcommand("token", "Operations related to tokens");
-  app.add_flag("-v,--verbose", verbose, "Output detailed information");
-
-  app.add_option("-d,--database", db_path_str, "The path to database file") -> capture_default_str();
-  app.add_option("-k,--tls-key", key_path_str, "The path to a private key file used for TLS encryption") -> required();
-  app.add_option("-c,--tls-cert", cert_path_str, "The path to a certification file used for TLS encryption") -> required();
-
-  app.add_option("-p,--control", ssl_control_port, "Client will connect via 0.0.0.0:<port>") -> capture_default_str();
-  app.add_option("-s,--port-start", proxy_port_start, "The proxy port of the first client will be <port>, the last being (<port> + port-limit - 1)") -> capture_default_str();
-  app.add_option("-l,--port-limit", proxy_port_limit, "Proxy ports will have a limit of <count> ports") -> capture_default_str();
-
-  app.add_option("--session-timeout", timeout_session_millisec, "The time(ms) poll() waits each call when accepting connections. See `man poll` for more information") -> capture_default_str();
-  app.add_option("--proxy-timeout", timeout_session_millisec, "The time(ms) poll() waits each call during proxying. See `man poll` for more information") -> capture_default_str();
-
-  token->add_option("-n,--new", name, "The name (id) of the token you want to create/modify") -> required();
+  token->add_subcommand("new", "Create or regenerate a token")->fallthrough();
+  token->add_option("-n,--name", name, "The name (id) of the token you want to modify") -> required();
   token->add_option("--notes", notes, "Some notes for this token");
 
   try {

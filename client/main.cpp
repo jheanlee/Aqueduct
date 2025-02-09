@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
           user_id.push(message.string);
           break;
         case AUTHENTICATION:
-          send_auth_message(server_ssl, outbuffer, sizeof(outbuffer), message.string);
+          send_auth_message(server_ssl, outbuffer, sizeof(outbuffer));
           console(INFO, AUTHENTICATION_REQUEST_SENT, nullptr, "main");
           break;
         case AUTH_SUCCESS:
