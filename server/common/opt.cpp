@@ -30,7 +30,6 @@ const char *db_path = "./sphere-linked.sqlite";
 bool verbose = false;
 
 void opt_handler(int argc, char * const argv[]) {
-  //  TODO: make subcommands not inherit options from main
   std::string name, notes;
 
   CLI::App app{"Sphere-Linked-server"};
@@ -52,9 +51,18 @@ void opt_handler(int argc, char * const argv[]) {
   run->add_option("--proxy-timeout", timeout_session_millisec, "The time(ms) poll() waits each call during proxying. See `man poll` for more information") -> capture_default_str();
 
   CLI::App *token = app.add_subcommand("token", "Operations related to tokens");
-  token->add_subcommand("new", "Create or regenerate a token")->fallthrough();
-  token->add_option("-n,--name", name, "The name (id) of the token you want to modify") -> required();
+
+  CLI::App *token_new = token->add_subcommand("new", "Create or regenerate a token")->fallthrough();
+  token_new->add_option("-n,--name", name, "The name (id) of the token you want to modify")->required();
   token->add_option("--notes", notes, "Some notes for this token");
+
+  CLI::App *token_remove = token->add_subcommand("remove", "Remove a token")->fallthrough();
+  token_remove->add_option("-n,--name", name, "The name (id) of the token you want to modify")->required();
+
+  CLI::App *token_list = token->add_subcommand("list", "List all tokens")->fallthrough();
+
+
+
 
   try {
     app.parse(argc, argv);
@@ -66,12 +74,20 @@ void opt_handler(int argc, char * const argv[]) {
   key_path = key_path_str.c_str();
   cert_path = cert_path_str.c_str();
 
-  if (!name.empty()) {
+  if (*token) {
     open_db(&shared_resources::db);
     create_sqlite_functions(shared_resources::db);
     check_tables(shared_resources::db);
-    int status = new_token(name, notes);
-    signal_handler(status);
+    if (*token_new) {
+      int status = new_token(name, notes);
+      signal_handler(status);
+    } else if (*token_remove) {
+      int status = remove_token(name);
+      signal_handler(status);
+    } else if (*token_list) {
+      int status = list_token();
+      signal_handler(status);
+    }
   }
 
   if (proxy_port_start <= 0 || proxy_port_start > 65535) {

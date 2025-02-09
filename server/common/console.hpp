@@ -37,6 +37,7 @@
     SQLITE_CLOSE_FAILED,
 
     GENERATED_TOKEN,
+    REMOVED_TOKEN,
 
     //  option
     OPTION_UNKNOWN,

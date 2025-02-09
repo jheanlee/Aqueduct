@@ -3,6 +3,7 @@
 //
 
 #include <sqlite3.h>
+#include <iostream>
 
 #include "authentication.hpp"
 #include "../common/shared.hpp"
@@ -45,5 +46,50 @@ int new_token(const std::string &name, const std::string &notes) {
 
   sqlite3_finalize(stmt);
   console(INFO, GENERATED_TOKEN, (name + ": " + token).c_str(), "authentication::new_token");
+  return 0;
+}
+
+int remove_token(const std::string &name) {
+  std::string sql = "DELETE FROM auth WHERE auth.name = ?";
+
+  sqlite3_stmt *stmt = nullptr;
+
+  if (sqlite3_prepare_v2(shared_resources::db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+    console(ERROR, SQLITE_PREPARE_FAILED, sqlite3_errmsg(shared_resources::db), "authentication::remove_token");
+    return -1;
+  }
+
+  if (sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK) {
+    console(ERROR, SQLITE_BIND_PARAMETER_FAILED, sqlite3_errmsg(shared_resources::db), "authentication::remove_token");
+    sqlite3_finalize(stmt);
+    return -1;
+  }
+
+  if (sqlite3_step(stmt) != SQLITE_DONE) {
+    console(ERROR, SQLITE_STEP_FAILED, sqlite3_errmsg(shared_resources::db), "authentication::remove_token");
+  }
+
+  sqlite3_finalize(stmt);
+  console(INFO, REMOVED_TOKEN, nullptr, "authentication::remove_token");
+  return 0;
+}
+
+static int list_callback(void *, int argc, char **argv, char **col_names) {
+  for (int i = 0; i < argc; i++) {
+    std::cout << col_names[i] << ": " << ((argv[i]) ? argv[i] : "null") << '\n';
+  }
+  std::cout << '\n';
+  return 0;
+}
+
+int list_token() {
+  const char *sql = "SELECT * FROM auth";
+  char *errmsg;
+
+  if (sqlite3_exec(shared_resources::db, sql, list_callback, nullptr, &errmsg) != SQLITE_OK) {
+    console(ERROR, SQLITE_RETRIEVE_FAILED, errmsg, "authentication::list_token");
+    sqlite3_free(errmsg);
+  }
+
   return 0;
 }
