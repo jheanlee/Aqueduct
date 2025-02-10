@@ -2,53 +2,35 @@
 // Created by Jhean Lee on 2024/12/2.
 //
 #include <cstdlib>
-#include <cstring>
 #include <regex>
+#include <iostream>
 
 #include <netdb.h>
+#include <CLI/App.hpp>
+#include <CLI/Config.hpp>
+#include <CLI/Formatter.hpp>
 
 #include "opt.hpp"
 #include "console.hpp"
 
-void print_help() {
-  printf("sphere-linked-client [OPTIONS]\n"
-         "OPTIONS\n"
-         "    -h, --help                          Prints this page\n"
-         "    -H, --host-addr <ipv4|domain>       Sets host to <ipv4|domain>\n"
-         "                                        Default is 0.0.0.0\n"
-         "    -P, --host-port <port>              Uses host:<port> as control port (see --control-port of server)\n"
-         "                                        Default is 3000\n"
-         "    -s, --service-addr <ipv4>           Sets the address of service to be tunneled to <ipv4>\n"
-         "                                        Default is 0.0.0.0\n"
-         "    -p, --service-port <port>           Tunnels service:<port> to host\n"
-         "                                        This option is REQUIRED\n"
-         "    --session-select-timeout <time>     The time poll() waits each call when accepting connections, see `man poll` for more information\n"
-         "                                        Default is 10\n"
-         "    --proxy-select-timeout <time>       The time poll() waits each call during proxying, see `man poll` for more information\n"
-         "                                        Default is 1\n"
-         "    -t, --token <token>                 Token for accessing server\n"
-         "                                        This option is REQUIRED\n"
-  );
-
-}
-
+std::string readable_host_str = "0.0.0.0";
 const char *host = "0.0.0.0";
 const char *readable_host = "0.0.0.0";
 int host_main_port = 30330;
+
+std::string local_service_str;
 const char *local_service = "0.0.0.0";
 int local_service_port = -1;
+
 int timeout_session_millisec = 10;
 int timeout_proxy_millisec = 1;
 char hostname[NI_MAXHOST];
-std::regex ipv4("(\\d{1,3}(\\.\\d{1,3}){3})");
+std::regex reg_ipv4("(\\d{1,3}(\\.\\d{1,3}){3})");
+std::regex reg_token("SL_[A-Za-z0-9]{32}");
 std::string token;
 bool verbose = false;
 
 void opt_handler(int argc, char * const argv[]) {
-  int opt;
-  char *endptr;
-  int timeout = 0;
-
   struct addrinfo *result;
   struct addrinfo *addr_ptr;
   struct addrinfo hint;
@@ -56,86 +38,70 @@ void opt_handler(int argc, char * const argv[]) {
   hint.ai_family = AF_INET;
   int error = 0;
 
-  while ((opt = getopt_long(argc, argv, short_options, long_options, nullptr)) != -1) {
-    switch (opt) {
-      case 'H':
-        readable_host = optarg;
-        if (std::regex_match(readable_host, ipv4)) {
-          host = readable_host;
-          break;
-        }
+  CLI::App app{"Sphere-Linked-client"};
+  app.get_formatter()->column_width(35);
 
-        error = getaddrinfo(readable_host, nullptr, &hint, &result);
-        if (error != 0) {
-          console(ERROR, RESOLVE_HOST_FAILED, nullptr, "option");
-          exit(EXIT_FAILURE);
-        }
-        addr_ptr = result;
-        while (addr_ptr != nullptr) {
-          error = getnameinfo(addr_ptr->ai_addr, addr_ptr->ai_addrlen, hostname, NI_MAXHOST, NULL, 0, 0);
-          if (error != 0) {
-            console(ERROR, RESOLVE_HOST_FAILED, nullptr, "option");
-            exit(EXIT_FAILURE);
-          }
-          if (*hostname != '\0') {
-            host = hostname;
-            break;
-          }
-          addr_ptr = addr_ptr->ai_next;
-        }
-        break;
-      case 'P':
-        host_main_port = std::strtol(optarg, &endptr, 10);
-        if (*endptr != '\0') {
-          console(ERROR, PORT_INVALID_CHARACTER, nullptr, "option");
-          exit(EXIT_FAILURE);
-        }
-        if (host_main_port < 1 || host_main_port > 65535) {
-          console(ERROR, PORT_INVALID_RANGE, nullptr, "option");
-          exit(EXIT_FAILURE);
-        }
-        break;
-      case 's':
-        local_service = optarg;
-        break;
-      case 'p':
-        local_service_port = std::strtol(optarg, &endptr, 10);
-        if (*endptr != '\0') {
-          console(ERROR, PORT_INVALID_CHARACTER, nullptr, "option");
-          exit(EXIT_FAILURE);
-        }
-        if (local_service_port < 1 || local_service_port > 65535) {
-          console(ERROR, PORT_INVALID_RANGE, nullptr, "option");
-        }
-        break;
-      case Long_Opts::SESSION_TIMEOUT:
-        timeout_session_millisec = std::strtol(optarg, &endptr, 10);
-        break;
-      case Long_Opts::PROXY_TIMEOUT:
-        timeout_proxy_millisec = std::strtol(optarg, &endptr, 10);
-        break;
-      case 't':
-        token = std::string(optarg);
-        break;
-      case 'v':
-        verbose = true;
-        break;
-      case 'h':
-        print_help();
-        exit(EXIT_SUCCESS);
-      default:
-        console(ERROR, OPTION_UNKNOWN, nullptr, "option");
+  app.add_flag("-v,--verbose", verbose, "Output detailed information");
+  app.add_option("-t,--token", token, "Token for accessing server. Only use this option on trusted machine");
+
+  app.add_option("-H,--host-addr", readable_host_str, "The host to stream to. Accepts ipv4 or domain")->capture_default_str();
+  app.add_option("-P,--host-port", host_main_port, "The control port of host")->capture_default_str();
+  app.add_option("-s,--service-addr", local_service_str, "The address of the service to be tunneled")->capture_default_str();
+  app.add_option("-p,--service-port", local_service_port, "The port of the service to be tunneled")->required();
+
+  app.add_option("--session-timeout", timeout_session_millisec, "The time(ms) poll() waits each call when accepting connections. See `man poll` for more information")->capture_default_str();
+  app.add_option("--proxy-timeout", timeout_proxy_millisec, "The time(ms) poll() waits each call during proxying. See `man poll` for more information")->capture_default_str();
+
+  try {
+    app.parse(argc, argv);
+  } catch (const CLI::ParseError &e) {
+    exit(app.exit(e));
+  }
+
+  readable_host = readable_host_str.c_str();
+  local_service = local_service_str.c_str();
+
+  //  handle ipv4 and domain
+  if (std::regex_match(readable_host, reg_ipv4)) {
+    host = readable_host;
+  } else {
+    error = getaddrinfo(readable_host, nullptr, &hint, &result);
+    if (error != 0) {
+      console(ERROR, RESOLVE_HOST_FAILED, nullptr, "option");
+      exit(EXIT_FAILURE);
+    }
+    addr_ptr = result;
+    while (addr_ptr != nullptr) {
+      error = getnameinfo(addr_ptr->ai_addr, addr_ptr->ai_addrlen, hostname, NI_MAXHOST, NULL, 0, 0);
+      if (error != 0) {
+        console(ERROR, RESOLVE_HOST_FAILED, nullptr, "option");
         exit(EXIT_FAILURE);
+      }
+      if (*hostname != '\0') {
+        host = hostname;
+        break;
+      }
+      addr_ptr = addr_ptr->ai_next;
     }
   }
 
-  if (local_service_port == -1) {
-    console(ERROR, OPTION_SERVICE_PORT_NOT_SET, nullptr, "option");
+  //  port validation
+  if (host_main_port <= 0 || host_main_port > 65535) {
+    console(ERROR, PORT_INVALID_RANGE, nullptr, "option");
     exit(EXIT_FAILURE);
   }
-  if (token.empty()) {
-    console(ERROR, OPTION_TOKEN_NOT_SET, nullptr, "option");
+  if (local_service_port <= 0 || local_service_port > 65535) {
+    console(ERROR, PORT_INVALID_RANGE, nullptr, "option");
     exit(EXIT_FAILURE);
+  }
+
+  if (token.empty()) {
+    console(INSTRUCTION, ENTER_TOKEN_INSTRUCTION, nullptr, "option");
+    std::cin >> token;
+    if (!std::regex_match(token, reg_token)) {
+      console(ERROR, INVALID_TOKEN, nullptr, "option");
+      exit(EXIT_FAILURE);
+    }
   }
 
   console(INFO, INFO_HOST, (std::string(readable_host) + '(' + std::string(host) + ')' + ':' + std::to_string(host_main_port)).c_str(), "option");

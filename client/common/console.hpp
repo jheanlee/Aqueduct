@@ -11,6 +11,7 @@
     ERROR,
     WARNING,
     INFO,
+    INSTRUCTION,
   };
 
   enum Code {
@@ -58,6 +59,10 @@
     SERVER_DATABASE_ERROR,
 
     HOST_RESPONSE_TIMEOUT,
+
+    //  token
+    ENTER_TOKEN_INSTRUCTION,
+    INVALID_TOKEN,
   };
 
   void console(Level level, Code code, const char *detail, const std::string &function);

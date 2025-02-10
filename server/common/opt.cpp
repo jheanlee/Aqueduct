@@ -1,8 +1,6 @@
 //
 // Created by Jhean Lee on 2024/12/10.
 //
-#include <cstdlib>
-#include <cstring>
 #include <string>
 
 #include <CLI/App.hpp>
@@ -37,32 +35,29 @@ void opt_handler(int argc, char * const argv[]) {
   app.require_subcommand(1, 1);
 
   app.add_flag("-v,--verbose", verbose, "Output detailed information");
-  app.add_option("-d,--database", db_path_str, "The path to database file") -> capture_default_str();
+  app.add_option("-d,--database", db_path_str, "The path to database file")->capture_default_str();
 
   CLI::App *run = app.add_subcommand("run", "Run the main tunneling service")->fallthrough();
-  run->add_option("-k,--tls-key", key_path_str, "The path to a private key file used for TLS encryption") -> required();
-  run->add_option("-c,--tls-cert", cert_path_str, "The path to a certification file used for TLS encryption") -> required();
+  run->add_option("-k,--tls-key", key_path_str, "The path to a private key file used for TLS encryption")->required();
+  run->add_option("-c,--tls-cert", cert_path_str, "The path to a certification file used for TLS encryption")->required();
 
-  run->add_option("-p,--control", ssl_control_port, "Client will connect via 0.0.0.0:<port>") -> capture_default_str();
-  run->add_option("-s,--port-start", proxy_port_start, "The proxy port of the first client will be <port>, the last being (<port> + port-limit - 1)") -> capture_default_str();
-  run->add_option("-l,--port-limit", proxy_port_limit, "Proxy ports will have a limit of <count> ports") -> capture_default_str();
+  run->add_option("-p,--control", ssl_control_port, "Client will connect via 0.0.0.0:<port>")->capture_default_str();
+  run->add_option("-s,--port-start", proxy_port_start, "The proxy port of the first client will be <port>, the last being (<port> + port-limit - 1)")->capture_default_str();
+  run->add_option("-l,--port-limit", proxy_port_limit, "Proxy ports will have a limit of <count> ports")->capture_default_str();
 
-  run->add_option("--session-timeout", timeout_session_millisec, "The time(ms) poll() waits each call when accepting connections. See `man poll` for more information") -> capture_default_str();
-  run->add_option("--proxy-timeout", timeout_session_millisec, "The time(ms) poll() waits each call during proxying. See `man poll` for more information") -> capture_default_str();
+  run->add_option("--session-timeout", timeout_session_millisec, "The time(ms) poll() waits each call when accepting connections. See `man poll` for more information")->capture_default_str();
+  run->add_option("--proxy-timeout", timeout_proxy_millisec, "The time(ms) poll() waits each call during proxying. See `man poll` for more information")->capture_default_str();
 
-  CLI::App *token = app.add_subcommand("token", "Operations related to tokens");
+  CLI::App *token = app.add_subcommand("token", "Operations related to tokens")->require_subcommand(1, 1);
 
   CLI::App *token_new = token->add_subcommand("new", "Create or regenerate a token")->fallthrough();
   token_new->add_option("-n,--name", name, "The name (id) of the token you want to modify")->required();
-  token->add_option("--notes", notes, "Some notes for this token");
+  token_new->add_option("--notes", notes, "Some notes for this token");
 
   CLI::App *token_remove = token->add_subcommand("remove", "Remove a token")->fallthrough();
   token_remove->add_option("-n,--name", name, "The name (id) of the token you want to modify")->required();
 
   CLI::App *token_list = token->add_subcommand("list", "List all tokens")->fallthrough();
-
-
-
 
   try {
     app.parse(argc, argv);
@@ -90,6 +85,7 @@ void opt_handler(int argc, char * const argv[]) {
     }
   }
 
+  //  port validation
   if (proxy_port_start <= 0 || proxy_port_start > 65535) {
     console(ERROR, PORT_INVALID_RANGE, nullptr, "opt::opt_handler");
     exit(EXIT_FAILURE);
@@ -114,6 +110,7 @@ void opt_handler(int argc, char * const argv[]) {
     console(WARNING, PORT_WELL_KNOWN, nullptr, "opt::opt_handler");
   }
 
+  //  TLS
   if (key_path_str.empty()) {
     console(ERROR, OPTION_KEY_NOT_SET, nullptr, "opt::opt_handler");
     exit(EXIT_FAILURE);

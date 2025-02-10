@@ -33,6 +33,8 @@ void console(Level level, Code code, const char *detail, const std::string &func
     case INFO:
       output += "[Info] ";
       break;
+    case INSTRUCTION:
+      break;
   }
   output += RESET;
 
@@ -139,6 +141,12 @@ void console(Level level, Code code, const char *detail, const std::string &func
       break;
     case HOST_RESPONSE_TIMEOUT:
       output += "Host is not resposive. Timed out ";
+      break;
+    case ENTER_TOKEN_INSTRUCTION:
+      output += "Please enter your token: ";
+      break;
+    case INVALID_TOKEN:
+      output += "Invalid token format ";
       break;
   }
 

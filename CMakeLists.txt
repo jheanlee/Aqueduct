@@ -61,6 +61,7 @@ target_link_libraries(sphere-linked-server PRIVATE SQLite::SQLite3)
 
 find_package(CLI11 CONFIG REQUIRED)
 target_link_libraries(sphere-linked-server PRIVATE CLI11::CLI11)
+target_link_libraries(sphere-linked-client PRIVATE CLI11::CLI11)
 
 if (UNIX AND NOT APPLE)
     find_library(UUID_LIB uuid REQUIRED)

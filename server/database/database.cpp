@@ -182,7 +182,7 @@ static const char symbols[63] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJK
 void generate_salt(std::string &output, size_t len) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<char> distrib(0, 61);
+  std::uniform_int_distribution<int> distrib(0, 61);
   output = "";
   for (int i = 0; i < len; i++) output.push_back(symbols[distrib(gen)]);
 }
