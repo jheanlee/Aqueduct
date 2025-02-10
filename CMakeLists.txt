@@ -14,14 +14,16 @@ add_executable(sphere-linked-server
         server/common/opt.hpp
         server/tunnel/socket_management.cpp
         server/tunnel/socket_management.hpp
-        server/database/auth.cpp
-        server/database/auth.hpp
+        server/database/database.cpp
+        server/database/database.hpp
         server/tunnel/input.cpp
         server/tunnel/input.hpp
         server/common/console.cpp
         server/common/console.hpp
         server/common/signal_handler.cpp
         server/common/signal_handler.hpp
+        server/database/authentication.cpp
+        server/database/authentication.hpp
 )
 add_executable(sphere-linked-client
         client/main.cpp
@@ -56,6 +58,10 @@ target_link_libraries(sphere-linked-client PRIVATE OpenSSL::SSL)
 
 find_package(SQLite3 REQUIRED)
 target_link_libraries(sphere-linked-server PRIVATE SQLite::SQLite3)
+
+find_package(CLI11 CONFIG REQUIRED)
+target_link_libraries(sphere-linked-server PRIVATE CLI11::CLI11)
+target_link_libraries(sphere-linked-client PRIVATE CLI11::CLI11)
 
 if (UNIX AND NOT APPLE)
     find_library(UUID_LIB uuid REQUIRED)

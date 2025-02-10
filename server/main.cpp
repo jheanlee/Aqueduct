@@ -11,7 +11,7 @@
 #include "common/opt.hpp"
 #include "tunnel/socket_management.hpp"
 #include "common/shared.hpp"
-#include "database/auth.hpp"
+#include "database/database.hpp"
 #include "common/signal_handler.hpp"
 
 std::atomic<bool> shared_resources::global_flag_kill = false;

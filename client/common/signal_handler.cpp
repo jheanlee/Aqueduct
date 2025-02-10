@@ -2,7 +2,7 @@
 // Created by Jhean Lee on 2025/2/5.
 //
 
-#include <signal.h>
+#include <csignal>
 
 #include "signal_handler.hpp"
 

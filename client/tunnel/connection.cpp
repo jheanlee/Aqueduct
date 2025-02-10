@@ -79,14 +79,8 @@ static int encode_base32(const unsigned char *src, size_t src_size, std::string 
   return output_index;
 }
 
-void send_auth_message(SSL *server_ssl, char *buffer, size_t buffer_size, std::string &salt) {
-  Message message{.type = AUTHENTICATION, .string = token + salt};
-  unsigned char hash[EVP_MAX_MD_SIZE];
-  int len = sha256(reinterpret_cast<const unsigned char *>(message.string.c_str()), message.string.size(), hash, sizeof(hash));
-  if (len < 0) {
-    console(ERROR, SHA256_FAILED, nullptr, "connnection::auth");
-  }
-  encode_base32(hash, len, message.string);
+void send_auth_message(SSL *server_ssl, char *buffer, size_t buffer_size) {
+  Message message{.type = AUTHENTICATION, .string = token};
   ssl_send_message(server_ssl, buffer, buffer_size, message);
 }
 

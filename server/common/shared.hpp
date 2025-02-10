@@ -31,6 +31,7 @@
     extern sqlite3 *db;
     extern std::atomic<bool> global_flag_kill;
     extern std::atomic<bool> flag_handling_signal;
+    extern std::string db_salt;
   }
   //  TODO: move these someday
   extern bool verbose;

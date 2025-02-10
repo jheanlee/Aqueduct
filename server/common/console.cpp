@@ -79,6 +79,9 @@ void console(Level level, Code code, const char *detail, const std::string &func
     case SQLITE_BIND_PARAMETER_FAILED:
       output += "Failed to bind SQL parameter\n";
       break;
+    case SQLITE_STEP_FAILED:
+      output += "Failed to execute SQL statement\n";
+      break;
     case SQLITE_RETRIEVE_FAILED:
       output += "Failed to retrieve data from database\n";
       break;
@@ -90,6 +93,12 @@ void console(Level level, Code code, const char *detail, const std::string &func
       break;
     case SQLITE_CLOSE_FAILED:
       output += "Failed to close SQLite database\n";
+      break;
+    case GENERATED_TOKEN:
+      output += "A new token has been generated for ";
+      break;
+    case REMOVED_TOKEN:
+      output += "Token removed successfully ";
       break;
     case OPTION_UNKNOWN:
       output += "Unknown option passed to program. Please use the --help option to see usage ";
