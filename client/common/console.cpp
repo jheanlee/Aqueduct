@@ -118,6 +118,8 @@ void console(Level level, Code code, const char *detail, const std::string &func
     case STREAM_PORT_OPENED:
       output += "Service is now available at: ";
       break;
+    case NO_PORTS_AVAILABLE:
+      output += "Server has no ports available. Please try again later ";
     case PROXYING_STARTED:
       output += "Proxying started: ";
       break;

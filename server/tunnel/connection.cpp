@@ -279,6 +279,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   }
   if (proxy_ports_available.empty() && !flag_port_found) {
     console(WARNING, NO_PORT_AVAILABLE, nullptr, "connection::proxy_service");
+    message.type = NO_PORT;
     flag_kill = true;
     ports_assign_lock.unlock();
     return;

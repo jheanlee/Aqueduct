@@ -13,11 +13,12 @@
   #define CONNECT         '0'
   #define HEARTBEAT       '1'
   #define STREAM_PORT     '2'
-  #define REDIRECT        '3'
-  #define AUTHENTICATION  '4'
-  #define AUTH_SUCCESS    '5'
-  #define AUTH_FAILED     '6'
-  #define DB_ERROR        '7'
+  #define NO_PORT         '3'
+  #define REDIRECT        '4'
+  #define AUTHENTICATION  '5'
+  #define AUTH_SUCCESS    '6'
+  #define AUTH_FAILED     '7'
+  #define DB_ERROR        '8'
 
   class Message {
   public:

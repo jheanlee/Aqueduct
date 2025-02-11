@@ -18,7 +18,7 @@ const char *host = "0.0.0.0";
 const char *readable_host = "0.0.0.0";
 int host_main_port = 30330;
 
-std::string local_service_str;
+std::string local_service_str = "0.0.0.0";
 const char *local_service = "0.0.0.0";
 int local_service_port = -1;
 

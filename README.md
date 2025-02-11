@@ -194,7 +194,7 @@ Options:
   -t,--token TEXT                  Token for accessing server. Only use this option on trusted machine
   -H,--host-addr TEXT [0.0.0.0]    The host to stream to. Accepts ipv4 or domain
   -P,--host-port INT [30330]       The control port of host
-  -s,--service-addr TEXT           The address of the service to be tunneled
+  -s,--service-addr TEXT [0.0.0.0] The address of the service to be tunneled
   -p,--service-port INT REQUIRED   The port of the service to be tunneled
   --session-timeout INT [10]       The time(ms) poll() waits each call when accepting connections. See `man poll` for more information
   --proxy-timeout INT [1]         The time(ms) poll() waits each call during proxying. See `man poll` for more information
