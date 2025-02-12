@@ -105,7 +105,7 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
     
     //  connect (service)
     if (connect(service_fd, (struct sockaddr *) &service_addr, sizeof(service_addr))) {
-      console(ERROR, SOCK_CONNECT_FAILED, "for service ", "connection::service");
+      console(ERROR, SOCK_CONNECT_FAILED, "to service ", "connection::service");
       cleanup_openssl();
       exit(EXIT_FAILURE);
     }
@@ -130,7 +130,7 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
       exit(EXIT_FAILURE);
     }
     if (connect(host_fd, (struct sockaddr *) &host_addr, sizeof(host_addr))) {
-      console(ERROR, SOCK_CONNECT_FAILED, "for host ", "connection::service");
+      console(ERROR, SOCK_CONNECT_FAILED, "to host ", "connection::service");
       cleanup_openssl();
       exit(EXIT_FAILURE);
     }
@@ -152,7 +152,6 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
   }
 
   for (std::thread &t : proxy_threads) t.join();
-  close(service_fd);
 }
 
 void proxy_thread_func(std::atomic<bool> &flag_kill, SSL *host_ssl, int host_fd, std::string redirect_id, int service_fd) {

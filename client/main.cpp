@@ -113,6 +113,10 @@ int main(int argc, char *argv[]) {
           service_thread = std::thread(service_thread_func, std::ref(flag_kill), std::ref(user_id));
           flag_service_thread = true;
           break;
+        case NO_PORT:
+          flag_kill = true;
+          console(INFO, NO_PORTS_AVAILABLE, nullptr, "main");
+          break;
         case REDIRECT:
           user_id.push(message.string);
           break;
