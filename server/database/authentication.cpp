@@ -50,7 +50,7 @@ int new_token(const std::string &name, const std::string &notes) {
 }
 
 int remove_token(const std::string &name) {
-  std::string sql = "DELETE FROM auth WHERE auth.name = ?";
+  std::string sql = "DELETE FROM auth WHERE auth.name = ?;";
 
   sqlite3_stmt *stmt = nullptr;
 
@@ -83,7 +83,7 @@ static int list_callback(void *, int argc, char **argv, char **col_names) {
 }
 
 int list_token() {
-  const char *sql = "SELECT * FROM auth";
+  const char *sql = "SELECT * FROM auth;";
   char *errmsg;
 
   if (sqlite3_exec(shared_resources::db, sql, list_callback, nullptr, &errmsg) != SQLITE_OK) {

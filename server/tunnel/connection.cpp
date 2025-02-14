@@ -16,6 +16,7 @@
 #include "../common/shared.hpp"
 #include "../database/database.hpp"
 #include "../common/console.hpp"
+#include "../database/client.hpp"
 
 void ssl_control_thread_func() {
   int socket_fd = 0, status = 0;
@@ -141,7 +142,7 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
           flag_first_msg = true;
           {
             //  find external_user (fd and extra info)
-            std::unique_lock<std::mutex> lock(shared_resources::external_user_mutex);
+            std::unique_lock<std::mutex> external_lock(shared_resources::external_user_mutex);
             if (shared_resources::external_user_id_map.find(message.string) !=
                 shared_resources::external_user_id_map.end()) {
               //  open proxy_thread for client-accepted external_user (by id)
@@ -170,7 +171,7 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
               proxy_thread = std::thread(proxy_thread_func, client_ssl, external_user, std::ref(flag_kill), std::ref(*client));
               flag_proxy_type = true;
             } else flag_kill = true;
-            lock.unlock();
+            external_lock.unlock();
           }
           goto proxy;
         case AUTHENTICATION:
@@ -192,6 +193,7 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
 
   map_client_lock.lock();
   shared_resources::map_flag_kill.erase(map_key); //  At this point, other threads holding the reference to this would have ended
+  update_client_db(shared_resources::map_client.find(map_key)->second);
   shared_resources::map_client.erase(map_key);
   map_client_lock.unlock();
 
@@ -261,7 +263,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   const char sql[256] = "SELECT EXISTS("
                         "SELECT auth.token FROM auth "
                         "WHERE auth.token = base32_encode(sha256(? || ?))"
-                        ") AS sql_result";
+                        ") AS sql_result;";
   sqlite3_stmt *stmt = nullptr;
 
   if (sqlite3_prepare_v2(shared_resources::db, sql, -1, &stmt, nullptr) != SQLITE_OK) {

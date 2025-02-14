@@ -19,6 +19,7 @@ int proxy_port_start = 51000;
 int proxy_port_limit = 200;
 int timeout_session_millisec = 10;
 int timeout_proxy_millisec = 1;
+int shared_resources::client_db_interval_min = 5;
 std::string db_path_str = "./sphere-linked.sqlite";
 std::string key_path_str;
 std::string cert_path_str;
@@ -47,6 +48,8 @@ void opt_handler(int argc, char * const argv[]) {
 
   run->add_option("--session-timeout", timeout_session_millisec, "The time(ms) poll() waits each call when accepting connections. See `man poll` for more information")->capture_default_str();
   run->add_option("--proxy-timeout", timeout_proxy_millisec, "The time(ms) poll() waits each call during proxying. See `man poll` for more information")->capture_default_str();
+
+  run->add_option("--client-db-interval", shared_resources::client_db_interval_min, "The interval(min) between automatic writes of client's proxied data to database")->capture_default_str();
 
   CLI::App *token = app.add_subcommand("token", "Operations related to tokens")->require_subcommand(1, 1);
 

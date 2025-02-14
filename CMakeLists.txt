@@ -22,6 +22,8 @@ add_executable(sphere-linked-server
         server/common/signal_handler.hpp
         server/database/authentication.cpp
         server/database/authentication.hpp
+        server/database/client.cpp
+        server/database/client.hpp
 )
 add_executable(sphere-linked-client
         client/main.cpp

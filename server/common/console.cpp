@@ -102,6 +102,9 @@ void console(Level level, Code code, const char *detail, const std::string &func
     case SQLITE_CLOSE_FAILED:
       output += "Failed to close SQLite database\n";
       break;
+    case INVALID_DB:
+      output += "Invalid database pointer ";
+      break;
     case GENERATED_TOKEN:
       output += "A new token has been generated for ";
       break;

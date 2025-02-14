@@ -10,6 +10,7 @@
 #include "common/shared.hpp"
 #include "database/database.hpp"
 #include "common/signal_handler.hpp"
+#include "database/client.hpp"
 
 int main(int argc, char *argv[]) {
   register_signal();
@@ -21,10 +22,10 @@ int main(int argc, char *argv[]) {
   create_sqlite_functions(shared_resources::db);
   check_tables(shared_resources::db);
 
-  std::thread ssl_control_thread;
-
-  ssl_control_thread = std::thread(ssl_control_thread_func);
+  std::thread ssl_control_thread(ssl_control_thread_func);
+  std::thread update_client_db_thread(update_client_db_thread_func);
   ssl_control_thread.join();
+  update_client_db_thread.join();
 
   if (!shared_resources::flag_handling_signal) signal_handler(0);
   return 0;

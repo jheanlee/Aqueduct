@@ -51,6 +51,7 @@
     extern std::unordered_map<std::string, External_User> external_user_id_map; // id, {external_user_fd, addr}
     extern std::mutex external_user_mutex;
     extern std::string db_salt;
+    extern int client_db_interval_min;
   }
   //  TODO: move these someday
   extern bool verbose;

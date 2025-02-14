@@ -14,7 +14,7 @@
 
 void open_db(sqlite3 **db) {
   if (sqlite3_open(db_path, db) != SQLITE_OK) {
-    console(ERROR, SQLITE_OPEN_FAILED, sqlite3_errmsg(*db), "auth::open_db");
+    console(ERROR, SQLITE_OPEN_FAILED, sqlite3_errmsg(*db), "database::open_db");
     cleanup_openssl();
     exit(EXIT_FAILURE);
   }
@@ -42,7 +42,7 @@ void check_tables(sqlite3 *db) {
                          "notes TEXT"
                          ");";
   if (sqlite3_exec(db, sql_auth, nullptr, nullptr, &errmsg) != SQLITE_OK) {
-    console(ERROR, SQLITE_CREATE_TABLE_FAILED, errmsg, "auth::check_tables");
+    console(ERROR, SQLITE_CREATE_TABLE_FAILED, errmsg, "database::check_tables");
     sqlite3_free(errmsg);
     cleanup_openssl();
     exit(EXIT_FAILURE);
@@ -53,7 +53,7 @@ void check_tables(sqlite3 *db) {
                          "salt TEXT PRIMARY KEY"
                          ");";
   if (sqlite3_exec(db, sql_salt, nullptr, nullptr, &errmsg) != SQLITE_OK) {
-    console(ERROR, SQLITE_CREATE_TABLE_FAILED, errmsg, "auth::check_tables");
+    console(ERROR, SQLITE_CREATE_TABLE_FAILED, errmsg, "database::check_tables");
     sqlite3_free(errmsg);
     cleanup_openssl();
     exit(EXIT_FAILURE);
@@ -63,7 +63,7 @@ void check_tables(sqlite3 *db) {
                                "SELECT generate_salt()"
                                "WHERE NOT EXISTS(SELECT 1 FROM salt);";
   if (sqlite3_exec(db, sql_salt_exist, nullptr, nullptr, &errmsg) != SQLITE_OK) {
-    console(ERROR, SQLITE_RETRIEVE_FAILED, errmsg, "auth::check_tables");
+    console(ERROR, SQLITE_RETRIEVE_FAILED, errmsg, "database::check_tables");
     sqlite3_free(errmsg);
     cleanup_openssl();
     exit(EXIT_FAILURE);
@@ -71,7 +71,20 @@ void check_tables(sqlite3 *db) {
   //  get salt from db
   const char *sql_get_salt = "SELECT salt.salt FROM salt;";
   if (sqlite3_exec(db, sql_get_salt, salt_callback, nullptr, &errmsg) != SQLITE_OK) {
-    console(ERROR, SQLITE_RETRIEVE_FAILED, errmsg, "auth::check_tables");
+    console(ERROR, SQLITE_RETRIEVE_FAILED, errmsg, "database::check_tables");
+    sqlite3_free(errmsg);
+    cleanup_openssl();
+    exit(EXIT_FAILURE);
+  }
+
+  //  client table
+  const char *sql_client = "CREATE TABLE IF NOT EXISTS client("
+                           "ip TEXT PRIMARY KEY, "
+                           "sent INTEGER, "
+                           "received INTEGER"
+                           ");";
+  if (sqlite3_exec(db, sql_client, nullptr, nullptr, &errmsg) != SQLITE_OK) {
+    console(ERROR, SQLITE_CREATE_TABLE_FAILED, errmsg, "database::check_tables");
     sqlite3_free(errmsg);
     cleanup_openssl();
     exit(EXIT_FAILURE);
