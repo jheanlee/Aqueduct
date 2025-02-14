@@ -2,10 +2,7 @@
 // Created by Jhean Lee on 2024/10/2.
 //
 
-#include <atomic>
 #include <thread>
-
-#include <sqlite3.h>
 
 #include "tunnel/connection.hpp"
 #include "common/opt.hpp"
@@ -14,9 +11,6 @@
 #include "database/database.hpp"
 #include "common/signal_handler.hpp"
 
-std::atomic<bool> shared_resources::global_flag_kill = false;
-std::atomic<bool> shared_resources::flag_handling_signal = false;
-sqlite3 *shared_resources::db = nullptr;
 int main(int argc, char *argv[]) {
   register_signal();
   opt_handler(argc, argv);

@@ -10,6 +10,7 @@
     ERROR,
     WARNING,
     INFO,
+    DEBUG,
   };
 
   enum Code {
@@ -78,6 +79,8 @@
 
     //  signal
     SIGNAL,
+
+    DEBUG_MSG,
   };
 
   void console(Level level, Code code, const char *detail, const std::string &function);

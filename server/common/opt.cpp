@@ -38,7 +38,7 @@ void opt_handler(int argc, char * const argv[]) {
   app.add_option("-d,--database", db_path_str, "The path to database file")->capture_default_str();
 
   CLI::App *run = app.add_subcommand("run", "Run the main tunneling service")->fallthrough();
-  run->add_option("-k,--tls-key", key_path_str, "The path to a private key file used for TLS encryption")->required();
+  run->add_option("-k,--tls-map_key", key_path_str, "The path to a private map_key file used for TLS encryption")->required();
   run->add_option("-c,--tls-cert", cert_path_str, "The path to a certification file used for TLS encryption")->required();
 
   run->add_option("-p,--control", ssl_control_port, "Client will connect via 0.0.0.0:<port>")->capture_default_str();

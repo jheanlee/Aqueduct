@@ -12,8 +12,6 @@
 #include "../tunnel/socket_management.hpp"
 #include "../common/console.hpp"
 
-std::string shared_resources::db_salt;
-
 void open_db(sqlite3 **db) {
   if (sqlite3_open(db_path, db) != SQLITE_OK) {
     console(ERROR, SQLITE_OPEN_FAILED, sqlite3_errmsg(*db), "auth::open_db");

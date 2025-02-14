@@ -12,6 +12,7 @@
 #define RED         "\033[31m"
 #define YELLOW      "\033[33m"
 #define FAINT_GRAY  "\033[2;90m"
+#define CYAN        "\033[36m"
 
 void console(Level level, Code code, const char *detail, const std::string &function) {
   std::string output;
@@ -34,6 +35,13 @@ void console(Level level, Code code, const char *detail, const std::string &func
       break;
     case INFO:
       output += "[Info] ";
+      break;
+    case DEBUG:
+      if (!verbose) {
+        return;
+      }
+      output += CYAN;
+      output += "[DEBUG] ";
       break;
   }
   output += RESET;
@@ -65,7 +73,7 @@ void console(Level level, Code code, const char *detail, const std::string &func
       output += "Failed to accept SSL connection ";
       break;
     case SSL_LOAD_CERT_KEY_FAILED:
-      output += "Failed to load SSL certificate or key ";
+      output += "Failed to load SSL certificate or map_key ";
       break;
     case SQLITE_OPEN_FAILED:
       output += "Failed to open SQLite database\n";
@@ -104,7 +112,7 @@ void console(Level level, Code code, const char *detail, const std::string &func
       output += "Unknown option passed to program. Please use the --help option to see usage ";
       break;
     case OPTION_KEY_NOT_SET:
-      output += "Key for TLS connection is not set. Please specify the path to the private key using the --tls-key option ";
+      output += "Key for TLS connection is not set. Please specify the path to the private map_key using the --tls-map_key option ";
       break;
     case OPTION_CERT_NOT_SET:
       output += "Certificate for TLS connection is not set. Please specify the path to the certificate using the --tls-cert option ";
@@ -125,7 +133,7 @@ void console(Level level, Code code, const char *detail, const std::string &func
       output += "Port numbers may exceed 65535 ";
       break;
     case INFO_KEY_PATH:
-      output += "TLS private key: ";
+      output += "TLS private map_key: ";
       break;
     case INFO_CERT_PATH:
       output += "TLS certificate: ";
@@ -192,6 +200,8 @@ void console(Level level, Code code, const char *detail, const std::string &func
       break;
     case SIGNAL:
       output += "Closing with signal ";
+      break;
+    case DEBUG_MSG:
       break;
   }
 

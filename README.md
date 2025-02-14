@@ -1,6 +1,6 @@
 # Sphere Linked
 
-Sphere Linked is a simple TCP Tunneling service that enables user to connect to a service in a private network without exposing other ports or devices.
+Sphere Linked is a simple TCP Tunneling service that enables users to connect to a service in a private network without exposing other ports or devices.
 
 ## Quick Start
 
@@ -24,7 +24,7 @@ Alternatively, you can directly build from source.
 ### Build from Source
 
 To build from source, you will need the following installed:
-1. A C++ compiler supporting at least C++17 (gcc recommanded)
+1. A C++ compiler supporting at least C++17 (gcc recommended)
 2. [CMake](https://cmake.org)
 3. [OpenSSL](https://openssl.org) (some distros also need the dev packages: libssl-dev (apt), openssl-devel (dnf), etc.)
 4. [SQLite3](https://www.sqlite.org) (some distros also need the dev packages: libsqlite3-dev (apt), sqlite-devel (dnf), etc.)
@@ -42,7 +42,7 @@ sudo apt install -y gcc g++ cmake openssl libssl-dev sqlite3 libsqlite3-dev uuid
 sudo dnf install -y gcc g++ cmake openssl openssl-devel sqlite3 sqlite-devel uuid-devel cli11-devel
 ```
 
-For other distros, please refer to their documentation.
+For other distros, or if you have issues installing them, please refer to their documentation.
 
 #### 1. Clone the source from our repo
 ```
@@ -87,11 +87,11 @@ You can also remove a token using:
 
 ### Key
 
-Before you can start tunneling your service, you need a pair of key and certificate on the server for secure (TLS) connection.
+Before you can start tunneling your service, you need a pair of map_key and certificate on the server for secure (TLS) connection.
 
 If you already have those, you can [skip](#connection) this step. Here, we are going to use OpenSSL to generate them:
 ```
-openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 365 -nodes
+openssl req -x509 -newkey rsa:4096 -keyout map_key.pem -out cert.pem -sha256 -days 365 -nodes
 ```
 Fill out the prompted instructions.
 
@@ -102,9 +102,9 @@ The connection between the server and the clients will be encrypted using this p
 
 To start the server service up, use:
 ```
-sphere-linked-server run --tls-key [KEY] --tls-cert [CERT]
+sphere-linked-server run --tls-map_key [KEY] --tls-cert [CERT]
 ```
-Replace `[KEY]` and `[CERT]` with the path to the key and certificate that we generated earlier.
+Replace `[KEY]` and `[CERT]` with the path to the map_key and certificate that we generated earlier.
 
 #### Client
 After the server is running, we can now tunnel our services.
@@ -149,7 +149,7 @@ Subcommands:
 ```
 Options:
   -h,--help                        Print this help message and exit
-  -k,--tls-key TEXT REQUIRED       The path to a private key file used for TLS encryption
+  -k,--tls-map_key TEXT REQUIRED       The path to a private map_key file used for TLS encryption
   -c,--tls-cert TEXT REQUIRED      The path to a certification file used for TLS encryption
   -p,--control INT [30330]         Client will connect via 0.0.0.0:<port>
   -s,--port-start INT [51000]      The proxy port of the first client will be <port>, the last being (<port> + port-limit - 1)
@@ -203,7 +203,7 @@ Options:
 ### Use Examples
 
 ```
-sphere-linked-server --control 63000 --port-start 61000 --port-limit 300 --tls-key /tls/privkey.pem --tls-cert /tls/cert
+sphere-linked-server --control 63000 --port-start 61000 --port-limit 300 --tls-map_key /tls/privkey.pem --tls-cert /tls/cert
 ```
 This example opens the control port at `host:63000`, at most tunnels `300` services. (the first being `host:61000`, and the last being `host:61299`),   
 using `/tls/privkey.pem` and `/tls/cert` to establish TLS connections between server and client.

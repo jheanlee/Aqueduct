@@ -16,8 +16,6 @@ add_executable(sphere-linked-server
         server/tunnel/socket_management.hpp
         server/database/database.cpp
         server/database/database.hpp
-        server/tunnel/input.cpp
-        server/tunnel/input.hpp
         server/common/console.cpp
         server/common/console.hpp
         server/common/signal_handler.cpp
