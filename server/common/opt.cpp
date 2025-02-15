@@ -38,6 +38,7 @@ void opt_handler(int argc, char * const argv[]) {
   app.add_flag("-v,--verbose", verbose, "Output detailed information");
   app.add_option("-d,--database", db_path_str, "The path to database file")->capture_default_str();
 
+  //  run
   CLI::App *run = app.add_subcommand("run", "Run the main tunneling service")->fallthrough();
   run->add_option("-k,--tls-map_key", key_path_str, "The path to a private map_key file used for TLS encryption")->required();
   run->add_option("-c,--tls-cert", cert_path_str, "The path to a certification file used for TLS encryption")->required();
@@ -51,6 +52,7 @@ void opt_handler(int argc, char * const argv[]) {
 
   run->add_option("--client-db-interval", shared_resources::client_db_interval_min, "The interval(min) between automatic writes of client's proxied data to database")->capture_default_str();
 
+  //  token
   CLI::App *token = app.add_subcommand("token", "Operations related to tokens")->require_subcommand(1, 1);
 
   CLI::App *token_new = token->add_subcommand("new", "Create or regenerate a token")->fallthrough();

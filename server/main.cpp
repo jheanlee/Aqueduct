@@ -11,6 +11,7 @@
 #include "database/database.hpp"
 #include "common/signal_handler.hpp"
 #include "database/client.hpp"
+#include "common/input.hpp"
 
 int main(int argc, char *argv[]) {
   register_signal();
@@ -24,8 +25,10 @@ int main(int argc, char *argv[]) {
 
   std::thread ssl_control_thread(ssl_control_thread_func);
   std::thread update_client_db_thread(update_client_db_thread_func);
+  std::thread input_thread(input_thread_func);
   ssl_control_thread.join();
   update_client_db_thread.join();
+  input_thread.join();
 
   if (!shared_resources::flag_handling_signal) signal_handler(0);
   return 0;

@@ -24,6 +24,8 @@ add_executable(sphere-linked-server
         server/database/authentication.hpp
         server/database/client.cpp
         server/database/client.hpp
+        server/common/input.cpp
+        server/common/input.hpp
 )
 add_executable(sphere-linked-client
         client/main.cpp

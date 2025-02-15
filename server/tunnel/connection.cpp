@@ -121,7 +121,7 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
                     map_key,
                     std::string(inet_ntoa(client_addr.sin_addr)),
                     (int) ntohs(client_addr.sin_port),
-                    CONNECT
+                    (CONNECT - 48)
                 )
             );
             client = &(iter_rtn.first->second);
@@ -157,7 +157,7 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
                       map_key,
                       std::string(inet_ntoa(client_addr.sin_addr)),
                       (int) ntohs(client_addr.sin_port),
-                      REDIRECT,
+                      (REDIRECT - 48),
                       std::string(inet_ntoa(external_user.external_user.sin_addr)),
                       (int) ntohs(external_user.external_user.sin_port),
                       std::string(inet_ntoa(external_user.client.sin_addr)),

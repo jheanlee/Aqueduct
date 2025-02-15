@@ -4,6 +4,7 @@
 
 #include <sqlite3.h>
 #include <iostream>
+#include <mutex>
 
 #include "authentication.hpp"
 #include "../common/shared.hpp"
@@ -75,6 +76,7 @@ int remove_token(const std::string &name) {
 }
 
 static int list_callback(void *, int argc, char **argv, char **col_names) {
+  std::lock_guard<std::mutex> cout_lock(shared_resources::cout_mutex);
   for (int i = 0; i < argc; i++) {
     std::cout << col_names[i] << ": " << ((argv[i]) ? argv[i] : "null") << '\n';
   }

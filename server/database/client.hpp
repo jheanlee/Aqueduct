@@ -10,5 +10,6 @@
 
   int update_client_db(Client &client);
   void update_client_db_thread_func();
+  void list_clients();
 
 #endif //SPHERE_LINKED_CLIENT_HPP

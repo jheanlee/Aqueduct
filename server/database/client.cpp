@@ -7,6 +7,9 @@
 
 #include <chrono>
 #include <mutex>
+#include <iostream>
+#include <sstream>
+#include <iomanip>
 
 static const char *update_client = "INSERT INTO client(ip, sent, received) "
                                    "VALUES (?, ?, ?) "
@@ -70,4 +73,44 @@ void update_client_db_thread_func() {
     }
     client_lock.unlock();
   }
+}
+
+template <typename T>
+static void print_element(T value, int width) {
+  std::stringstream buffer;
+  buffer << std::left << std::setw(width) << std::setfill(' ') << value;
+  std::cout << buffer.str();
+}
+
+void list_clients() {
+  std::unique_lock<std::mutex> client_lock(shared_resources::map_client_mutex);
+
+  size_t count = 1;
+  std::cout << '\n';
+  print_element("Key", 8);
+  print_element("Client_IP", 25);
+  print_element("Client_Type", 15);
+  print_element("Stream_Port", 15);
+  print_element("User_IP(Proxy)", 25);
+  print_element("Client Main IP", 25);
+  std::cout << '\n';
+  for (std::pair<const size_t, Client> &client: shared_resources::map_client) {
+    if (count == 0) {
+      std::cout << "Press any key for next page\n";
+      std::cin.get();
+    }
+
+    print_element(client.second.key, 8);
+    print_element(client.second.ip_addr + ':' + std::to_string(client.second.port), 25);
+    print_element(client.second.type, 15);
+    print_element(client.second.stream_port, 15);
+    print_element(client.second.user_addr + ':' + std::to_string(client.second.user_port), 25);
+    print_element(client.second.main_ip_addr + ':' + std::to_string(client.second.main_port), 25);
+    std::cout << '\n';
+
+    count++;
+    count %= 10;
+  }
+  std::cout << '\n';
+  client_lock.unlock();
 }

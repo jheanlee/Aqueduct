@@ -82,6 +82,8 @@
     //  signal
     SIGNAL,
 
+
+    //  debug
     DEBUG_MSG,
   };
 

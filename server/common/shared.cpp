@@ -5,6 +5,7 @@
 #include "shared.hpp"
 
 namespace shared_resources {
+  std::mutex cout_mutex;
   std::mutex ssl_send_mutex;
   std::mutex ports_mutex;
   sqlite3 *db = nullptr;
