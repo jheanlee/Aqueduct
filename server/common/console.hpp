@@ -39,8 +39,13 @@
 
     INVALID_DB,
 
+    //  token
     GENERATED_TOKEN,
     REMOVED_TOKEN,
+    SHA256_INIT_CONTEXT_FAILED,
+    SHA256_SET_CONTEXT_FAILED,
+    SHA256_UPDATE_CONTEXT_FAILED,
+    SHA256_FINALISE_CONTEXT_FAILED,
 
     //  option
     OPTION_UNKNOWN,
@@ -81,7 +86,6 @@
 
     //  signal
     SIGNAL,
-
 
     //  debug
     DEBUG_MSG,

@@ -1,10 +1,11 @@
 .DS_Store
-tempCodeRunnerFile.cpp
-*.o
 bin
-demo_service/.venv
 CMakeFiles
 .vscode
+tempCodeRunnerFile.cpp
+.idea
+
+*.o
 
 cmake-build-debug
 cmake-build-debug-17216221
@@ -13,3 +14,8 @@ cmake-build-debug-146190202193
 cmake-build-release
 cmake-build-release-17216221
 cmake-build-release-17216224
+server/api/target
+server/webui/http-server/target
+
+server/api
+server/webui

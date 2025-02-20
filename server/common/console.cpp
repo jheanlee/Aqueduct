@@ -113,6 +113,18 @@ void console(Level level, Code code, const char *detail, const std::string &func
     case REMOVED_TOKEN:
       buffer << "Token removed successfully ";
       break;
+    case SHA256_INIT_CONTEXT_FAILED:
+      buffer << "Failed to initialise SHA256 context ";
+      break;
+    case SHA256_SET_CONTEXT_FAILED:
+      buffer << "Failed to set SHA256 context ";
+      break;
+    case SHA256_UPDATE_CONTEXT_FAILED:
+      buffer << "Failed to update SHA256 context ";
+      break;
+    case SHA256_FINALISE_CONTEXT_FAILED:
+      buffer << "Failed to finalise SHA256 context ";
+      break;
     case OPTION_UNKNOWN:
       buffer << "Unknown option passed to program. Please use the --help option to see usage ";
       break;
