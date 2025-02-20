@@ -16,14 +16,16 @@ add_executable(sphere-linked-server
         server/tunnel/socket_management.hpp
         server/database/database.cpp
         server/database/database.hpp
-        server/tunnel/input.cpp
-        server/tunnel/input.hpp
         server/common/console.cpp
         server/common/console.hpp
         server/common/signal_handler.cpp
         server/common/signal_handler.hpp
         server/database/authentication.cpp
         server/database/authentication.hpp
+        server/database/client.cpp
+        server/database/client.hpp
+        server/common/input.cpp
+        server/common/input.hpp
 )
 add_executable(sphere-linked-client
         client/main.cpp

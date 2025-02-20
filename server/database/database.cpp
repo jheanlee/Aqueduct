@@ -12,11 +12,9 @@
 #include "../tunnel/socket_management.hpp"
 #include "../common/console.hpp"
 
-std::string shared_resources::db_salt;
-
 void open_db(sqlite3 **db) {
   if (sqlite3_open(db_path, db) != SQLITE_OK) {
-    console(ERROR, SQLITE_OPEN_FAILED, sqlite3_errmsg(*db), "auth::open_db");
+    console(ERROR, SQLITE_OPEN_FAILED, sqlite3_errmsg(*db), "database::open_db");
     cleanup_openssl();
     exit(EXIT_FAILURE);
   }
@@ -41,10 +39,11 @@ void check_tables(sqlite3 *db) {
   const char *sql_auth = "CREATE TABLE IF NOT EXISTS auth("
                          "name TEXT PRIMARY KEY,"
                          "token TEXT,"
-                         "notes TEXT"
+                         "notes TEXT,"
+                         "expiry NUMERIC" //  seconds since epoch or null for no expiry
                          ");";
   if (sqlite3_exec(db, sql_auth, nullptr, nullptr, &errmsg) != SQLITE_OK) {
-    console(ERROR, SQLITE_CREATE_TABLE_FAILED, errmsg, "auth::check_tables");
+    console(ERROR, SQLITE_CREATE_TABLE_FAILED, errmsg, "database::check_tables");
     sqlite3_free(errmsg);
     cleanup_openssl();
     exit(EXIT_FAILURE);
@@ -55,7 +54,7 @@ void check_tables(sqlite3 *db) {
                          "salt TEXT PRIMARY KEY"
                          ");";
   if (sqlite3_exec(db, sql_salt, nullptr, nullptr, &errmsg) != SQLITE_OK) {
-    console(ERROR, SQLITE_CREATE_TABLE_FAILED, errmsg, "auth::check_tables");
+    console(ERROR, SQLITE_CREATE_TABLE_FAILED, errmsg, "database::check_tables");
     sqlite3_free(errmsg);
     cleanup_openssl();
     exit(EXIT_FAILURE);
@@ -65,7 +64,7 @@ void check_tables(sqlite3 *db) {
                                "SELECT generate_salt()"
                                "WHERE NOT EXISTS(SELECT 1 FROM salt);";
   if (sqlite3_exec(db, sql_salt_exist, nullptr, nullptr, &errmsg) != SQLITE_OK) {
-    console(ERROR, SQLITE_RETRIEVE_FAILED, errmsg, "auth::check_tables");
+    console(ERROR, SQLITE_RETRIEVE_FAILED, errmsg, "database::check_tables");
     sqlite3_free(errmsg);
     cleanup_openssl();
     exit(EXIT_FAILURE);
@@ -73,7 +72,20 @@ void check_tables(sqlite3 *db) {
   //  get salt from db
   const char *sql_get_salt = "SELECT salt.salt FROM salt;";
   if (sqlite3_exec(db, sql_get_salt, salt_callback, nullptr, &errmsg) != SQLITE_OK) {
-    console(ERROR, SQLITE_RETRIEVE_FAILED, errmsg, "auth::check_tables");
+    console(ERROR, SQLITE_RETRIEVE_FAILED, errmsg, "database::check_tables");
+    sqlite3_free(errmsg);
+    cleanup_openssl();
+    exit(EXIT_FAILURE);
+  }
+
+  //  client table
+  const char *sql_client = "CREATE TABLE IF NOT EXISTS client("
+                           "ip TEXT PRIMARY KEY, "
+                           "sent INTEGER, "
+                           "received INTEGER"
+                           ");";
+  if (sqlite3_exec(db, sql_client, nullptr, nullptr, &errmsg) != SQLITE_OK) {
+    console(ERROR, SQLITE_CREATE_TABLE_FAILED, errmsg, "database::check_tables");
     sqlite3_free(errmsg);
     cleanup_openssl();
     exit(EXIT_FAILURE);
@@ -186,3 +198,36 @@ void generate_salt(std::string &output, size_t len) {
   output = "";
   for (int i = 0; i < len; i++) output.push_back(symbols[distrib(gen)]);
 }
+
+//int sha256(const unsigned char *data, unsigned char *output) {
+//  EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+//  if (ctx == nullptr) {
+//    console(ERROR, SHA256_INIT_CONTEXT_FAILED, nullptr, "database::sha256");
+//    return 1;
+//  }
+//  if (!EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr)) {
+//    console(ERROR, SHA256_SET_CONTEXT_FAILED, nullptr, "database::sha256");
+//    EVP_MD_CTX_free(ctx);
+//    return 1;
+//  }
+//  if (!EVP_DigestUpdate(ctx, data, strlen(reinterpret_cast<const char *>(data)))) {
+//    console(ERROR, SHA256_UPDATE_CONTEXT_FAILED, nullptr, "database::sha256");
+//    EVP_MD_CTX_free(ctx);
+//    return 1;
+//  }
+//
+//  unsigned char hash[EVP_MAX_MD_SIZE];
+//  unsigned int hash_len;
+//  if (!EVP_DigestFinal_ex(ctx, hash, &hash_len)) {
+//    console(ERROR, SHA256_FINALISE_CONTEXT_FAILED, nullptr, "database::sha256");
+//    EVP_MD_CTX_free(ctx);
+//    return 1;
+//  }
+//
+//  for (int i = 0; i < hash_len; i++) {
+//    output[i] = hash[i];
+//  }
+//
+//  EVP_MD_CTX_free(ctx);
+//  return 0;
+//}

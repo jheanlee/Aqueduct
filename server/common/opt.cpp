@@ -19,6 +19,7 @@ int proxy_port_start = 51000;
 int proxy_port_limit = 200;
 int timeout_session_millisec = 10;
 int timeout_proxy_millisec = 1;
+int shared_resources::client_db_interval_min = 5;
 std::string db_path_str = "./sphere-linked.sqlite";
 std::string key_path_str;
 std::string cert_path_str;
@@ -28,6 +29,7 @@ const char *db_path = "./sphere-linked.sqlite";
 bool verbose = false;
 
 void opt_handler(int argc, char * const argv[]) {
+  int expiry_days = 100;
   std::string name, notes;
 
   CLI::App app{"Sphere-Linked-server"};
@@ -37,8 +39,9 @@ void opt_handler(int argc, char * const argv[]) {
   app.add_flag("-v,--verbose", verbose, "Output detailed information");
   app.add_option("-d,--database", db_path_str, "The path to database file")->capture_default_str();
 
+  //  run
   CLI::App *run = app.add_subcommand("run", "Run the main tunneling service")->fallthrough();
-  run->add_option("-k,--tls-key", key_path_str, "The path to a private key file used for TLS encryption")->required();
+  run->add_option("-k,--tls-map_key", key_path_str, "The path to a private map_key file used for TLS encryption")->required();
   run->add_option("-c,--tls-cert", cert_path_str, "The path to a certification file used for TLS encryption")->required();
 
   run->add_option("-p,--control", ssl_control_port, "Client will connect via 0.0.0.0:<port>")->capture_default_str();
@@ -48,11 +51,15 @@ void opt_handler(int argc, char * const argv[]) {
   run->add_option("--session-timeout", timeout_session_millisec, "The time(ms) poll() waits each call when accepting connections. See `man poll` for more information")->capture_default_str();
   run->add_option("--proxy-timeout", timeout_proxy_millisec, "The time(ms) poll() waits each call during proxying. See `man poll` for more information")->capture_default_str();
 
-  CLI::App *token = app.add_subcommand("token", "Operations related to tokens")->require_subcommand(1, 1);
+  run->add_option("--client-db-interval", shared_resources::client_db_interval_min, "The interval(min) between automatic writes of client's proxied data to database")->capture_default_str();
+
+  //  token
+  CLI::App *token = app.add_subcommand("token", "Operations related to tokens")->require_subcommand(1, 1)->fallthrough();
 
   CLI::App *token_new = token->add_subcommand("new", "Create or regenerate a token")->fallthrough();
   token_new->add_option("-n,--name", name, "The name (id) of the token you want to modify")->required();
   token_new->add_option("--notes", notes, "Some notes for this token");
+  token_new->add_option("--expiry", expiry_days, "Days until the expiry of the token. 0 for no expiry")->capture_default_str()->check(CLI::Range(0, 3650));
 
   CLI::App *token_remove = token->add_subcommand("remove", "Remove a token")->fallthrough();
   token_remove->add_option("-n,--name", name, "The name (id) of the token you want to modify")->required();
@@ -74,7 +81,7 @@ void opt_handler(int argc, char * const argv[]) {
     create_sqlite_functions(shared_resources::db);
     check_tables(shared_resources::db);
     if (*token_new) {
-      int status = new_token(name, notes);
+      int status = new_token(name, notes, expiry_days);
       signal_handler(status);
     } else if (*token_remove) {
       int status = remove_token(name);
