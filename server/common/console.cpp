@@ -125,6 +125,9 @@ void console(Level level, Code code, const char *detail, const std::string &func
     case SHA256_FINALISE_CONTEXT_FAILED:
       buffer << "Failed to finalise SHA256 context ";
       break;
+    case RAND_FAILED:
+      buffer << "Failed to generate random bytes ";
+      break;
     case OPTION_UNKNOWN:
       buffer << "Unknown option passed to program. Please use the --help option to see usage ";
       break;

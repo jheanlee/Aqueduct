@@ -10,6 +10,7 @@
   #include <string>
   #include <queue>
   #include <utility>
+  #include <chrono>
 
   #include <sqlite3.h>
   #include <netinet/in.h>
@@ -53,6 +54,7 @@
     extern std::mutex external_user_mutex;
     extern std::string db_salt;
     extern int client_db_interval_min;
+    extern std::chrono::time_point<std::chrono::system_clock> process_start;
   }
   //  TODO: move these someday
   extern bool verbose;

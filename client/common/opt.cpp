@@ -26,7 +26,7 @@ int timeout_session_millisec = 10;
 int timeout_proxy_millisec = 1;
 char hostname[NI_MAXHOST];
 std::regex reg_ipv4("(\\d{1,3}(\\.\\d{1,3}){3})");
-std::regex reg_token("SL_[A-Za-z0-9]{32}");
+std::regex reg_token("SL_[A-Za-z0-9+/]{32}");
 std::string token;
 bool verbose = false;
 

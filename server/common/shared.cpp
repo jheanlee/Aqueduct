@@ -18,6 +18,7 @@ namespace shared_resources {
   std::unordered_map<std::string, External_User> external_user_id_map;
   std::mutex external_user_mutex;
   std::string db_salt;
+  std::chrono::time_point<std::chrono::system_clock> process_start;
 }
 std::queue<int> proxy_ports_available;
 

@@ -178,6 +178,8 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
           flag_auth_received = true;
           auth = message.string;
           break;
+        default:
+          flag_kill = true;
       }
     }
   }

@@ -3,6 +3,7 @@
 //
 
 #include <thread>
+#include <chrono>
 
 #include "tunnel/connection.hpp"
 #include "common/opt.hpp"
@@ -16,6 +17,7 @@
 
 int main(int argc, char *argv[]) {
   register_signal();
+  shared_resources::process_start = std::chrono::system_clock::now();
   opt_handler(argc, argv);
   init_proxy_ports_available();
   init_openssl();

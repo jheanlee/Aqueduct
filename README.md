@@ -6,7 +6,7 @@ Sphere Linked is a simple TCP Tunneling service that enables users to connect to
 
 You can directly download [precompiled binaries](#precompiled-binaries) for your platform, or [build from source](#build-from-source).
 
-**Note: This software is not designed to, and will not, work on Windows (even you build it from source)**
+**Note: This software is not designed to, and will not, run on Windows. However, you can still tunnel services on the Windows machines via a Unix/Unix-like machine.**
 
 ### Precompiled Binaries
 

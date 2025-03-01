@@ -6,6 +6,7 @@
 #include <cstring>
 
 #include <openssl/evp.h>
+#include <openssl/rand.h>
 
 #include "database.hpp"
 #include "../common/shared.hpp"
@@ -153,7 +154,10 @@ void sqlite_generate_salt(sqlite3_context *context, int argc, sqlite3_value **ar
   }
 
   std::string salt;
-  generate_salt(salt, 8);
+  if (generate_salt(salt, 8) < 0) {
+    sqlite3_result_error(context, "salt generation failed", -1);
+    return;
+  }
 
   sqlite3_result_text(context, salt.c_str(), 8, SQLITE_TRANSIENT);
 }
@@ -190,13 +194,18 @@ int encode_base32(const unsigned char *src, size_t src_size, unsigned char *outp
   return output_index;
 }
 
-static const char symbols[63] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-void generate_salt(std::string &output, size_t len) {
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_int_distribution<int> distrib(0, 61);
+static const char symbols[65] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/";
+int generate_salt(std::string &output, size_t len) {
+  unsigned char buf[len];
   output = "";
-  for (int i = 0; i < len; i++) output.push_back(symbols[distrib(gen)]);
+  if (RAND_bytes(buf, len) != 1) {
+    console(ERROR, RAND_FAILED, nullptr, "database::generate_salt");
+    return -1;
+  }
+  for (int i = 0; i < len; i++) {
+    output.push_back(symbols[(int) buf[i] % 64]);
+  }
+  return 0;
 }
 
 //int sha256(const unsigned char *data, unsigned char *output) {
