@@ -50,6 +50,48 @@ void console(Level level, Code code, const char *detail, const std::string &func
 
   //  code
   switch (code) {
+    case API_SOCK_CREATE_FAILED:
+      buffer << "Failed to create socket, api and webui services will not be available ";
+      break;
+    case API_SOCK_BIND_FAILED:
+      buffer << "Failed to bind to socket, api and webui services will not be available ";
+      break;
+    case API_SOCK_LISTEN_FAILED:
+      buffer << "Failed to listen on socket, api and webui services will not be available ";
+      break;
+    case API_SOCK_ACCEPT_FAILED:
+      buffer << "Failed to accept on socket, api and webui services may not be available ";
+      break;
+    case API_SOCK_POLL_ERR:
+      buffer << "An error has been returned by poll(), api and webui services may not be available. errno: ";
+      break;
+    case API_LISTEN_STARTED:
+      buffer << "API service has started ";
+      break;
+    case API_SERVICE_ENDED:
+      buffer << "API service has ended ";
+      break;
+    case API_CLIENT_CONNECTION_ACCEPTED:
+      buffer << "API connection accepted ";
+      break;
+    case API_CONNECTION_CLOSED:
+      buffer << "API connection closed ";
+      break;
+    case API_HEARTBEAT_TIMEOUT:
+      buffer << "API clienct heartbeat timed out";
+      break;
+    case API_START_PROCESS_FAILED :
+      buffer << "Failed to run API process, errno: ";
+      break;
+    case API_PROCESS_STARTED:
+      buffer << "API process has been successfully started ";
+      break;
+    case API_PCLOSE_SUCCESS:
+      buffer << "API process has ended with exit code ";
+      break;
+    case API_PCLOSE_FAILED:
+      buffer << "Failed to end API process, errno: ";
+      break;
     case SOCK_CREATE_FAILED:
       buffer << "Failed to create socket ";
       break;
@@ -181,6 +223,9 @@ void console(Level level, Code code, const char *detail, const std::string &func
       break;
     case CONNECTION_LISTEN_STARTED:
       buffer << "Listening for connection ";
+      break;
+    case TUNNEL_SERVICE_ENDED:
+      buffer << "Tunnel service has ended";
       break;
     case CLIENT_CONNECTION_ACCEPTED:
       buffer << "Accepted connection from client: ";

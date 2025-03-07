@@ -7,11 +7,10 @@ tempCodeRunnerFile.cpp
 *.o
 *.a
 
-server/api/Cargo.lock
-
 bin
 lib
 server/lib
+server/webui/front/dist
 
 cmake-build-debug
 cmake-build-debug-17216221

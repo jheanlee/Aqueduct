@@ -19,6 +19,7 @@ int proxy_port_start = 51000;
 int proxy_port_limit = 200;
 int timeout_session_millisec = 10;
 int timeout_proxy_millisec = 1;
+int timeout_api_millisec = 10;
 int shared_resources::client_db_interval_min = 5;
 std::string db_path_str = "./sphere-linked.sqlite";
 std::string key_path_str;

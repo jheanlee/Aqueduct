@@ -3,22 +3,23 @@
 //
 #include <string>
 #include <cstring>
+#include <stdexcept>
 
 #include "../common/shared.hpp"
 #include "message.hpp"
 #include "../common/console.hpp"
 
 void Message::load(char *buffer) {
-  if (strlen(buffer) == 0) throw -1;
-  if (strlen(buffer) > MESSAGE_MAX_STRING_SIZE + 1) throw -1;
+  if (strlen(buffer) == 0) throw std::length_error("empty message");
+  if (strlen(buffer) > MESSAGE_MAX_STRING_SIZE + 1) throw std::length_error("message length exceeding limit");
 
   type = buffer[0];
   string = std::string(buffer + 1);
 }
 
 void Message::dump(char *buffer) const {
-  if (type == '\0') throw -1;
-  if (string.size() > MESSAGE_MAX_STRING_SIZE) throw -1;
+  if (type == '\0' || type < 0) throw std::invalid_argument("type not specified");
+  if (string.size() > MESSAGE_MAX_STRING_SIZE) throw std::length_error("message lenght exceeding limit");
 
   buffer[0] = type;
   strcat(buffer, string.c_str());
@@ -30,7 +31,7 @@ int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &messag
   try {
     std::memset(buffer, '\0', buffer_size);
     message.dump(buffer);
-  } catch (int err) {
+  } catch (const std::exception &err) {
     console(ERROR, MESSAGE_DUMP_FAILED, nullptr, "message::message::dump");
     return -1;
   }
@@ -45,7 +46,7 @@ int ssl_recv_message(SSL *ssl, char *buffer, size_t buffer_size, Message &messag
 
   try {
     message.load(buffer);
-  } catch (int err) {
+  } catch (const std::exception &err) {
     console(ERROR, MESSAGE_LOAD_FAILED, nullptr, "message::message::load");
     return -1;
   }

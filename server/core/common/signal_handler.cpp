@@ -3,6 +3,7 @@
 //
 #include <sqlite3.h>
 #include <csignal>
+#include <cstdio>
 
 #include "signal_handler.hpp"
 #include "console.hpp"
@@ -22,10 +23,23 @@ void register_signal() {
 }
 
 void signal_handler(int signal) {
-  console(WARNING, SIGNAL, std::to_string(signal).c_str(), "signal_handler");
-
   shared_resources::flag_handling_signal = true;
   shared_resources::global_flag_kill = true;
+  console(WARNING, SIGNAL, std::to_string(signal).c_str(), "signal_handler");
+
+  //  close api child
+  if (shared_resources::api_stream) {
+    fputs("k", shared_resources::api_stream); //  kill signal TODO (api rust)
+
+    int api_exit_status = pclose(shared_resources::api_stream);
+    if (api_exit_status < 0) {
+      console(ERROR, API_PCLOSE_FAILED, (std::to_string(errno) + ' ').c_str(), "signal_handler");
+    } else {
+      console(INFO, API_PCLOSE_SUCCESS, (std::to_string(api_exit_status) + ' ').c_str(), "signal_handler");
+    }
+  }
+
+  //  close db
   if (shared_resources::db != nullptr) {
     sqlite3_stmt *stmt;
     while ((stmt = sqlite3_next_stmt(shared_resources::db, nullptr)) != nullptr) {

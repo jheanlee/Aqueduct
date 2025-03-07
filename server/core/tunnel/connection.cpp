@@ -35,6 +35,7 @@ void ssl_control_thread_func() {
   socket_fd = create_socket(server_addr);
 
   console(INFO, CONNECTION_LISTEN_STARTED, nullptr, "connection::control");
+  shared_resources::flag_tunneling_service_running = true;
 
   //  accept connections from client
   int client_fd = 0;
@@ -69,6 +70,9 @@ void ssl_control_thread_func() {
     session_thread.detach();
   }
 
+  console(INFO, TUNNEL_SERVICE_ENDED, nullptr, "connection::control");
+  shared_resources::flag_tunneling_service_running = false;
+
   //  clean up
   close(socket_fd);
   SSL_CTX_free(ctx);
@@ -77,7 +81,7 @@ void ssl_control_thread_func() {
 void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_addr) {
   bool flag_first_msg = false, flag_connect_type = false, flag_proxy_type = false;
   std::atomic<bool> flag_heartbeat_received(false), flag_auth_received(false);
-  int recv_status = 0;
+  int recv_status;
   char inbuffer[1024] = {0};
   std::string auth;
   Message message {.type = -1, .string = ""};
@@ -210,10 +214,10 @@ void ssl_heartbeat_thread_func(SSL *client_ssl, sockaddr_in &client_addr, std::a
   std::chrono::seconds heartbeat_duration;
 
   while (!flag_kill) {
+    std::this_thread::sleep_for(std::chrono::seconds(heartbeat_sleep_sec));
     //  send heartbeat message
-    try {
-      ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), heartbeat_message);
-    } catch (int err) {
+
+    if (ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), heartbeat_message) <= 0) {
       console(WARNING, MESSAGE_SEND_FAILED, nullptr, "connection::heartbeat");
     }
 
@@ -222,7 +226,7 @@ void ssl_heartbeat_thread_func(SSL *client_ssl, sockaddr_in &client_addr, std::a
     flag_heartbeat_received = false;
 
     //  wait for heartbeat
-    while (!flag_heartbeat_received) {
+    while (!flag_kill && !flag_heartbeat_received) {
       heartbeat_duration = std::chrono::duration_cast<std::chrono::seconds> (std::chrono::system_clock::now() - timer);
 
       if (heartbeat_duration > std::chrono::seconds(heartbeat_timeout_sec)) {
@@ -230,10 +234,9 @@ void ssl_heartbeat_thread_func(SSL *client_ssl, sockaddr_in &client_addr, std::a
         flag_kill = true;
         return;
       }
-    }
 
-    //  sleep
-    std::this_thread::sleep_for(std::chrono::seconds(heartbeat_sleep_sec));
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
   }
 }
 

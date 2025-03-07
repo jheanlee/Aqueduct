@@ -25,7 +25,7 @@ int local_service_port = -1;
 int timeout_session_millisec = 10;
 int timeout_proxy_millisec = 1;
 char hostname[NI_MAXHOST];
-std::regex reg_ipv4("(\\d{1,3}(\\.\\d{1,3}){3})");
+std::regex reg_ipv4(R"((\d{1,3}(\.\d{1,3}){3}))");
 std::regex reg_token("SL_[A-Za-z0-9+/]{32}");
 std::string token;
 bool verbose = false;
@@ -36,7 +36,7 @@ void opt_handler(int argc, char * const argv[]) {
   struct addrinfo hint;
   memset(&hint, 0, sizeof(hint));
   hint.ai_family = AF_INET;
-  int error = 0;
+  int error;
 
   CLI::App app{"Sphere-Linked-client"};
   app.get_formatter()->column_width(35);
@@ -72,7 +72,7 @@ void opt_handler(int argc, char * const argv[]) {
     }
     addr_ptr = result;
     while (addr_ptr != nullptr) {
-      error = getnameinfo(addr_ptr->ai_addr, addr_ptr->ai_addrlen, hostname, NI_MAXHOST, NULL, 0, 0);
+      error = getnameinfo(addr_ptr->ai_addr, addr_ptr->ai_addrlen, hostname, NI_MAXHOST, nullptr, 0, 0);
       if (error != 0) {
         console(ERROR, RESOLVE_HOST_FAILED, nullptr, "option");
         exit(EXIT_FAILURE);

@@ -2,8 +2,8 @@
 // Created by Jhean Lee on 2024/10/2.
 //
 
-#ifndef TUNNEL_CONNECTION_HPP
-  #define TUNNEL_CONNECTION_HPP
+#ifndef SPHERE_LINKED_CONNECTION_HPP
+  #define SPHERE_LINKED_CONNECTION_HPP
 
   #include <atomic>
   #include <unordered_map>
@@ -22,4 +22,4 @@
                                       SSL *client_ssl, sockaddr_in &client_addr, Client &client);
   void proxy_thread_func(SSL *client_ssl, External_User external_user, std::atomic<bool> &flag_kill, Client &client);
 
-#endif //TUNNEL_CONNECTION_HPP
+#endif //SPHERE_LINKED_CONNECTION_HPP

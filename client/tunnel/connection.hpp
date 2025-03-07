@@ -2,8 +2,8 @@
 // Created by Jhean Lee on 2024/10/30.
 //
 
-#ifndef TUNNEL_CONNECTION_HPP
-  #define TUNNEL_CONNECTION_HPP
+#ifndef SPHERE_LINKED_CONNECTION_HPP
+  #define SPHERE_LINKED_CONNECTION_HPP
 
   #include <atomic>
   #include <queue>
@@ -17,4 +17,4 @@
   void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &user_id);
   void proxy_thread_func(std::atomic<bool> &flag_kill, SSL *host_ssl, int host_fd, std::string redirect_id, int service_fd);
 
-#endif //TUNNEL_CONNECTION_HPP
+#endif //SPHERE_LINKED_CONNECTION_HPP
