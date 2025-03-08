@@ -28,7 +28,7 @@ namespace shared_resources {
   std::unordered_map<std::string, External_User> external_user_id_map;
   std::mutex external_user_mutex;
 
-  FILE *api_stream;
+  pid_t pid_api = 0;
 }
 std::queue<int> proxy_ports_available;
 

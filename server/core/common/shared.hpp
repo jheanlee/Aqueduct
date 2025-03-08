@@ -65,7 +65,7 @@
     extern std::unordered_map<std::string, External_User> external_user_id_map; // id, {external_user_fd, addr}
     extern std::mutex external_user_mutex;
 
-    extern FILE *api_stream;
+    extern pid_t pid_api;
   }
   //  TODO: move these someday
   extern bool verbose;

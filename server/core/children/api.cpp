@@ -88,7 +88,7 @@ void api_session_thread_func(int api_fd, sockaddr_un api_addr) {
   std::mutex send_mutex;
   std::thread heartbeat_thread(api_heartbeat_thread_func, std::ref(flag_kill), std::ref(api_fd), std::ref(send_mutex), std::ref(flag_heartbeat_received));
 
-  Message message = {.type = -1, .string = ""};
+  Message message = {.type = '\0', .string = ""};
 
   struct pollfd pfds[1];
 

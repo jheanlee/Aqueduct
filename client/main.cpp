@@ -43,13 +43,11 @@ int main(int argc, char *argv[]) {
   server_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd == -1) {
     console(ERROR, SOCK_CREATE_FAILED, nullptr, "main");
-    cleanup_openssl();
-    exit(EXIT_FAILURE);
+    signal_handler(EXIT_FAILURE);
   }
   if (connect(server_fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) == -1) {
     console(ERROR, SOCK_CONNECT_FAILED, "to host", "main");
-    cleanup_openssl();
-    exit(EXIT_FAILURE);
+    signal_handler(EXIT_FAILURE);
   }
 
   //  ssl context, turn plain socket into ssl connection
@@ -58,8 +56,7 @@ int main(int argc, char *argv[]) {
   SSL_set_fd(server_ssl, server_fd);
   if (SSL_connect(server_ssl) <= 0) {
     console(ERROR, SSL_CONNECT_FAILED, nullptr, "main");
-    cleanup_openssl();
-    exit(EXIT_FAILURE);
+    signal_handler(EXIT_FAILURE);
   }
 
   console(INFO, CONNECTED_TO_HOST, (std::string(host) + ':' + std::to_string(host_main_port)).c_str(), "main");
@@ -137,11 +134,11 @@ int main(int argc, char *argv[]) {
           break;
       }
 
-      message = {.type = -1, .string = ""};
+      message = {.type = '\0', .string = ""};
     }
   }
 
   if (flag_service_thread) service_thread.join();
-  cleanup_openssl();
+  signal_handler(0);
   return 0;
 }

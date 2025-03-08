@@ -12,12 +12,12 @@
 #include "../common/shared.hpp"
 #include "../tunnel/socket_management.hpp"
 #include "../common/console.hpp"
+#include "../common/signal_handler.hpp"
 
 void open_db(sqlite3 **db) {
   if (sqlite3_open(db_path, db) != SQLITE_OK) {
     console(ERROR, SQLITE_OPEN_FAILED, sqlite3_errmsg(*db), "database::open_db");
-    cleanup_openssl();
-    exit(EXIT_FAILURE);
+    signal_handler(EXIT_FAILURE);
   }
 }
 
@@ -46,8 +46,7 @@ void check_tables(sqlite3 *db) {
   if (sqlite3_exec(db, sql_auth, nullptr, nullptr, &errmsg) != SQLITE_OK) {
     console(ERROR, SQLITE_CREATE_TABLE_FAILED, errmsg, "database::check_tables");
     sqlite3_free(errmsg);
-    cleanup_openssl();
-    exit(EXIT_FAILURE);
+    signal_handler(EXIT_FAILURE);
   }
 
   //  salt table
@@ -57,8 +56,7 @@ void check_tables(sqlite3 *db) {
   if (sqlite3_exec(db, sql_salt, nullptr, nullptr, &errmsg) != SQLITE_OK) {
     console(ERROR, SQLITE_CREATE_TABLE_FAILED, errmsg, "database::check_tables");
     sqlite3_free(errmsg);
-    cleanup_openssl();
-    exit(EXIT_FAILURE);
+    signal_handler(EXIT_FAILURE);
   }
   //  generate salt if not exist
   const char *sql_salt_exist = "INSERT INTO salt (salt)"
@@ -67,16 +65,14 @@ void check_tables(sqlite3 *db) {
   if (sqlite3_exec(db, sql_salt_exist, nullptr, nullptr, &errmsg) != SQLITE_OK) {
     console(ERROR, SQLITE_RETRIEVE_FAILED, errmsg, "database::check_tables");
     sqlite3_free(errmsg);
-    cleanup_openssl();
-    exit(EXIT_FAILURE);
+    signal_handler(EXIT_FAILURE);
   }
   //  get salt from db
   const char *sql_get_salt = "SELECT salt.salt FROM salt;";
   if (sqlite3_exec(db, sql_get_salt, salt_callback, nullptr, &errmsg) != SQLITE_OK) {
     console(ERROR, SQLITE_RETRIEVE_FAILED, errmsg, "database::check_tables");
     sqlite3_free(errmsg);
-    cleanup_openssl();
-    exit(EXIT_FAILURE);
+    signal_handler(EXIT_FAILURE);
   }
 
   //  client table
@@ -88,8 +84,7 @@ void check_tables(sqlite3 *db) {
   if (sqlite3_exec(db, sql_client, nullptr, nullptr, &errmsg) != SQLITE_OK) {
     console(ERROR, SQLITE_CREATE_TABLE_FAILED, errmsg, "database::check_tables");
     sqlite3_free(errmsg);
-    cleanup_openssl();
-    exit(EXIT_FAILURE);
+    signal_handler(EXIT_FAILURE);
   }
 }
 

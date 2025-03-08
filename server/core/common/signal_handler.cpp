@@ -1,9 +1,11 @@
 //
 // Created by Jhean Lee on 2025/1/24.
 //
-#include <sqlite3.h>
+
 #include <csignal>
-#include <cstdio>
+
+#include <sys/wait.h>
+#include <sqlite3.h>
 
 #include "signal_handler.hpp"
 #include "console.hpp"
@@ -28,19 +30,15 @@ void signal_handler(int signal) {
   console(WARNING, SIGNAL, std::to_string(signal).c_str(), "signal_handler");
 
   //  close api child
-  if (shared_resources::api_stream) {
-    fputs("k", shared_resources::api_stream); //  kill signal TODO (api rust)
-
-    int api_exit_status = pclose(shared_resources::api_stream);
-    if (api_exit_status < 0) {
-      console(ERROR, API_PCLOSE_FAILED, (std::to_string(errno) + ' ').c_str(), "signal_handler");
-    } else {
-      console(INFO, API_PCLOSE_SUCCESS, (std::to_string(api_exit_status) + ' ').c_str(), "signal_handler");
-    }
+  if (shared_resources::pid_api != 0) {
+    kill(shared_resources::pid_api, SIGTERM);
+    int api_exit_status;
+    waitpid(shared_resources::pid_api, &api_exit_status, 0);
+    console(INFO, API_PROCESS_ENDED, (std::to_string(api_exit_status) + ' ').c_str(), "signal_handler");
   }
 
   //  close db
-  if (shared_resources::db != nullptr) {
+  if (shared_resources::db) {
     sqlite3_stmt *stmt;
     while ((stmt = sqlite3_next_stmt(shared_resources::db, nullptr)) != nullptr) {
       sqlite3_finalize(stmt);

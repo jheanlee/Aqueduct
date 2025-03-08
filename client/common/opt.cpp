@@ -12,6 +12,7 @@
 
 #include "opt.hpp"
 #include "console.hpp"
+#include "signal_handler.hpp"
 
 std::string readable_host_str = "0.0.0.0";
 const char *host = "0.0.0.0";
@@ -55,7 +56,7 @@ void opt_handler(int argc, char * const argv[]) {
   try {
     app.parse(argc, argv);
   } catch (const CLI::ParseError &e) {
-    exit(app.exit(e));
+    signal_handler(app.exit(e));
   }
 
   readable_host = readable_host_str.c_str();
@@ -68,14 +69,14 @@ void opt_handler(int argc, char * const argv[]) {
     error = getaddrinfo(readable_host, nullptr, &hint, &result);
     if (error != 0) {
       console(ERROR, RESOLVE_HOST_FAILED, nullptr, "option");
-      exit(EXIT_FAILURE);
+      signal_handler(EXIT_FAILURE);
     }
     addr_ptr = result;
     while (addr_ptr != nullptr) {
       error = getnameinfo(addr_ptr->ai_addr, addr_ptr->ai_addrlen, hostname, NI_MAXHOST, nullptr, 0, 0);
       if (error != 0) {
         console(ERROR, RESOLVE_HOST_FAILED, nullptr, "option");
-        exit(EXIT_FAILURE);
+        signal_handler(EXIT_FAILURE);
       }
       if (*hostname != '\0') {
         host = hostname;
@@ -88,11 +89,11 @@ void opt_handler(int argc, char * const argv[]) {
   //  port validation
   if (host_main_port <= 0 || host_main_port > 65535) {
     console(ERROR, PORT_INVALID_RANGE, nullptr, "option");
-    exit(EXIT_FAILURE);
+    signal_handler(EXIT_FAILURE);
   }
   if (local_service_port <= 0 || local_service_port > 65535) {
     console(ERROR, PORT_INVALID_RANGE, nullptr, "option");
-    exit(EXIT_FAILURE);
+    signal_handler(EXIT_FAILURE);
   }
 
   if (token.empty()) {
@@ -100,7 +101,7 @@ void opt_handler(int argc, char * const argv[]) {
     std::cin >> token;
     if (!std::regex_match(token, reg_token)) {
       console(ERROR, INVALID_TOKEN, nullptr, "option");
-      exit(EXIT_FAILURE);
+      signal_handler(EXIT_FAILURE);
     }
   }
 

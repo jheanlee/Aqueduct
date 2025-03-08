@@ -15,6 +15,7 @@
 #include "../common/config.hpp"
 #include "socket_management.hpp"
 #include "../common/console.hpp"
+#include "../common/signal_handler.hpp"
 
 void send_heartbeat_message(SSL *server_ssl, char *buffer) {
   Message message{.type = HEARTBEAT, .string = ""};
@@ -99,15 +100,13 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
     service_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (service_fd == -1) {
       console(ERROR, SOCK_CREATE_FAILED, "for service ", "connnection::service");
-      cleanup_openssl();
-      exit(EXIT_FAILURE);
+      signal_handler(EXIT_FAILURE);
     }
     
     //  connect (service)
     if (connect(service_fd, (struct sockaddr *) &service_addr, sizeof(service_addr))) {
       console(ERROR, SOCK_CONNECT_FAILED, "to service ", "connection::service");
-      cleanup_openssl();
-      exit(EXIT_FAILURE);
+      signal_handler(EXIT_FAILURE);
     }
 
     console(INFO, CONNECTED_TO_SERVICE, (std::string(local_service) + ':' + std::to_string(local_service_port)).c_str(), "connection::service");
@@ -126,13 +125,11 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
     host_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (host_fd == -1) {
       console(ERROR, SOCK_CREATE_FAILED, "for host ", "connection::service");
-      cleanup_openssl();
-      exit(EXIT_FAILURE);
+      signal_handler(EXIT_FAILURE);
     }
     if (connect(host_fd, (struct sockaddr *) &host_addr, sizeof(host_addr))) {
       console(ERROR, SOCK_CONNECT_FAILED, "to host ", "connection::service");
-      cleanup_openssl();
-      exit(EXIT_FAILURE);
+      signal_handler(EXIT_FAILURE);
     }
 
     //  ssl context, turn plain socket into ssl connection
@@ -141,8 +138,7 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
     SSL_set_fd(host_ssl, host_fd);
     if (SSL_connect(host_ssl) <= 0) {
       console(ERROR, SSL_CONNECT_FAILED, nullptr, "connection::service");
-      cleanup_openssl();
-      exit(EXIT_FAILURE);
+      signal_handler(EXIT_FAILURE);
     }
 
     console(INFO, CONNECTED_FOR_ID, redirect_message.string.c_str(), "connection::service");

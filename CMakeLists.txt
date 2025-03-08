@@ -74,11 +74,19 @@ target_link_libraries(sphere-linked-client PRIVATE CLI11::CLI11)
 if (UNIX AND NOT APPLE)
     find_library(UUID_LIB uuid REQUIRED)
     target_link_libraries(sphere-linked-server PRIVATE ${UUID_LIB})
+endif ()
+
+#   cargo
+if (DEFINED ENV{CARGO_BIN_PATH})
+    set(CARGO_BIN_PATH $ENV{CARGO_BIN_PATH})
+else()
+    set(CARGO_BIN_PATH cargo)
 endif()
+message(STATUS "Cargo path: ${CARGO_BIN_PATH}")
 
 #   server api
 add_custom_command(TARGET sphere-linked-server POST_BUILD
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/server/api
-    COMMAND cargo build --release --target-dir ${CMAKE_BINARY_DIR}
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/release/api ${CMAKE_BINARY_DIR}/sphere-linked-server-api
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/server/api
+        COMMAND ${CARGO_BIN_PATH} build --release --target-dir ${CMAKE_BINARY_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/release/api ${CMAKE_BINARY_DIR}/sphere-linked-server-api
 )

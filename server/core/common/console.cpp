@@ -86,11 +86,8 @@ void console(Level level, Code code, const char *detail, const std::string &func
     case API_PROCESS_STARTED:
       buffer << "API process has been successfully started ";
       break;
-    case API_PCLOSE_SUCCESS:
+    case API_PROCESS_ENDED:
       buffer << "API process has ended with exit code ";
-      break;
-    case API_PCLOSE_FAILED:
-      buffer << "Failed to end API process, errno: ";
       break;
     case SOCK_CREATE_FAILED:
       buffer << "Failed to create socket ";

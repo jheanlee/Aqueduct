@@ -84,7 +84,7 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
   int recv_status;
   char inbuffer[1024] = {0};
   std::string auth;
-  Message message {.type = -1, .string = ""};
+  Message message {.type = '\0', .string = ""};
   Client *client;
 
   struct pollfd pfds[1];

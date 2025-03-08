@@ -2,9 +2,10 @@
 // Created by Jhean Lee on 2024/10/2.
 //
 
-#include <cstdio>
 #include <thread>
 #include <chrono>
+#include <csignal>
+#include <unistd.h>
 
 #include "core/tunnel/connection.hpp"
 #include "core/common/opt.hpp"
@@ -36,11 +37,19 @@ int main(int argc, char *argv[]) {
   std::thread api_thread(api_control_thread_func);
 
   while (!shared_resources::global_flag_kill && !shared_resources::flag_api_kill && !shared_resources::flag_api_service_running) std::this_thread::yield();
-  shared_resources::api_stream = popen("./sphere-linked-server-api", "w");
-  if (!shared_resources::api_stream) {
+  pid_t pid_api = fork();
+  if (pid_api < 0) {
     console(ERROR, API_START_PROCESS_FAILED, std::to_string(errno).c_str(), "main");
-    shared_resources::flag_api_kill = true;
+  } else if (pid_api == 0) {
+    //  api child
+    execlp("./sphere-linked-server-api", "");
+    console(ERROR, API_START_PROCESS_FAILED, std::to_string(errno).c_str(), "main_api_child");
+    //  failure
+    cleanup_openssl();
+    exit(EXIT_FAILURE);
   }
+
+  shared_resources::pid_api = pid_api;
 
   ssl_control_thread.join();
   update_client_db_thread.join();
