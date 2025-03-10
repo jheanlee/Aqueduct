@@ -50,7 +50,6 @@
     extern std::chrono::time_point<std::chrono::system_clock> process_start;
 
     extern std::mutex cout_mutex;
-    extern std::mutex ssl_send_mutex;
     extern std::mutex ports_mutex;
 
     extern sqlite3 *db;

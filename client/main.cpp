@@ -6,6 +6,7 @@
 #include <string>
 #include <thread>
 #include <chrono>
+#include <mutex>
 
 #include <unistd.h>
 #include <poll.h>
@@ -30,6 +31,7 @@ int main(int argc, char *argv[]) {
   std::queue<std::string> user_id;
   std::chrono::system_clock::time_point timer;
   std::chrono::seconds server_response_duration;
+  std::mutex send_mutex;
 
   std::thread service_thread;
 
@@ -62,7 +64,7 @@ int main(int argc, char *argv[]) {
   console(INFO, CONNECTED_TO_HOST, (std::string(host) + ':' + std::to_string(host_main_port)).c_str(), "main");
 
   //  send CONNECT message
-  if (ssl_send_message(server_ssl, outbuffer, sizeof(outbuffer), message) <= 0){
+  if (ssl_send_message(server_ssl, outbuffer, sizeof(outbuffer), message, send_mutex) <= 0){
     console(ERROR, MESSAGE_SEND_FAILED, (std::string(host) + ':' + std::to_string(host_main_port)).c_str(), "main");
   }
   timer = std::chrono::system_clock::now();
@@ -103,7 +105,7 @@ int main(int argc, char *argv[]) {
       flag_server_active = true;
       switch (message.type) {
         case HEARTBEAT:
-          send_heartbeat_message(server_ssl, outbuffer);
+          send_heartbeat_message(server_ssl, outbuffer, send_mutex);
           break;
         case STREAM_PORT:
           console(INFO, STREAM_PORT_OPENED, (std::string(readable_host) + ':' + message.string).c_str(), "main");
@@ -118,7 +120,7 @@ int main(int argc, char *argv[]) {
           user_id.push(message.string);
           break;
         case AUTHENTICATION:
-          send_auth_message(server_ssl, outbuffer, sizeof(outbuffer));
+          send_auth_message(server_ssl, outbuffer, sizeof(outbuffer), send_mutex);
           console(INFO, AUTHENTICATION_REQUEST_SENT, nullptr, "main");
           break;
         case AUTH_SUCCESS:

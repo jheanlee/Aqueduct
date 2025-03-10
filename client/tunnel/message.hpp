@@ -5,6 +5,8 @@
 #ifndef SPHERE_LINKED_MESSAGE_HPP
   #define SPHERE_LINKED_MESSAGE_HPP
 
+  #include <mutex>
+
   #include <openssl/ssl.h>
 
   #define MESSAGE_MAX_STRING_SIZE 127
@@ -29,7 +31,7 @@
 
   };
 
-  int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message);
+  int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message, std::mutex &send_mutex);
   int ssl_recv_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message);
 
 #endif //SPHERE_LINKED_MESSAGE_HPP

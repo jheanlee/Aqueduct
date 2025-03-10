@@ -7,7 +7,7 @@
   #include <mutex>
 
   namespace shared_resources {
-    extern std::mutex ssl_send_mutex;
+
   }
 
   extern bool verbose;

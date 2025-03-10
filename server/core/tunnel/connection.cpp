@@ -84,6 +84,7 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
   int recv_status;
   char inbuffer[1024] = {0};
   std::string auth;
+  std::mutex send_mutex;
   Message message {.type = '\0', .string = ""};
   Client *client;
 
@@ -133,10 +134,12 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
           }
 
           //  ensure connection is alive
-          heartbeat_thread = std::thread(ssl_heartbeat_thread_func, client_ssl, std::ref(client_addr), std::ref(flag_heartbeat_received), std::ref(flag_kill));
+          heartbeat_thread = std::thread(ssl_heartbeat_thread_func, client_ssl, std::ref(client_addr), std::ref(flag_heartbeat_received),
+                                         std::ref(flag_kill), std::ref(send_mutex));
           //  external_user <-> proxy_server connection, sends id to service(client)
           proxy_service_port_thread = std::thread(proxy_service_port_thread_func, std::ref(flag_kill),
-                                                  std::ref(flag_auth_received), std::ref(auth), client_ssl, std::ref(client_addr), std::ref(*client));
+                                                  std::ref(flag_auth_received), std::ref(auth), client_ssl, std::ref(client_addr),
+                                                  std::ref(*client), std::ref(send_mutex));
           break;
         case HEARTBEAT:
           //  sets heartbeat flag to true (used by heartbeat_thread)
@@ -206,7 +209,7 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
   console(INFO, CONNECTION_CLOSED, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::sesstion");
 }
 
-void ssl_heartbeat_thread_func(SSL *client_ssl, sockaddr_in &client_addr, std::atomic<bool> &flag_heartbeat_received, std::atomic<bool> &flag_kill) {
+void ssl_heartbeat_thread_func(SSL *client_ssl, sockaddr_in &client_addr, std::atomic<bool> &flag_heartbeat_received, std::atomic<bool> &flag_kill, std::mutex &send_mutex) {
   char outbuffer[1024] = {0};
   Message heartbeat_message = {.type = HEARTBEAT, .string = ""};
 
@@ -217,7 +220,7 @@ void ssl_heartbeat_thread_func(SSL *client_ssl, sockaddr_in &client_addr, std::a
     std::this_thread::sleep_for(std::chrono::seconds(heartbeat_sleep_sec));
     //  send heartbeat message
 
-    if (ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), heartbeat_message) <= 0) {
+    if (ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), heartbeat_message, send_mutex) <= 0) {
       console(WARNING, MESSAGE_SEND_FAILED, nullptr, "connection::heartbeat");
     }
 
@@ -240,7 +243,7 @@ void ssl_heartbeat_thread_func(SSL *client_ssl, sockaddr_in &client_addr, std::a
   }
 }
 
-void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bool> &flag_auth_received, std::string &auth, SSL *client_ssl, sockaddr_in &client_addr, Client &client) {
+void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bool> &flag_auth_received, std::string &auth, SSL *client_ssl, sockaddr_in &client_addr, Client &client, std::mutex &send_mutex) {
   bool flag_port_found = false;
   int service_proxy_fd = 0, proxy_port = 0, external_user_fd = 0, status = 0;
   char outbuffer[1024] = {0}, uuid_str[37] = {0};
@@ -254,12 +257,12 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   Message message = {.type = AUTHENTICATION, .string = ""};
 
   //  authentication
-  ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
+  ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message, send_mutex);
 
   while (!flag_kill && !flag_auth_received) std::this_thread::yield();
   if (auth.empty()) {
     message = {.type = AUTH_FAILED, .string = ""};
-    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
+    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message, send_mutex);
     console(INFO, AUTHENTICATION_FAILED, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::proxy_service");
     flag_kill = true;
     return;
@@ -273,7 +276,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
 
   if (sqlite3_prepare_v2(shared_resources::db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
     message = {.type = DB_ERROR, .string = ""};
-    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
+    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message, send_mutex);
     console(ERROR, SQLITE_PREPARE_FAILED, sqlite3_errmsg(shared_resources::db), "connection::proxy_service");
     flag_kill = true;
     return;
@@ -282,7 +285,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   if (sqlite3_bind_text(stmt, 1, auth.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK  ||
       sqlite3_bind_text(stmt, 2, shared_resources::db_salt.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK)  {
     message = {.type = DB_ERROR, .string = ""};
-    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
+    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message, send_mutex);
     console(ERROR, SQLITE_BIND_PARAMETER_FAILED, sqlite3_errmsg(shared_resources::db), "connection::proxy_service");
     sqlite3_finalize(stmt);
     flag_kill = true;
@@ -294,7 +297,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
     sql_result = sqlite3_column_int(stmt, 0);
   } else {
     message = {.type = DB_ERROR, .string = ""};
-    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
+    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message, send_mutex);
     console(ERROR, SQLITE_RETRIEVE_FAILED, sqlite3_errmsg(shared_resources::db), "connection::proxy_service");
     flag_kill = true;
     return;
@@ -303,11 +306,11 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
 
   if (sql_result == 1) {
     message = {.type = AUTH_SUCCESS, .string = ""};
-    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
+    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message, send_mutex);
     console(INFO, AUTHENTICATION_SUCCESS, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::proxy_service");
   } else {
     message = {.type = AUTH_FAILED, .string = ""};
-    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
+    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message, send_mutex);
     console(INFO, AUTHENTICATION_FAILED, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::proxy_service");
     flag_kill = true;
     return;
@@ -347,7 +350,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   //  send the port to which the service is streamed to client (external users can connect to this port)
   message.string = std::to_string((int) ntohs(server_proxy_addr.sin_port));
   client.stream_port = (int) ntohs(server_proxy_addr.sin_port);
-  ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
+  ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message, send_mutex);
 
   //  accept external connections (end users)
   pfds[0] = {.fd = service_proxy_fd, .events = POLLIN | POLLPRI};
@@ -376,7 +379,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
     shared_resources::external_user_id_map.try_emplace(message.string, External_User{ .fd = external_user_fd, .external_user = external_user_addr, .client = client_addr, .server = server_proxy_addr });
     user_id_lock.unlock();
 
-    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message);
+    ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message, send_mutex);
   }
 
   //  clean up

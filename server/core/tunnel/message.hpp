@@ -37,7 +37,7 @@
   int send_message(int &fd, char *buffer, size_t buffer_size, Message &message, std::mutex &send_mutex);
   int recv_message(int &fd, char *buffer, size_t buffer_size, Message &message);
   int read_message_non_block(int &fd, pollfd *pfds, char *buffer, size_t buffer_size, Message &message);
-  int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message);
+  int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message, std::mutex &send_mutex);
   int ssl_recv_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message);
   int ssl_read_message_non_block(SSL *ssl, pollfd *pfds, char *buffer, size_t buffer_size, Message &message);
 

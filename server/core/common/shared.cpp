@@ -14,7 +14,6 @@ namespace shared_resources {
   std::chrono::time_point<std::chrono::system_clock> process_start;
 
   std::mutex cout_mutex;
-  std::mutex ssl_send_mutex;
   std::mutex ports_mutex;
 
   sqlite3 *db = nullptr;

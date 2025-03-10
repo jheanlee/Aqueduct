@@ -25,8 +25,8 @@ void Message::dump(char *buffer) const {
   strcat(buffer, string.c_str());
 }
 
-int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message) {
-  std::lock_guard<std::mutex> lock(shared_resources::ssl_send_mutex);
+int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message, std::mutex &send_mutex) {
+  std::lock_guard<std::mutex> lock(send_mutex);
 
   try {
     std::memset(buffer, '\0', buffer_size);
