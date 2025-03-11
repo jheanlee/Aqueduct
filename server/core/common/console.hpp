@@ -9,6 +9,7 @@
   enum Level {
     ERROR,
     WARNING,
+    NOTICE,
     INFO,
     DEBUG,
   };

@@ -7,6 +7,9 @@
 #include <ctime>
 #include <mutex>
 
+#include <syslog.h>
+//  TODO mac Console app log
+
 #include "console.hpp"
 #include "shared.hpp"
 
@@ -17,270 +20,339 @@
 #define CYAN        "\033[36m"
 
 void console(Level level, Code code, const char *detail, const std::string &function) {
-  std::ostringstream buffer;
+  bool flag_log = false;
+  std::ostringstream cout_buffer, msg_buffer;
 
   //  timestamp
   char strtime[32];
   time_t time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   std::strftime(strtime, 32, "(%Y-%m-%d %H:%M:%S) ", std::gmtime(&time));
-  buffer << strtime;
+  cout_buffer << strtime;
 
   //  level
   switch (level) {
     case ERROR:
-      buffer << RED;
-      buffer << "[Error] ";
+      cout_buffer << RED;
+      cout_buffer << "[Error] ";
       break;
     case WARNING:
-      buffer << YELLOW;
-      buffer << "[Warning] ";
+      cout_buffer << YELLOW;
+      cout_buffer << "[Warning] ";
+      break;
+    case NOTICE:
+      cout_buffer << "[Notice] ";
       break;
     case INFO:
-      buffer << "[Info] ";
+      cout_buffer << "[Info] ";
       break;
     case DEBUG:
       if (!verbose) {
         return;
       }
-      buffer << CYAN;
-      buffer << "[DEBUG] ";
+      cout_buffer << CYAN;
+      cout_buffer << "[DEBUG] ";
       break;
   }
-  buffer << RESET;
+  cout_buffer << RESET;
 
   //  code
   switch (code) {
     case API_SOCK_CREATE_FAILED:
-      buffer << "Failed to create socket, api and webui services will not be available ";
+      flag_log = true;
+      msg_buffer << "Failed to create socket, api and webui services will not be available";
       break;
     case API_SOCK_BIND_FAILED:
-      buffer << "Failed to bind to socket, api and webui services will not be available ";
+      flag_log = true;
+      msg_buffer << "Failed to bind socket, api and webui services will not be available";
       break;
     case API_SOCK_LISTEN_FAILED:
-      buffer << "Failed to listen on socket, api and webui services will not be available ";
+      flag_log = true;
+      msg_buffer << "Failed to listen on socket, api and webui services will not be available";
       break;
     case API_SOCK_ACCEPT_FAILED:
-      buffer << "Failed to accept on socket, api and webui services may not be available ";
+      flag_log = true;
+      msg_buffer << "Failed to accept on socket, api and webui services may not be available";
       break;
     case API_SOCK_POLL_ERR:
-      buffer << "An error has been returned by poll(), api and webui services may not be available. errno: ";
+      flag_log = true;
+      msg_buffer << "An error has been returned by poll(), api and webui services may not be available. errno:";
       break;
     case API_LISTEN_STARTED:
-      buffer << "API service has started ";
+      flag_log = true;
+      msg_buffer << "API service has started";
       break;
     case API_SERVICE_ENDED:
-      buffer << "API service has ended ";
+      flag_log = true;
+      msg_buffer << "API service has ended";
       break;
     case API_CLIENT_CONNECTION_ACCEPTED:
-      buffer << "API connection accepted ";
+      msg_buffer << "API connection accepted";
       break;
     case API_CONNECTION_CLOSED:
-      buffer << "API connection closed ";
+      msg_buffer << "API connection closed";
       break;
     case API_HEARTBEAT_TIMEOUT:
-      buffer << "API clienct heartbeat timed out";
+      msg_buffer << "API clienct heartbeat timed out";
       break;
-    case API_START_PROCESS_FAILED :
-      buffer << "Failed to run API process, errno: ";
+    case API_START_PROCESS_FAILED:
+      flag_log = true;
+      msg_buffer << "Failed to run API process, errno:";
       break;
     case API_PROCESS_STARTED:
-      buffer << "API process has been successfully started ";
+      flag_log = true;
+      msg_buffer << "API process has been successfully started";
       break;
     case API_PROCESS_ENDED:
-      buffer << "API process has ended with exit code ";
+      flag_log = true;
+      msg_buffer << "API process has ended with exit code";
       break;
     case SOCK_CREATE_FAILED:
-      buffer << "Failed to create socket ";
+      flag_log = true;
+      msg_buffer << "Failed to create socket";
       break;
     case SOCK_BIND_FAILED:
-      buffer << "Failed to bind to socket ";
+      flag_log = true;
+      msg_buffer << "Failed to bind socket";
       break;
     case SOCK_LISTEN_FAILED:
-      buffer << "Failed to listen on socket ";
+      flag_log = true;
+      msg_buffer << "Failed to listen on socket";
       break;
     case SOCK_ACCEPT_FAILED:
-      buffer << "Failed to accept on socket ";
+      flag_log = true;
+      msg_buffer << "Failed to accept on socket";
       break;
     case SOCK_SETSOCKOPT_FAILED:
-      buffer << "Failed to set socket options ";
+      flag_log = true;
+      msg_buffer << "Failed to set socket options";
       break;
     case SOCK_POLL_ERR:
-      buffer << "An error has been returned by poll(), errno: ";
+      flag_log = true;
+      msg_buffer << "An error has been returned by poll(), errno:";
       break;
     case SSL_CREATE_CONTEXT_FAILED:
-      buffer << "Failed to create SSL context ";
+      flag_log = true;
+      msg_buffer << "Failed to create SSL context";
       break;
     case SSL_ACCEPT_FAILED:
-      buffer << "Failed to accept SSL connection ";
+      flag_log = true;
+      msg_buffer << "Failed to accept SSL connection";
       break;
     case SSL_LOAD_CERT_KEY_FAILED:
-      buffer << "Failed to load SSL certificate or map_key ";
+      flag_log = true;
+      msg_buffer << "Failed to load SSL certificate or map_key";
       break;
     case SQLITE_OPEN_FAILED:
-      buffer << "Failed to open SQLite database\n";
+      flag_log = true;
+      msg_buffer << "Failed to open SQLite database:";
       break;
     case SQLITE_CREATE_TABLE_FAILED:
-      buffer << "Failed to create SQLite table\n";
+      flag_log = true;
+      msg_buffer << "Failed to create SQLite table:";
       break;
     case SQLITE_PREPARE_FAILED:
-      buffer << "Failed to prepare SQL statement\n";
+      flag_log = true;
+      msg_buffer << "Failed to prepare SQL statement:";
       break;
     case SQLITE_BIND_PARAMETER_FAILED:
-      buffer << "Failed to bind SQL parameter\n";
+      flag_log = true;
+      msg_buffer << "Failed to bind SQL parameter:";
       break;
     case SQLITE_STEP_FAILED:
-      buffer << "Failed to execute SQL statement\n";
+      flag_log = true;
+      msg_buffer << "Failed to execute SQL statement:";
       break;
     case SQLITE_RETRIEVE_FAILED:
-      buffer << "Failed to retrieve data from database\n";
+      flag_log = true;
+      msg_buffer << "Failed to retrieve data from database:";
       break;
     case SQLITE_CLOSING:
-      buffer << "Closing SQLite database ";
+      msg_buffer << "Closing SQLite database";
       break;
     case SQLITE_CLOSE_SUCCESS:
-      buffer << "Successfully closed SQLite database ";
+      flag_log = true;
+      msg_buffer << "Successfully closed SQLite database";
       break;
     case SQLITE_CLOSE_FAILED:
-      buffer << "Failed to close SQLite database\n";
+      flag_log = true;
+      msg_buffer << "Failed to close SQLite database:";
       break;
     case INVALID_DB:
-      buffer << "Invalid database pointer ";
+      flag_log = true;
+      msg_buffer << "Invalid database pointer";
       break;
     case GENERATED_TOKEN:
-      buffer << "A new token has been generated for ";
+      flag_log = true;
+      msg_buffer << "A new token has been generated for";
       break;
     case REMOVED_TOKEN:
-      buffer << "Token removed successfully ";
+      flag_log = true;
+      msg_buffer << "Token removed successfully";
       break;
     case SHA256_INIT_CONTEXT_FAILED:
-      buffer << "Failed to initialise SHA256 context ";
+      flag_log = true;
+      msg_buffer << "Failed to initialise SHA256 context";
       break;
     case SHA256_SET_CONTEXT_FAILED:
-      buffer << "Failed to set SHA256 context ";
+      flag_log = true;
+      msg_buffer << "Failed to set SHA256 context";
       break;
     case SHA256_UPDATE_CONTEXT_FAILED:
-      buffer << "Failed to update SHA256 context ";
+      flag_log = true;
+      msg_buffer << "Failed to update SHA256 context";
       break;
     case SHA256_FINALISE_CONTEXT_FAILED:
-      buffer << "Failed to finalise SHA256 context ";
+      flag_log = true;
+      msg_buffer << "Failed to finalise SHA256 context";
       break;
     case RAND_FAILED:
-      buffer << "Failed to generate random bytes ";
+      flag_log = true;
+      msg_buffer << "Failed to generate random bytes";
       break;
     case OPTION_UNKNOWN:
-      buffer << "Unknown option passed to program. Please use the --help option to see usage ";
+      msg_buffer << "Unknown option passed to program. Please use the --help option to see usage";
       break;
     case OPTION_KEY_NOT_SET:
-      buffer << "Key for TLS connection is not set. Please specify the path to the private map_key using the --tls-map_key option ";
+      msg_buffer << "Key for TLS connection is not set. Please specify the path to the private map_key using the --tls-map_key option";
       break;
     case OPTION_CERT_NOT_SET:
-      buffer << "Certificate for TLS connection is not set. Please specify the path to the certificate using the --tls-cert option ";
+      msg_buffer << "Certificate for TLS connection is not set. Please specify the path to the certificate using the --tls-cert option";
       break;
     case PORT_INVALID_CHARACTER:
-      buffer << "Invalid value passed as port number ";
+      msg_buffer << "Invalid value passed as port number";
       break;
     case PORT_INVALID_RANGE:
-      buffer << "Invalid port range passed. Port numbers must be within the range of 1-65565 ";
+      msg_buffer << "Invalid port range passed. Port numbers must be within the range of 1-65565";
       break;
     case PORT_WELL_KNOWN:
-      buffer << "Well-known ports (range 1-1023) passed. May require escalated privilages to bind ";
+      msg_buffer << "Well-known ports (range 1-1023) passed. May require escalated privilages to bind";
       break;
     case PORT_INVALID_LIMIT:
-      buffer << "Invalid port limit ";
+      msg_buffer << "Invalid port limit";
       break;
     case PORT_MAY_EXCEED:
-      buffer << "Port numbers may exceed 65535 ";
+      msg_buffer << "Port numbers may exceed 65535";
       break;
     case INFO_KEY_PATH:
-      buffer << "TLS private map_key: ";
+      flag_log = true;
+      msg_buffer << "TLS private key:";
       break;
     case INFO_CERT_PATH:
-      buffer << "TLS certificate: ";
+      flag_log = true;
+      msg_buffer << "TLS certificate:";
       break;
     case INFO_DB_PATH:
-      buffer << "Database file: ";
+      flag_log = true;
+      msg_buffer << "Database file:";
       break;
     case INFO_HOST:
-      buffer << "Streaming host: ";
+      flag_log = true;
+      msg_buffer << "Streaming host:";
       break;
     case MESSAGE_SEND_FAILED:
-      buffer << "Failed to send message ";
+      msg_buffer << "Failed to send message";
       break;
     case MESSAGE_LOAD_FAILED:
-      buffer << "Failed to load message ";
+      msg_buffer << "Failed to load message";
       break;
     case MESSAGE_DUMP_FAILED:
-      buffer << "Failed to dump message ";
+      msg_buffer << "Failed to dump message";
       break;
     case BUFFER_SEND_ERROR_TO_CLIENT:
-      buffer << "Failed to send buffer to client: ";
+      msg_buffer << "Failed to send buffer to client:";
       break;
     case BUFFER_SEND_ERROR_TO_EXTERNAL_USER:
-      buffer << "Failed to send buffer to external user: ";
+      msg_buffer << "Failed to send buffer to external user:";
       break;
     case CONNECTION_LISTEN_STARTED:
-      buffer << "Listening for connection ";
+      flag_log = true;
+      msg_buffer << "Listening for connection";
       break;
     case TUNNEL_SERVICE_ENDED:
-      buffer << "Tunnel service has ended";
+      flag_log = true;
+      msg_buffer << "Tunnel service has ended";
       break;
     case CLIENT_CONNECTION_ACCEPTED:
-      buffer << "Accepted connection from client: ";
+      msg_buffer << "Accepted connection from client:";
       break;
     case EXTERNAL_CONNECTION_ACCEPTED:
-      buffer << "Accepted external connection: ";
+      msg_buffer << "Accepted external connection:";
       break;
     case CONNECTION_CLOSED:
-      buffer << "Connection has been closed: ";
+      msg_buffer << "Connection has been closed:";
       break;
     case CONNECTION_CLOSED_BY_CLIENT:
-      buffer << "Proxy connection has been closed by client: ";
+      msg_buffer << "Proxy connection has been closed by client:";
       break;
     case CONNECTION_CLOSED_BY_EXTERNAL_USER:
-      buffer << "Proxy connection has been closed by external user ";
+      msg_buffer << "Proxy connection has been closed by external user";
       break;
     case HEARTBEAT_TIMEOUT:
-      buffer << "Client heartbeat timed out: ";
+      msg_buffer << "Client heartbeat timed out:";
       break;
     case AUTHENTICATION_FAILED:
-      buffer << "Client authentication failed: ";
+      msg_buffer << "Client authentication failed:";
       break;
     case AUTHENTICATION_SUCCESS:
-      buffer << "Client authentication success: ";
+      msg_buffer << "Client authentication success:";
       break;
     case PROXY_PORT_NEW:
-      buffer << "Opened new proxy port: ";
+      msg_buffer << "Opened new proxy port:";
       break;
     case PROXYING_STARTED:
-      buffer << "Proxying started: ";
+      msg_buffer << "Proxying started:";
       break;
     case PROXYING_ENDED:
-      buffer << "Proxying ended: ";
+      msg_buffer << "Proxying ended:";
       break;
     case NO_PORT_AVAILABLE:
-      buffer << "No available ports ";
+      flag_log = true;
+      msg_buffer << "No available ports";
       break;
     case SIGNAL:
-      buffer << "Closing with signal ";
+      flag_log = true;
+      msg_buffer << "Closing with signal";
       break;
     case DEBUG_MSG:
       break;
   }
 
+
   if (detail != nullptr) {
-    buffer << detail;
-    buffer << ' ';
+    msg_buffer << ' ';
+    msg_buffer << detail;
   }
+
+  cout_buffer << msg_buffer.str() << ' ';
 
   if (verbose) {
-    buffer << FAINT_GRAY;
-    buffer << '(';
-    buffer << function;
-    buffer << ')';
-    buffer << RESET;
+    cout_buffer << FAINT_GRAY;
+    cout_buffer << '(';
+    cout_buffer << function;
+    cout_buffer << ')';
+    cout_buffer << RESET;
   }
-  buffer << '\n';
+  cout_buffer << '\n';
 
+  if (flag_log) {
+    switch (level) {
+      case ERROR:
+        syslog(LOG_ERR, "%s", msg_buffer.str().c_str());
+        break;
+      case WARNING:
+        syslog(LOG_WARNING, "%s", msg_buffer.str().c_str());
+        break;
+      case NOTICE:
+        syslog(LOG_NOTICE, "%s", msg_buffer.str().c_str());
+        break;
+      case INFO:
+        syslog(LOG_INFO, "%s", msg_buffer.str().c_str());
+        break;
+      case DEBUG:
+        syslog(LOG_DEBUG, "%s", msg_buffer.str().c_str());
+        break;
+    }
+  }
   std::lock_guard<std::mutex> cout_lock(shared_resources::cout_mutex);
-  std::cout << buffer.str();
+  std::cout << cout_buffer.str();
 }

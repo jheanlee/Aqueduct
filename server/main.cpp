@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
     console(ERROR, API_START_PROCESS_FAILED, std::to_string(errno).c_str(), "main");
   } else if (pid_api == 0) {
     //  api child
-    execlp("./sphere-linked-server-api", "");
+    execlp("./sphere-linked-server-api", "./sphere-linked-server-api", nullptr);
     console(ERROR, API_START_PROCESS_FAILED, std::to_string(errno).c_str(), "main_api_child");
     //  failure
     cleanup_openssl();

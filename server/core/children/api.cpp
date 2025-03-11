@@ -48,7 +48,7 @@ void api_control_thread_func() {
     return;
   }
 
-  console(INFO, API_LISTEN_STARTED, nullptr, "api::api_control");
+  console(NOTICE, API_LISTEN_STARTED, nullptr, "api::api_control");
   shared_resources::flag_api_service_running = true;
 
   pfds[0] = {.fd = core_fd, .events = POLLIN | POLLPRI};
@@ -70,7 +70,7 @@ void api_control_thread_func() {
     api_threads.emplace_back(api_session_thread_func, api_fd, api_addr);
   }
 
-  console(INFO, API_SERVICE_ENDED, nullptr, "api::api_control");
+  console(NOTICE, API_SERVICE_ENDED, nullptr, "api::api_control");
   shared_resources::flag_api_service_running = false;
   shared_resources::flag_api_kill = true;
 
