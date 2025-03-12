@@ -14,7 +14,7 @@
   void sqlite_encode_base32(sqlite3_context *context, int argc, sqlite3_value **argv);
   void sqlite_generate_salt(sqlite3_context *context, int argc, sqlite3_value **argv);
   int encode_base32(const unsigned char *src, size_t src_size, unsigned char *output, size_t output_size);
-  void generate_salt(std::string &output, size_t len);
+  int generate_salt(std::string &output, size_t len);
 //  int sha256(const unsigned char *data, unsigned char *output);
 
 #endif //SPHERE_LINKED_DATABASE_HPP

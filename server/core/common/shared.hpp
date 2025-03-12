@@ -2,14 +2,16 @@
 // Created by Jhean Lee on 2024/11/26.
 //
 
-#ifndef TUNNEL_SHARED_HPP
-  #define TUNNEL_SHARED_HPP
+#ifndef SPHERE_LINKED_SHARED_HPP
+  #define SPHERE_LINKED_SHARED_HPP
   #include <mutex>
   #include <unordered_map>
   #include <atomic>
   #include <string>
   #include <queue>
   #include <utility>
+  #include <chrono>
+  #include <cstdio>
 
   #include <sqlite3.h>
   #include <netinet/in.h>
@@ -39,20 +41,30 @@
   };
 
   namespace shared_resources {
-    extern std::mutex cout_mutex;
-    extern std::mutex ssl_send_mutex;
-    extern std::mutex ports_mutex;
-    extern sqlite3 *db;
     extern std::atomic<bool> global_flag_kill;
     extern std::atomic<bool> flag_handling_signal;
+    extern std::atomic<bool> flag_tunneling_service_running;
+    extern std::atomic<bool> flag_api_service_running;
+    extern std::atomic<bool> flag_api_kill;
+
+    extern std::chrono::time_point<std::chrono::system_clock> process_start;
+
+    extern std::mutex cout_mutex;
+    extern std::mutex ports_mutex;
+
+    extern sqlite3 *db;
+    extern std::string db_salt;
+    extern int client_db_interval_min;
+
     extern std::atomic<size_t> map_key;
     extern std::unordered_map<size_t, std::atomic<bool>> map_flag_kill;
     extern std::unordered_map<size_t, Client> map_client;
     extern std::mutex map_client_mutex;
+
     extern std::unordered_map<std::string, External_User> external_user_id_map; // id, {external_user_fd, addr}
     extern std::mutex external_user_mutex;
-    extern std::string db_salt;
-    extern int client_db_interval_min;
+
+    extern pid_t pid_api;
   }
   //  TODO: move these someday
   extern bool verbose;
@@ -74,6 +86,7 @@
 
   extern int timeout_session_millisec;
   extern int timeout_proxy_millisec;
+  extern int timeout_api_millisec;
 
   extern const char *db_path;
-#endif //TUNNEL_SHARED_HPP
+#endif //SPHERE_LINKED_SHARED_HPP

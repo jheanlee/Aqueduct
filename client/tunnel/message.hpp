@@ -2,8 +2,10 @@
 // Created by Jhean Lee on 2024/10/2.
 //
 
-#ifndef TUNNEL_MESSAGE_HPP
-  #define TUNNEL_MESSAGE_HPP
+#ifndef SPHERE_LINKED_MESSAGE_HPP
+  #define SPHERE_LINKED_MESSAGE_HPP
+
+  #include <mutex>
 
   #include <openssl/ssl.h>
 
@@ -29,7 +31,7 @@
 
   };
 
-  int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message);
+  int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message, std::mutex &send_mutex);
   int ssl_recv_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message);
 
-#endif //TUNNEL_MESSAGE_HPP
+#endif //SPHERE_LINKED_MESSAGE_HPP

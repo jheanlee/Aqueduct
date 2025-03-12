@@ -5,5 +5,5 @@
 #include "shared.hpp"
 
 namespace shared_resources {
-  std::mutex ssl_send_mutex;
+
 }

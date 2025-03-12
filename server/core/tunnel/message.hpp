@@ -2,11 +2,12 @@
 // Created by Jhean Lee on 2024/10/2.
 //
 
-#ifndef TUNNEL_MESSAGE_HPP
-  #define TUNNEL_MESSAGE_HPP
+#ifndef SPHERE_LINKED_MESSAGE_HPP
+  #define SPHERE_LINKED_MESSAGE_HPP
 
   #include <openssl/ssl.h>
   #include <poll.h>
+  #include <mutex>
 
   #define MESSAGE_MAX_STRING_SIZE 127
 
@@ -20,6 +21,10 @@
   #define AUTH_FAILED     '7'
   #define DB_ERROR        '8'
 
+  #define API_HEARTBEAT   'B'
+  #define API_EXIT        'C'
+  #define API_GET         'D'
+
   class Message {
   public:
     char type;
@@ -29,8 +34,11 @@
     void dump(char *buffer) const;
   };
 
-  int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message);
+  int send_message(int &fd, char *buffer, size_t buffer_size, Message &message, std::mutex &send_mutex);
+  int recv_message(int &fd, char *buffer, size_t buffer_size, Message &message);
+  int read_message_non_block(int &fd, pollfd *pfds, char *buffer, size_t buffer_size, Message &message);
+  int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message, std::mutex &send_mutex);
   int ssl_recv_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message);
   int ssl_read_message_non_block(SSL *ssl, pollfd *pfds, char *buffer, size_t buffer_size, Message &message);
 
-#endif //TUNNEL_MESSAGE_HPP
+#endif //SPHERE_LINKED_MESSAGE_HPP

@@ -2,31 +2,36 @@ cmake_minimum_required(VERSION 3.5)
 project(Sphere-Linked)
 set(CMAKE_CXX_STANDARD 17)
 
+#   server core
 add_executable(sphere-linked-server
         server/main.cpp
-        server/tunnel/connection.cpp
-        server/tunnel/connection.hpp
-        server/tunnel/message.cpp
-        server/tunnel/message.hpp
-        server/common/shared.cpp
-        server/common/shared.hpp
-        server/common/opt.cpp
-        server/common/opt.hpp
-        server/tunnel/socket_management.cpp
-        server/tunnel/socket_management.hpp
-        server/database/database.cpp
-        server/database/database.hpp
-        server/common/console.cpp
-        server/common/console.hpp
-        server/common/signal_handler.cpp
-        server/common/signal_handler.hpp
-        server/database/authentication.cpp
-        server/database/authentication.hpp
-        server/database/client.cpp
-        server/database/client.hpp
-        server/common/input.cpp
-        server/common/input.hpp
+        server/core/tunnel/connection.cpp
+        server/core/tunnel/connection.hpp
+        server/core/tunnel/message.cpp
+        server/core/tunnel/message.hpp
+        server/core/common/shared.cpp
+        server/core/common/shared.hpp
+        server/core/common/opt.cpp
+        server/core/common/opt.hpp
+        server/core/tunnel/socket_management.cpp
+        server/core/tunnel/socket_management.hpp
+        server/core/database/database.cpp
+        server/core/database/database.hpp
+        server/core/common/console.cpp
+        server/core/common/console.hpp
+        server/core/common/signal_handler.cpp
+        server/core/common/signal_handler.hpp
+        server/core/database/authentication.cpp
+        server/core/database/authentication.hpp
+        server/core/database/client.cpp
+        server/core/database/client.hpp
+        server/core/common/input.cpp
+        server/core/common/input.hpp
+        server/core/children/api.cpp
+        server/core/children/api.hpp
 )
+
+#   client core
 add_executable(sphere-linked-client
         client/main.cpp
         client/tunnel/message.cpp
@@ -46,6 +51,7 @@ add_executable(sphere-linked-client
         client/common/signal_handler.hpp
 )
 
+#   server/client dependencies
 find_package(Threads)
 target_link_libraries(sphere-linked-server PRIVATE Threads::Threads)
 target_link_libraries(sphere-linked-client PRIVATE Threads::Threads)
@@ -68,4 +74,19 @@ target_link_libraries(sphere-linked-client PRIVATE CLI11::CLI11)
 if (UNIX AND NOT APPLE)
     find_library(UUID_LIB uuid REQUIRED)
     target_link_libraries(sphere-linked-server PRIVATE ${UUID_LIB})
+endif ()
+
+#   cargo
+if (DEFINED ENV{CARGO_BIN_PATH})
+    set(CARGO_BIN_PATH $ENV{CARGO_BIN_PATH})
+else()
+    set(CARGO_BIN_PATH cargo)
 endif()
+message(STATUS "Cargo path: ${CARGO_BIN_PATH}")
+
+#   server api
+add_custom_command(TARGET sphere-linked-server POST_BUILD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/server/api
+        COMMAND ${CARGO_BIN_PATH} build --release --target-dir ${CMAKE_BINARY_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/release/api ${CMAKE_BINARY_DIR}/sphere-linked-server-api
+)

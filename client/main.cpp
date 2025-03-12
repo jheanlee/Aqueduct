@@ -6,6 +6,7 @@
 #include <string>
 #include <thread>
 #include <chrono>
+#include <mutex>
 
 #include <unistd.h>
 #include <poll.h>
@@ -30,6 +31,7 @@ int main(int argc, char *argv[]) {
   std::queue<std::string> user_id;
   std::chrono::system_clock::time_point timer;
   std::chrono::seconds server_response_duration;
+  std::mutex send_mutex;
 
   std::thread service_thread;
 
@@ -43,13 +45,11 @@ int main(int argc, char *argv[]) {
   server_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd == -1) {
     console(ERROR, SOCK_CREATE_FAILED, nullptr, "main");
-    cleanup_openssl();
-    exit(EXIT_FAILURE);
+    signal_handler(EXIT_FAILURE);
   }
   if (connect(server_fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) == -1) {
     console(ERROR, SOCK_CONNECT_FAILED, "to host", "main");
-    cleanup_openssl();
-    exit(EXIT_FAILURE);
+    signal_handler(EXIT_FAILURE);
   }
 
   //  ssl context, turn plain socket into ssl connection
@@ -58,14 +58,13 @@ int main(int argc, char *argv[]) {
   SSL_set_fd(server_ssl, server_fd);
   if (SSL_connect(server_ssl) <= 0) {
     console(ERROR, SSL_CONNECT_FAILED, nullptr, "main");
-    cleanup_openssl();
-    exit(EXIT_FAILURE);
+    signal_handler(EXIT_FAILURE);
   }
 
   console(INFO, CONNECTED_TO_HOST, (std::string(host) + ':' + std::to_string(host_main_port)).c_str(), "main");
 
   //  send CONNECT message
-  if (ssl_send_message(server_ssl, outbuffer, sizeof(outbuffer), message) <= 0){
+  if (ssl_send_message(server_ssl, outbuffer, sizeof(outbuffer), message, send_mutex) <= 0){
     console(ERROR, MESSAGE_SEND_FAILED, (std::string(host) + ':' + std::to_string(host_main_port)).c_str(), "main");
   }
   timer = std::chrono::system_clock::now();
@@ -106,7 +105,7 @@ int main(int argc, char *argv[]) {
       flag_server_active = true;
       switch (message.type) {
         case HEARTBEAT:
-          send_heartbeat_message(server_ssl, outbuffer);
+          send_heartbeat_message(server_ssl, outbuffer, send_mutex);
           break;
         case STREAM_PORT:
           console(INFO, STREAM_PORT_OPENED, (std::string(readable_host) + ':' + message.string).c_str(), "main");
@@ -121,7 +120,7 @@ int main(int argc, char *argv[]) {
           user_id.push(message.string);
           break;
         case AUTHENTICATION:
-          send_auth_message(server_ssl, outbuffer, sizeof(outbuffer));
+          send_auth_message(server_ssl, outbuffer, sizeof(outbuffer), send_mutex);
           console(INFO, AUTHENTICATION_REQUEST_SENT, nullptr, "main");
           break;
         case AUTH_SUCCESS:
@@ -137,11 +136,11 @@ int main(int argc, char *argv[]) {
           break;
       }
 
-      message = {.type = -1, .string = ""};
+      message = {.type = '\0', .string = ""};
     }
   }
 
   if (flag_service_thread) service_thread.join();
-  cleanup_openssl();
+  signal_handler(0);
   return 0;
 }

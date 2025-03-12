@@ -19,6 +19,7 @@ int proxy_port_start = 51000;
 int proxy_port_limit = 200;
 int timeout_session_millisec = 10;
 int timeout_proxy_millisec = 1;
+int timeout_api_millisec = 10;
 int shared_resources::client_db_interval_min = 5;
 std::string db_path_str = "./sphere-linked.sqlite";
 std::string key_path_str;
@@ -69,7 +70,7 @@ void opt_handler(int argc, char * const argv[]) {
   try {
     app.parse(argc, argv);
   } catch (const CLI::ParseError &e) {
-    exit(app.exit(e));
+    signal_handler(app.exit(e));
   }
 
   db_path = db_path_str.c_str();
@@ -95,7 +96,7 @@ void opt_handler(int argc, char * const argv[]) {
   //  port validation
   if (proxy_port_start <= 0 || proxy_port_start > 65535) {
     console(ERROR, PORT_INVALID_RANGE, nullptr, "opt::opt_handler");
-    exit(EXIT_FAILURE);
+    signal_handler(EXIT_FAILURE);
   }
   if (proxy_port_start < 1024) {
     console(WARNING, PORT_WELL_KNOWN, nullptr, "opt::opt_handler");
@@ -103,7 +104,7 @@ void opt_handler(int argc, char * const argv[]) {
 
   if (proxy_port_limit < 1) {
     console(ERROR, PORT_INVALID_LIMIT, nullptr, "opt::opt_handler");
-    exit(EXIT_FAILURE);
+    signal_handler(EXIT_FAILURE);
   }
   if (proxy_port_start + proxy_port_limit - 1 > 65535) {
     console(WARNING, PORT_INVALID_RANGE, nullptr, "opt::opt_handler");
@@ -111,7 +112,7 @@ void opt_handler(int argc, char * const argv[]) {
 
   if (ssl_control_port <= 0 || ssl_control_port > 65535) {
     console(ERROR, PORT_INVALID_RANGE, nullptr, "opt::opt_handler");
-    exit(EXIT_FAILURE);
+    signal_handler(EXIT_FAILURE);
   }
   if (ssl_control_port < 1024) {
     console(WARNING, PORT_WELL_KNOWN, nullptr, "opt::opt_handler");
@@ -120,11 +121,11 @@ void opt_handler(int argc, char * const argv[]) {
   //  TLS
   if (key_path_str.empty()) {
     console(ERROR, OPTION_KEY_NOT_SET, nullptr, "opt::opt_handler");
-    exit(EXIT_FAILURE);
+    signal_handler(EXIT_FAILURE);
   }
   if (cert_path_str.empty()) {
     console(ERROR, OPTION_CERT_NOT_SET, nullptr, "opt::opt_handler");
-    exit(EXIT_FAILURE);
+    signal_handler(EXIT_FAILURE);
   }
 
   console(INFO, INFO_CERT_PATH, cert_path, "opt::opt_handler");
