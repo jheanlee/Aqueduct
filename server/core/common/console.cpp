@@ -7,8 +7,12 @@
 #include <ctime>
 #include <mutex>
 
-#include <syslog.h>
-//  TODO mac Console app log
+#if defined(__clang__) && defined(__APPLE__)
+  #include <os/log.h>
+#else
+  #include <sys/syslog.h>
+#endif
+
 
 #include "console.hpp"
 #include "shared.hpp"
@@ -335,23 +339,43 @@ void console(Level level, Code code, const char *detail, const std::string &func
   cout_buffer << '\n';
 
   if (flag_log) {
-    switch (level) {
-      case ERROR:
-        syslog(LOG_ERR, "%s", msg_buffer.str().c_str());
-        break;
-      case WARNING:
-        syslog(LOG_WARNING, "%s", msg_buffer.str().c_str());
-        break;
-      case NOTICE:
-        syslog(LOG_NOTICE, "%s", msg_buffer.str().c_str());
-        break;
-      case INFO:
-        syslog(LOG_INFO, "%s", msg_buffer.str().c_str());
-        break;
-      case DEBUG:
-        syslog(LOG_DEBUG, "%s", msg_buffer.str().c_str());
-        break;
-    }
+    #if defined(__OS_LOG_H__)
+      switch (level) {
+        case ERROR:
+          os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_ERROR, "%{public}s", msg_buffer.str().c_str());
+          break;
+        case WARNING:
+          os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEFAULT, "%{public}s", msg_buffer.str().c_str());
+          break;
+        case NOTICE:
+          os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEFAULT, "%{public}s", msg_buffer.str().c_str());
+          break;
+        case INFO:
+          os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_INFO, "%{public}s", msg_buffer.str().c_str());
+          break;
+        case DEBUG:
+          os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEBUG, "%{public}s", msg_buffer.str().c_str());
+          break;
+      }
+    #else
+      switch (level) {
+        case ERROR:
+          syslog(LOG_ERR, "%s", msg_buffer.str().c_str());
+          break;
+        case WARNING:
+          syslog(LOG_WARNING, "%s", msg_buffer.str().c_str());
+          break;
+        case NOTICE:
+          syslog(LOG_NOTICE, "%s", msg_buffer.str().c_str());
+          break;
+        case INFO:
+          syslog(LOG_INFO, "%s", msg_buffer.str().c_str());
+          break;
+        case DEBUG:
+          syslog(LOG_DEBUG, "%s", msg_buffer.str().c_str());
+          break;
+      }
+    #endif
   }
   std::lock_guard<std::mutex> cout_lock(shared_resources::cout_mutex);
   std::cout << cout_buffer.str();

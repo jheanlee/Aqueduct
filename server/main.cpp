@@ -5,7 +5,11 @@
 #include <thread>
 #include <chrono>
 #include <csignal>
+
 #include <unistd.h>
+#if !(defined(__clang__) && defined(__APPLE__))
+  #include <sys/syslog.h>
+#endif
 
 #include "core/tunnel/connection.hpp"
 #include "core/common/opt.hpp"
@@ -22,6 +26,9 @@
 int main(int argc, char *argv[]) {
   register_signal();
   shared_resources::process_start = std::chrono::system_clock::now();
+  #if !(defined(__clang__) && defined(__APPLE__))
+    openlog("sphere-linked-server", LOG_PID | LOG_CONS, LOG_USER);
+  #endif
   opt_handler(argc, argv);
   init_proxy_ports_available();
   init_openssl();

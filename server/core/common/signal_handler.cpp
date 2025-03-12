@@ -6,7 +6,9 @@
 
 #include <sys/wait.h>
 #include <sqlite3.h>
-#include <sys/syslog.h>
+#if !(defined(__clang__) && defined(__APPLE__))
+  #include <sys/syslog.h>
+#endif
 
 #include "signal_handler.hpp"
 #include "console.hpp"
@@ -57,6 +59,8 @@ void signal_handler(int signal) {
   }
 
   cleanup_openssl();
-  closelog();
+  #if !(defined(__clang__) && defined(__APPLE__))
+    closelog();
+  #endif
   exit(signal);
 }

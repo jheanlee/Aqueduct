@@ -10,7 +10,6 @@
 
 #include <unistd.h>
 #include <poll.h>
-#include <syslog.h>
 
 #include "tunnel/message.hpp"
 #include "common/config.hpp"
@@ -22,7 +21,6 @@
 
 int main(int argc, char *argv[]) {
   register_signal();
-  openlog("sphere-linked-server", LOG_PID | LOG_CONS, LOG_USER);
   opt_handler(argc, argv);
   init_openssl();
 
