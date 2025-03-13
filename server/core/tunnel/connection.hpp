@@ -22,6 +22,6 @@
                                  std::atomic<bool> &flag_kill, std::mutex &send_mutex);
   void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bool> &flag_auth_received, std::string &auth,
                                       SSL *client_ssl, sockaddr_in &client_addr, Client &client, std::mutex &send_mutex);
-  void proxy_thread_func(SSL *client_ssl, External_User external_user, std::atomic<bool> &flag_kill, Client &client);
+  void proxy_thread_func(SSL *client_ssl, External_User external_user, std::atomic<bool> &flag_kill, Client &client, ClientData &client_data);
 
 #endif //SPHERE_LINKED_CONNECTION_HPP

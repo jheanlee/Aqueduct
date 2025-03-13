@@ -20,14 +20,14 @@ int proxy_port_limit = 200;
 int timeout_session_millisec = 10;
 int timeout_proxy_millisec = 1;
 int timeout_api_millisec = 10;
-int shared_resources::client_db_interval_min = 5;
+int shared_resources::client_db_interval_min = 1;
 std::string db_path_str = "./sphere-linked.sqlite";
 std::string key_path_str;
 std::string cert_path_str;
 const char *cert_path = "\0";
 const char *key_path = "\0";
 const char *db_path = "./sphere-linked.sqlite";
-bool verbose = false;
+int verbose = 0;
 
 void opt_handler(int argc, char * const argv[]) {
   int expiry_days = 100;
@@ -37,7 +37,7 @@ void opt_handler(int argc, char * const argv[]) {
   app.get_formatter()->column_width(35);
   app.require_subcommand(1, 1);
 
-  app.add_flag("-v,--verbose", verbose, "Output detailed information");
+  app.add_option("-v,--verbose", verbose, "Output information detail level (0(default)-2)")->check(CLI::Range(0, 2));
   app.add_option("-d,--database", db_path_str, "The path to database file")->capture_default_str();
 
   //  run

@@ -22,8 +22,6 @@
     const int port;
     const int type;                       //  CONNECT or REDIRECT
     int stream_port = -1;                 //  for CONNECT only, -1 for REDIRECT
-    std::atomic<size_t> data_sent {0};
-    std::atomic<size_t> data_recv {0};
     const std::string user_addr;          //  for REDIRECT only, empty for CONNECT
     const int user_port;                  //  for REDIRECT only, -1 for CONNECT
     const std::string main_ip_addr;       //  the CONNECT client of this client; for REDIRECT only, empty for CONNECT
@@ -31,6 +29,13 @@
 
     Client(size_t key_c, std::string ip_addr_c, int port_c, int type_c, std::string user_addr_c = "", int user_port_c = -1, std::string main_ip_addr_c = "", int main_port_c = -1)
       : key(key_c), ip_addr(std::move(ip_addr_c)), port(port_c), type(type_c), user_addr(std::move(user_addr_c)), user_port(user_port_c), main_ip_addr(std::move(main_ip_addr_c)), main_port(main_port_c){}
+  };
+  struct ClientData{
+    const std::string main_ip_addr; //  empty for CONNECT
+    std::atomic<size_t> data_sent = 0;
+    std::atomic<size_t> data_recv = 0;
+
+    explicit ClientData(std::string main_ip_addr_c = "") : main_ip_addr(std::move(main_ip_addr_c)) {}
   };
 
   struct External_User {
@@ -59,7 +64,10 @@
     extern std::atomic<size_t> map_key;
     extern std::unordered_map<size_t, std::atomic<bool>> map_flag_kill;
     extern std::unordered_map<size_t, Client> map_client;
+    extern std::unordered_map<size_t, ClientData> map_client_data;
     extern std::mutex map_client_mutex;
+    extern std::unordered_map<size_t, Client> map_client_copy;
+    extern std::mutex map_client_copy_mutex;
 
     extern std::unordered_map<std::string, External_User> external_user_id_map; // id, {external_user_fd, addr}
     extern std::mutex external_user_mutex;
@@ -67,7 +75,7 @@
     extern pid_t pid_api;
   }
   //  TODO: move these someday
-  extern bool verbose;
+  extern int verbose;
 
   extern const char *cert_path;
   extern const char *key_path;

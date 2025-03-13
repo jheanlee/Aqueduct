@@ -47,13 +47,15 @@ void console(Level level, Code code, const char *detail, const std::string &func
       cout_buffer << "[Notice] ";
       break;
     case INFO:
+      if (verbose < 1) {
+        return;
+      }
       cout_buffer << "[Info] ";
       break;
     case DEBUG:
-      if (!verbose) {
+      if (verbose < 2) {
         return;
       }
-      cout_buffer << CYAN;
       cout_buffer << "[DEBUG] ";
       break;
   }
@@ -318,6 +320,7 @@ void console(Level level, Code code, const char *detail, const std::string &func
       msg_buffer << "Closing with signal";
       break;
     case DEBUG_MSG:
+      cout_buffer << CYAN << "DEBUG_MSG: " << RESET;
       break;
   }
 

@@ -8,7 +8,7 @@
 
   #include "../common/shared.hpp"
 
-  int update_client_db(Client &client);
+  int update_client_db(ClientData &client);
   void update_client_db_thread_func();
   void list_clients();
 

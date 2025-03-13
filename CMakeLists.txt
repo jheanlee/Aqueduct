@@ -59,7 +59,7 @@ target_link_libraries(sphere-linked-client PRIVATE Threads::Threads)
 target_link_libraries(sphere-linked-server PRIVATE ${CMAKE_DL_LIBS})
 target_link_libraries(sphere-linked-client PRIVATE ${CMAKE_DL_LIBS})
 
-set(OPENSSL_USE_STATIC_LIBS TRUE)
+set(OPENSSL_USE_STATIC_LIBS TRUE)   #   if static openssl library not found, comment out this line to use dynamic linking
 find_package(OpenSSL REQUIRED)
 target_link_libraries(sphere-linked-server PRIVATE OpenSSL::SSL)
 target_link_libraries(sphere-linked-client PRIVATE OpenSSL::SSL)

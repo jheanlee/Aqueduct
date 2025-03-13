@@ -24,25 +24,25 @@ Alternatively, you can directly build from source.
 ### Build from Source
 
 To build from source, you will need the following installed:
-1. A C++ compiler supporting at least C++17 (gcc recommended)
+1. A C++ compiler supporting at least C++17 (gcc recommended for linux, Apple clang recommended for macOS)
 2. [CMake](https://cmake.org)
 3. [OpenSSL](https://openssl.org) (some distros also need the dev packages: libssl-dev (apt), openssl-devel (dnf), etc.)
 4. [SQLite3](https://www.sqlite.org) (some distros also need the dev packages: libsqlite3-dev (apt), sqlite-devel (dnf), etc.)
-5. uuid-lib (pre-installed on macOS, uuid-dev (apt), uuid-devel (dnf), etc.)
+5. uuid-lib (pre-installed on macOS, uuid-dev (apt), libuuid-devel (dnf), etc.)
 6. [CLI11](https://github.com/CLIUtils/CLI11) (cli11 (brew), libcli11-dev (apt), cli11-devel(dnf))
 
 #### 0. Install the requirements
 #### Debian/Ubuntu (apt)
 ```
 sudo apt update && \
-sudo apt install -y gcc g++ cmake openssl libssl-dev sqlite3 libsqlite3-dev uuid-dev libcli11-dev
+sudo apt install -y git gcc g++ cmake openssl libssl-dev sqlite3 libsqlite3-dev uuid-dev libcli11-dev
 ```
 #### Fedora (dnf)
 ```
-sudo dnf install -y gcc g++ cmake openssl openssl-devel sqlite3 sqlite-devel uuid-devel cli11-devel
+sudo dnf install -y git gcc g++ cmake openssl openssl-devel sqlite3 sqlite-devel libuuid-devel cli11-devel
 ```
 
-For other distros, or if you have issues installing them, please refer to their documentation.
+For other distros, or if you have issues installing the packages, please refer to their documentation.
 
 #### 1. Clone the source from our repo
 ```
