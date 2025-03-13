@@ -152,7 +152,7 @@ void send_auth_message(SSL *server_ssl, char *buffer, size_t buffer_size, std::m
 }
 
 void proxy_thread_func(std::atomic<bool> &flag_kill, SSL *host_ssl, int host_fd, std::string redirect_id, int service_fd) {
-  console(INFO, PROXYING_STARTED, redirect_id.c_str(), "connection::proxy");
+  console(DEBUG, PROXYING_STARTED, redirect_id.c_str(), "connection::proxy");
 
   int ready_for_call = 0, ready_for_write = 0, write_status = 0;
   ssize_t nbytes = 0;
@@ -171,7 +171,7 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, SSL *host_ssl, int host_fd,
       memset(buffer, 0, sizeof(buffer));
       nbytes = recv(service_fd, buffer, sizeof(buffer), 0);
       if (nbytes <= 0) {
-        console(INFO, CONNECTION_CLOSED_BY_SERVICE, redirect_id.c_str(), "connection::proxy");
+        console(DEBUG, CONNECTION_CLOSED_BY_SERVICE, redirect_id.c_str(), "connection::proxy");
         break;
       }
 
@@ -189,13 +189,13 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, SSL *host_ssl, int host_fd,
       write_status = SSL_write(host_ssl, buffer, nbytes);
       if (write_status < 0) {
         if (write_status == -1 && SSL_get_error(host_ssl, write_status) == SSL_ERROR_SYSCALL) {
-          console(INFO, CONNECTION_CLOSED_BY_HOST, redirect_id.c_str(), "connection::proxy");
+          console(DEBUG, CONNECTION_CLOSED_BY_HOST, redirect_id.c_str(), "connection::proxy");
         } else {
           console(ERROR, BUFFER_SEND_ERROR_TO_HOST, redirect_id.c_str(), "connnection::proxy");
         }
         break;
       } else if (write_status == 0) {
-        console(INFO, CONNECTION_CLOSED_BY_HOST, redirect_id.c_str(), "connection::proxy");
+        console(DEBUG, CONNECTION_CLOSED_BY_HOST, redirect_id.c_str(), "connection::proxy");
         break;
       }
     }
@@ -211,7 +211,7 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, SSL *host_ssl, int host_fd,
       memset(buffer, 0, sizeof(buffer));
       nbytes = SSL_read(host_ssl, buffer, sizeof(buffer));
       if (nbytes <= 0) {
-        console(INFO, CONNECTION_CLOSED_BY_HOST, redirect_id.c_str(), "connection::proxy");
+        console(DEBUG, CONNECTION_CLOSED_BY_HOST, redirect_id.c_str(), "connection::proxy");
         break;
       }
 
@@ -227,7 +227,7 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, SSL *host_ssl, int host_fd,
       }
       if (send(service_fd, buffer, nbytes, MSG_NOSIGNAL) < 0) {
         if (errno == EPIPE) {
-          console(INFO, CONNECTION_CLOSED_BY_SERVICE, redirect_id.c_str(), "connection::proxy");
+          console(DEBUG, CONNECTION_CLOSED_BY_SERVICE, redirect_id.c_str(), "connection::proxy");
         } else {
           console(ERROR, BUFFER_SEND_ERROR_TO_SERVICE, redirect_id.c_str(), "connection::proxy");
         }
@@ -239,5 +239,5 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, SSL *host_ssl, int host_fd,
   SSL_shutdown(host_ssl);
   SSL_free(host_ssl);
   close(service_fd); close(host_fd);
-  console(INFO, PROXYING_ENDED, redirect_id.c_str(), "connection::proxy");
+  console(DEBUG, PROXYING_ENDED, redirect_id.c_str(), "connection::proxy");
 }

@@ -11,6 +11,7 @@
 #define RED         "\033[31m"
 #define YELLOW      "\033[33m"
 #define FAINT_GRAY  "\033[2;90m"
+#define CYAN        "\033[36m"
 
 void console(Level level, Code code, const char *detail, const std::string &function) {
   std::stringstream buffer;
@@ -31,8 +32,20 @@ void console(Level level, Code code, const char *detail, const std::string &func
       buffer << YELLOW;
       buffer << "[Warning] ";
       break;
+    case NOTICE:
+      buffer << "[Notice] ";
+      break;
     case INFO:
+      if (verbose < 1) {
+        return;
+      }
       buffer << "[Info] ";
+      break;
+    case DEBUG:
+      if (verbose < 2) {
+        return;
+      }
+      buffer << "[Debug] ";
       break;
     case INSTRUCTION:
       break;
@@ -150,6 +163,12 @@ void console(Level level, Code code, const char *detail, const std::string &func
       break;
     case INVALID_TOKEN:
       buffer << "Invalid token format ";
+      break;
+    case SIGNAL:
+      buffer << "Closing with signal ";
+      break;
+    case DEBUG_MSG:
+      buffer << CYAN << "DEBUG_MSG: " << RESET;
       break;
   }
 

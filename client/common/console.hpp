@@ -10,7 +10,9 @@
   enum Level {
     ERROR,
     WARNING,
+    NOTICE,
     INFO,
+    DEBUG,
     INSTRUCTION,
   };
 
@@ -64,6 +66,10 @@
     //  token
     ENTER_TOKEN_INSTRUCTION,
     INVALID_TOKEN,
+
+    SIGNAL,
+
+    DEBUG_MSG,
   };
 
   void console(Level level, Code code, const char *detail, const std::string &function);

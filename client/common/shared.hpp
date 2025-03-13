@@ -10,6 +10,6 @@
 
   }
 
-  extern bool verbose;
+  extern int verbose;
 
 #endif //SPHERE_LINKED_SHARED_HPP

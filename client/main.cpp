@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
     signal_handler(EXIT_FAILURE);
   }
 
-  console(INFO, CONNECTED_TO_HOST, (std::string(host) + ':' + std::to_string(host_main_port)).c_str(), "main");
+  console(NOTICE, CONNECTED_TO_HOST, (std::string(host) + ':' + std::to_string(host_main_port)).c_str(), "main");
 
   //  send CONNECT message
   if (ssl_send_message(server_ssl, outbuffer, sizeof(outbuffer), message, send_mutex) <= 0){
@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
       SSL_free(server_ssl);
       SSL_CTX_free(ctx);
       close(server_fd);
-      console(INFO, CONNECTION_CLOSED, (std::string(host) + ':' + std::to_string(host_main_port)).c_str(), "main");
+      console(NOTICE, CONNECTION_CLOSED, (std::string(host) + ':' + std::to_string(host_main_port)).c_str(), "main");
       flag_kill = true;
       break;
     } else {
@@ -108,23 +108,23 @@ int main(int argc, char *argv[]) {
           send_heartbeat_message(server_ssl, outbuffer, send_mutex);
           break;
         case STREAM_PORT:
-          console(INFO, STREAM_PORT_OPENED, (std::string(readable_host) + ':' + message.string).c_str(), "main");
+          console(NOTICE, STREAM_PORT_OPENED, (std::string(readable_host) + ':' + message.string).c_str(), "main");
           service_thread = std::thread(service_thread_func, std::ref(flag_kill), std::ref(user_id));
           flag_service_thread = true;
           break;
         case NO_PORT:
           flag_kill = true;
-          console(INFO, NO_PORTS_AVAILABLE, nullptr, "main");
+          console(NOTICE, NO_PORTS_AVAILABLE, nullptr, "main");
           break;
         case REDIRECT:
           user_id.push(message.string);
           break;
         case AUTHENTICATION:
           send_auth_message(server_ssl, outbuffer, sizeof(outbuffer), send_mutex);
-          console(INFO, AUTHENTICATION_REQUEST_SENT, nullptr, "main");
+          console(DEBUG, AUTHENTICATION_REQUEST_SENT, nullptr, "main");
           break;
         case AUTH_SUCCESS:
-          console(INFO, AUTHENTICATION_SUCCESS, nullptr, "main");
+          console(NOTICE, AUTHENTICATION_SUCCESS, nullptr, "main");
           break;
         case AUTH_FAILED:
           flag_kill = true;
