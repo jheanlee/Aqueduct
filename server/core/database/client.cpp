@@ -52,7 +52,6 @@ int update_client_db(ClientData &client) {
 
 void update_client_db_thread_func() {
   std::unique_lock<std::mutex> client_lock(shared_resources::map_client_mutex, std::defer_lock);
-  std::unique_lock<std::mutex> client_copy_lock(shared_resources::map_client_copy_mutex, std::defer_lock);
 
   std::chrono::system_clock::time_point last_updated = std::chrono::system_clock::now();
   std::chrono::minutes duration;
@@ -66,12 +65,6 @@ void update_client_db_thread_func() {
     }
     last_updated = std::chrono::system_clock::now();
 
-    client_lock.lock();
-    client_copy_lock.lock();
-    shared_resources::map_client_copy = std::unordered_map<size_t, Client> (shared_resources::map_client);
-    client_copy_lock.unlock();
-    client_lock.unlock();
-
     //  iterate through map and set all Clients
     client_lock.lock();
     if (shared_resources::db) {
@@ -83,6 +76,17 @@ void update_client_db_thread_func() {
     }
     client_lock.unlock();
   }
+}
+
+void update_client_copy() {
+  std::unique_lock<std::mutex> client_lock(shared_resources::map_client_mutex, std::defer_lock);
+  std::unique_lock<std::mutex> client_copy_lock(shared_resources::map_client_copy_mutex, std::defer_lock);
+
+  client_lock.lock();
+  client_copy_lock.lock();
+  shared_resources::map_client_copy = std::unordered_map<size_t, Client> (shared_resources::map_client);
+  client_copy_lock.unlock();
+  client_lock.unlock();
 }
 
 template <typename T>

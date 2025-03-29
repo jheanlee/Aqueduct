@@ -115,7 +115,7 @@ sphere-linked-client -H [SERVER ADDR] -s [SERVICE ADDR] -p [SERVICE PORT]
 ```
 Replace the blanks with the corresponding values. `[SERVER ADDR]` can be either an ipv4 address (like `192.168.1.1`) or a domain (like `www.example.com`)
 
-Now you should be prompted a message like this: 
+Now you should be prompted a Message like this: 
 ```
 (2025-02-10 10:24:01) Please enter your token:
 ```
@@ -135,7 +135,7 @@ sphere-linked-server [OPTIONS]  SUBCOMMAND
 
 ```
 Options:
-  -h,--help                        Print this help message and exit
+  -h,--help                        Print this help Message and exit
   -v,--verbose                     Output detailed information
   -d,--database TEXT [./sphere-linked.sqlite] 
                                    The path to database file
@@ -148,7 +148,7 @@ Subcommands:
 ##### run options
 ```
 Options:
-  -h,--help                        Print this help message and exit
+  -h,--help                        Print this help Message and exit
   -k,--tls-map_key TEXT REQUIRED       The path to a private map_key file used for TLS encryption
   -c,--tls-cert TEXT REQUIRED      The path to a certification file used for TLS encryption
   -p,--control INT [30330]         Client will connect via 0.0.0.0:<port>
@@ -162,7 +162,7 @@ Options:
 ##### token options
 ```
 Options:
-  -h,--help                        Print this help message and exit
+  -h,--help                        Print this help Message and exit
 
 Subcommands:
   new                              Create or regenerate a token
@@ -189,7 +189,7 @@ sphere-linked-client [OPTIONS] SUBCOMMAND
 
 ```
 Options:
-  -h,--help                        Print this help message and exit
+  -h,--help                        Print this help Message and exit
   -v,--verbose                     Output detailed information
   -t,--token TEXT                  Token for accessing server. Only use this option on trusted machine
   -H,--host-addr TEXT [0.0.0.0]    The host to stream to. Accepts ipv4 or domain

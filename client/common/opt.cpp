@@ -23,7 +23,7 @@ std::string local_service_str = "0.0.0.0";
 const char *local_service = "0.0.0.0";
 int local_service_port = -1;
 
-int timeout_session_millisec = 10;
+int timeout_session_millisec = 1000;
 int timeout_proxy_millisec = 1;
 char hostname[NI_MAXHOST];
 std::regex reg_ipv4(R"((\d{1,3}(\.\d{1,3}){3}))");
@@ -50,7 +50,6 @@ void opt_handler(int argc, char * const argv[]) {
   app.add_option("-s,--service-addr", local_service_str, "The address of the service to be tunneled")->capture_default_str();
   app.add_option("-p,--service-port", local_service_port, "The port of the service to be tunneled")->required();
 
-  app.add_option("--session-timeout", timeout_session_millisec, "The time(ms) poll() waits each call when accepting connections. See `man poll` for more information")->capture_default_str();
   app.add_option("--proxy-timeout", timeout_proxy_millisec, "The time(ms) poll() waits each call during proxying. See `man poll` for more information")->capture_default_str();
 
   try {

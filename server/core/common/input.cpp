@@ -73,7 +73,7 @@ void input_thread_func() {
 
   print_help();
   while (!shared_resources::global_flag_kill) {
-    status = poll(&pfd, 1, 200);
+    status = poll(&pfd, 1, 1000);
     if (status <= 0) continue;
 
     in = std::cin.get();
@@ -85,6 +85,7 @@ void input_thread_func() {
     switch (in) {
       case 'l':
       case 'L':
+        update_client_copy();
         list_clients();
         break;
       case 'u':

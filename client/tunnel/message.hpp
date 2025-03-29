@@ -9,7 +9,7 @@
 
   #include <openssl/ssl.h>
 
-  #define MESSAGE_MAX_STRING_SIZE 127
+  #define MESSAGE_MAX_STRING_SIZE 126
 
   #define CONNECT         '0'
   #define HEARTBEAT       '1'
