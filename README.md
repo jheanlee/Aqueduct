@@ -136,7 +136,7 @@ sphere-linked-server [OPTIONS]  SUBCOMMAND
 ```
 Options:
   -h,--help                        Print this help Message and exit
-  -v,--verbose                     Output detailed information
+  -v,--verbose_level                     Output detailed information
   -d,--database TEXT [./sphere-linked.sqlite] 
                                    The path to database file
 
@@ -190,7 +190,7 @@ sphere-linked-client [OPTIONS] SUBCOMMAND
 ```
 Options:
   -h,--help                        Print this help Message and exit
-  -v,--verbose                     Output detailed information
+  -v,--verbose_level                     Output detailed information
   -t,--token TEXT                  Token for accessing server. Only use this option on trusted machine
   -H,--host-addr TEXT [0.0.0.0]    The host to stream to. Accepts ipv4 or domain
   -P,--host-port INT [30330]       The control port of host

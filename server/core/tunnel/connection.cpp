@@ -34,7 +34,7 @@ void ssl_control_thread_func() {
   //  create, bind, listen socket
   socket_fd = create_socket(server_addr);
 
-  console(NOTICE, CONNECTION_LISTEN_STARTED, nullptr, "connection::control");
+  console(INFO, CONNECTION_LISTEN_STARTED, nullptr, "connection::control");
   shared_resources::flag_tunneling_service_running = true;
 
   //  accept connections from client
@@ -70,7 +70,7 @@ void ssl_control_thread_func() {
     session_thread.detach();
   }
 
-  console(NOTICE, TUNNEL_SERVICE_ENDED, nullptr, "connection::control");
+  console(INFO, TUNNEL_SERVICE_ENDED, nullptr, "connection::control");
   shared_resources::flag_tunneling_service_running = false;
 
   //  clean up
@@ -214,7 +214,7 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
   shared_resources::map_client.erase(map_key);
   map_client_lock.unlock();
 
-  console(DEBUG, CONNECTION_CLOSED, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::sesstion");
+  console(INFO, CONNECTION_CLOSED, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::sesstion");
 }
 
 void ssl_heartbeat_thread_func(SSL *client_ssl, sockaddr_in &client_addr, std::atomic<bool> &flag_heartbeat_received, std::atomic<bool> &flag_kill, std::mutex &send_mutex) {
@@ -271,7 +271,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   if (auth.empty()) {
     message = {.type = AUTH_FAILED, .string = ""};
     ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message, send_mutex);
-    console(NOTICE, AUTHENTICATION_FAILED, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::proxy_service");
+    console(INFO, AUTHENTICATION_FAILED, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::proxy_service");
     flag_kill = true;
     return;
   }
@@ -315,11 +315,11 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   if (sql_result == 1) {
     message = {.type = AUTH_SUCCESS, .string = ""};
     ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message, send_mutex);
-    console(NOTICE, AUTHENTICATION_SUCCESS, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::proxy_service");
+    console(INFO, AUTHENTICATION_SUCCESS, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::proxy_service");
   } else {
     message = {.type = AUTH_FAILED, .string = ""};
     ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message, send_mutex);
-    console(NOTICE, AUTHENTICATION_FAILED, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::proxy_service");
+    console(INFO, AUTHENTICATION_FAILED, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::proxy_service");
     flag_kill = true;
     return;
   }
@@ -341,13 +341,13 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
 
     if (bind_socket(service_proxy_fd, server_proxy_addr) != 0) { proxy_ports_available.pop(); continue; }
 
-    console(NOTICE, PROXY_PORT_NEW, (std::string(host) + ':' + std::to_string(proxy_ports_available.front())).c_str(), "connection::proxy_service");
+    console(INFO, PROXY_PORT_NEW, (std::string(host) + ':' + std::to_string(proxy_ports_available.front())).c_str(), "connection::proxy_service");
     proxy_port = proxy_ports_available.front();
     proxy_ports_available.pop();
     flag_port_found = true;
   }
   if (proxy_ports_available.empty() && !flag_port_found) {
-    console(WARNING, NO_PORT_AVAILABLE, nullptr, "connection::proxy_service");
+    console(ERROR, NO_PORT_AVAILABLE, nullptr, "connection::proxy_service");
     message.type = NO_PORT;
     flag_kill = true;
     ports_assign_lock.unlock();
@@ -438,7 +438,7 @@ void proxy_thread_func(SSL *client_ssl, External_User external_user, std::atomic
         if (errno == EPIPE) {
           console(DEBUG, CONNECTION_CLOSED_BY_EXTERNAL_USER, (std::string(inet_ntoa(external_user.external_user.sin_addr)) + ':' + std::to_string((int)ntohs(external_user.external_user.sin_port))).c_str(), "connection::proxy");
         } else {
-          console(ERROR, BUFFER_SEND_ERROR_TO_CLIENT, (client.ip_addr + ':' + std::to_string(client.port) + " => " + std::string(inet_ntoa(external_user.external_user.sin_addr)) + ':' + std::to_string((int)ntohs(external_user.external_user.sin_port))).c_str(), "connection::proxy");
+          console(WARNING, BUFFER_SEND_ERROR_TO_CLIENT, (client.ip_addr + ':' + std::to_string(client.port) + " => " + std::string(inet_ntoa(external_user.external_user.sin_addr)) + ':' + std::to_string((int)ntohs(external_user.external_user.sin_port))).c_str(), "connection::proxy");
         }
         break;
       } else {
@@ -477,7 +477,7 @@ void proxy_thread_func(SSL *client_ssl, External_User external_user, std::atomic
         if (write_status == -1 && SSL_get_error(client_ssl, write_status)) {
           console(DEBUG, CONNECTION_CLOSED_BY_CLIENT, (client.ip_addr + ':' + std::to_string(client.port)).c_str(), "connection::proxy");
         } else {
-          console(ERROR, BUFFER_SEND_ERROR_TO_CLIENT, (client.ip_addr + ':' + std::to_string(client.port) + " <= " + std::string(inet_ntoa(external_user.external_user.sin_addr)) + ':' + std::to_string((int)ntohs(external_user.external_user.sin_port))).c_str(), "connection::proxy");
+          console(WARNING, BUFFER_SEND_ERROR_TO_CLIENT, (client.ip_addr + ':' + std::to_string(client.port) + " <= " + std::string(inet_ntoa(external_user.external_user.sin_addr)) + ':' + std::to_string((int)ntohs(external_user.external_user.sin_port))).c_str(), "connection::proxy");
         }
         break;
       } else if (write_status == 0) {

@@ -90,13 +90,13 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
     //  create socket (service)
     service_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (service_fd == -1) {
-      console(ERROR, SOCK_CREATE_FAILED, "for service ", "connnection::service");
+      console(CRITICAL, SOCK_CREATE_FAILED, "for service ", "connnection::service");
       signal_handler(EXIT_FAILURE);
     }
     
     //  connect (service)
     if (connect(service_fd, (struct sockaddr *) &service_addr, sizeof(service_addr))) {
-      console(ERROR, SOCK_CONNECT_FAILED, "to service ", "connection::service");
+      console(CRITICAL, SOCK_CONNECT_FAILED, "to service ", "connection::service");
       signal_handler(EXIT_FAILURE);
     }
 
@@ -115,11 +115,11 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
     //  create, connect socket (host)
     host_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (host_fd == -1) {
-      console(ERROR, SOCK_CREATE_FAILED, "for host ", "connection::service");
+      console(CRITICAL, SOCK_CREATE_FAILED, "for host ", "connection::service");
       signal_handler(EXIT_FAILURE);
     }
     if (connect(host_fd, (struct sockaddr *) &host_addr, sizeof(host_addr))) {
-      console(ERROR, SOCK_CONNECT_FAILED, "to host ", "connection::service");
+      console(CRITICAL, SOCK_CONNECT_FAILED, "to host ", "connection::service");
       signal_handler(EXIT_FAILURE);
     }
 
@@ -128,7 +128,7 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
     SSL *host_ssl = SSL_new(ctx);
     SSL_set_fd(host_ssl, host_fd);
     if (SSL_connect(host_ssl) <= 0) {
-      console(ERROR, SSL_CONNECT_FAILED, nullptr, "connection::service");
+      console(CRITICAL, SSL_CONNECT_FAILED, nullptr, "connection::service");
       signal_handler(EXIT_FAILURE);
     }
 
@@ -191,7 +191,7 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, SSL *host_ssl, int host_fd,
         if (write_status == -1 && SSL_get_error(host_ssl, write_status) == SSL_ERROR_SYSCALL) {
           console(DEBUG, CONNECTION_CLOSED_BY_HOST, redirect_id.c_str(), "connection::proxy");
         } else {
-          console(ERROR, BUFFER_SEND_ERROR_TO_HOST, redirect_id.c_str(), "connnection::proxy");
+          console(WARNING, BUFFER_SEND_ERROR_TO_HOST, redirect_id.c_str(), "connnection::proxy");
         }
         break;
       } else if (write_status == 0) {
@@ -229,7 +229,7 @@ void proxy_thread_func(std::atomic<bool> &flag_kill, SSL *host_ssl, int host_fd,
         if (errno == EPIPE) {
           console(DEBUG, CONNECTION_CLOSED_BY_SERVICE, redirect_id.c_str(), "connection::proxy");
         } else {
-          console(ERROR, BUFFER_SEND_ERROR_TO_SERVICE, redirect_id.c_str(), "connection::proxy");
+          console(WARNING, BUFFER_SEND_ERROR_TO_SERVICE, redirect_id.c_str(), "connection::proxy");
         }
         break;
       }

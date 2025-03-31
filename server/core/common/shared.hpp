@@ -73,9 +73,11 @@
     extern std::mutex external_user_mutex;
 
     extern pid_t pid_api;
+
+    extern bool daemon_mode;
   }
   //  TODO: move these someday
-  extern int verbose;
+  extern int verbose_level;
 
   extern const char *cert_path;
   extern const char *key_path;

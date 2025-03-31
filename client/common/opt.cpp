@@ -29,7 +29,7 @@ char hostname[NI_MAXHOST];
 std::regex reg_ipv4(R"((\d{1,3}(\.\d{1,3}){3}))");
 std::regex reg_token("SL_[A-Za-z0-9+/]{32}");
 std::string token;
-int verbose = 0;
+int verbose_level = 20;
 
 void opt_handler(int argc, char * const argv[]) {
   struct addrinfo *result;
@@ -42,7 +42,7 @@ void opt_handler(int argc, char * const argv[]) {
   CLI::App app{"Sphere-Linked-client"};
   app.get_formatter()->column_width(35);
 
-  app.add_option("-v,--verbose", verbose, "Output information detail level (0(default)-2)")->check(CLI::Range(0, 2));
+  app.add_option("-v,--verbose_level", verbose_level, "Output information detail level (inclusive). 10 for Debug or above, 50 for Critical only. Daemon logs have mask of max(30, verbose_level)")->capture_default_str();
   app.add_option("-t,--token", token, "Token for accessing server. Only use this option on trusted machine");
 
   app.add_option("-H,--host-addr", readable_host_str, "The host to stream to. Accepts ipv4 or domain")->capture_default_str();

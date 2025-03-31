@@ -23,6 +23,10 @@ void register_signal() {
 
 void signal_handler(int signal) {
   cleanup_openssl();
-  console(NOTICE, SIGNAL, std::to_string(signal).c_str(), "signal_handler");
+  if (signal == 0) {
+    console(INFO, SIGNAL, std::to_string(signal).c_str(), "signal_handler");
+  } else {
+    console(WARNING, SIGNAL, std::to_string(signal).c_str(), "signal_handler");
+  }
   exit(signal);
 }

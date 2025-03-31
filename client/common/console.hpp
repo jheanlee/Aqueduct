@@ -7,13 +7,13 @@
 
   #include <string>
 
-  enum Level {
-    ERROR,
-    WARNING,
-    NOTICE,
-    INFO,
-    DEBUG,
-    INSTRUCTION,
+  enum Level : int {
+    CRITICAL = 50,
+    ERROR = 40,
+    WARNING = 30,
+    INFO = 20,
+    DEBUG = 10,
+    INSTRUCTION = -10,
   };
 
   enum Code {

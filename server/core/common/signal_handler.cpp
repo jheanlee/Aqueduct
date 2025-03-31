@@ -30,14 +30,18 @@ void register_signal() {
 void signal_handler(int signal) {
   shared_resources::flag_handling_signal = true;
   shared_resources::global_flag_kill = true;
-  console(NOTICE, SIGNAL, std::to_string(signal).c_str(), "signal_handler");
+  if (signal == 0) {
+    console(INFO, SIGNAL, std::to_string(signal).c_str(), "signal_handler");
+  } else {
+    console(WARNING, SIGNAL, std::to_string(signal).c_str(), "signal_handler");
+  }
 
   //  close api child
   if (shared_resources::pid_api != 0) {
     kill(shared_resources::pid_api, SIGTERM);
     int api_exit_status;
     waitpid(shared_resources::pid_api, &api_exit_status, 0);
-    console(NOTICE, API_PROCESS_ENDED, (std::to_string(api_exit_status) + ' ').c_str(), "signal_handler");
+    console(INFO, API_PROCESS_ENDED, (std::to_string(api_exit_status) + ' ').c_str(), "signal_handler");
   }
 
   //  close db
@@ -52,7 +56,7 @@ void signal_handler(int signal) {
     }
 
     if (sqlite3_close(shared_resources::db) == SQLITE_OK) {
-      console(NOTICE, SQLITE_CLOSE_SUCCESS, nullptr, "signal_handler");
+      console(INFO, SQLITE_CLOSE_SUCCESS, nullptr, "signal_handler");
     } else {
       console(ERROR, SQLITE_CLOSE_FAILED, sqlite3_errmsg(shared_resources::db), "signal_handler");
     }

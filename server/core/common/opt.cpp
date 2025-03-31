@@ -27,7 +27,8 @@ std::string cert_path_str;
 const char *cert_path = "\0";
 const char *key_path = "\0";
 const char *db_path = "./sphere-linked.sqlite";
-int verbose = 0;
+int verbose_level = 20;
+bool shared_resources::daemon_mode = false;
 
 void opt_handler(int argc, char * const argv[]) {
   int expiry_days = 100;
@@ -37,12 +38,14 @@ void opt_handler(int argc, char * const argv[]) {
   app.get_formatter()->column_width(35);
   app.require_subcommand(1, 1);
 
-  app.add_option("-v,--verbose", verbose, "Output information detail level (0(default)-2)")->check(CLI::Range(0, 2));
+  app.add_option("-v,--verbose_level", verbose_level, "Output information detail level (inclusive). 10 for Debug or above, 50 for Critical only. Daemon logs have mask of max(30, verbose_level)")->capture_default_str();
   app.add_option("-d,--database", db_path_str, "The path to database file")->capture_default_str();
 
   //  run
-  CLI::App *run = app.add_subcommand("run", "Run the main tunneling service")->fallthrough();
-  run->add_option("-k,--tls-map_key", key_path_str, "The path to a private map_key file used for TLS encryption")->required();
+  CLI::App *run = app.add_subcommand("run", "Run the tunneling service")->fallthrough();
+  run->add_option("-D, --daemon-mode", shared_resources::daemon_mode, "Disables stdout and use syslog or os_log instead")->capture_default_str();
+
+  run->add_option("-k,--tls-map_key", key_path_str, "The path to a private key file used for TLS encryption")->required();
   run->add_option("-c,--tls-cert", cert_path_str, "The path to a certification file used for TLS encryption")->required();
 
   run->add_option("-p,--control", ssl_control_port, "Client will connect via 0.0.0.0:<port>")->capture_default_str();
@@ -54,12 +57,12 @@ void opt_handler(int argc, char * const argv[]) {
   run->add_option("--client-db-interval", shared_resources::client_db_interval_min, "The interval(min) between automatic writes of client's proxied data to database")->capture_default_str();
 
   //  token
-  CLI::App *token = app.add_subcommand("token", "Operations related to tokens")->require_subcommand(1, 1)->fallthrough();
+  CLI::App *token = app.add_subcommand("token", "Token management")->require_subcommand(1, 1)->fallthrough();
 
   CLI::App *token_new = token->add_subcommand("new", "Create or regenerate a token")->fallthrough();
   token_new->add_option("-n,--name", name, "The name (id) of the token you want to modify")->required();
   token_new->add_option("--notes", notes, "Some notes for this token");
-  token_new->add_option("--expiry", expiry_days, "Days until the expiry of the token. 0 for no expiry")->capture_default_str()->check(CLI::Range(0, 3650));
+  token_new->add_option("--expiry", expiry_days, "Days until the expiry of the token. 0 forno expiry")->capture_default_str()->check(CLI::Range(0, 3650));
 
   CLI::App *token_remove = token->add_subcommand("remove", "Remove a token")->fallthrough();
   token_remove->add_option("-n,--name", name, "The name (id) of the token you want to modify")->required();
@@ -94,7 +97,7 @@ void opt_handler(int argc, char * const argv[]) {
 
   //  port validation
   if (proxy_port_start <= 0 || proxy_port_start > 65535) {
-    console(ERROR, PORT_INVALID_RANGE, nullptr, "opt::opt_handler");
+    console(CRITICAL, PORT_INVALID_RANGE, nullptr, "opt::opt_handler");
     signal_handler(EXIT_FAILURE);
   }
   if (proxy_port_start < 1024) {
@@ -102,7 +105,7 @@ void opt_handler(int argc, char * const argv[]) {
   }
 
   if (proxy_port_limit < 1) {
-    console(ERROR, PORT_INVALID_LIMIT, nullptr, "opt::opt_handler");
+    console(CRITICAL, PORT_INVALID_LIMIT, nullptr, "opt::opt_handler");
     signal_handler(EXIT_FAILURE);
   }
   if (proxy_port_start + proxy_port_limit - 1 > 65535) {
@@ -110,7 +113,7 @@ void opt_handler(int argc, char * const argv[]) {
   }
 
   if (ssl_control_port <= 0 || ssl_control_port > 65535) {
-    console(ERROR, PORT_INVALID_RANGE, nullptr, "opt::opt_handler");
+    console(CRITICAL, PORT_INVALID_RANGE, nullptr, "opt::opt_handler");
     signal_handler(EXIT_FAILURE);
   }
   if (ssl_control_port < 1024) {
@@ -119,11 +122,11 @@ void opt_handler(int argc, char * const argv[]) {
 
   //  TLS
   if (key_path_str.empty()) {
-    console(ERROR, OPTION_KEY_NOT_SET, nullptr, "opt::opt_handler");
+    console(CRITICAL, OPTION_KEY_NOT_SET, nullptr, "opt::opt_handler");
     signal_handler(EXIT_FAILURE);
   }
   if (cert_path_str.empty()) {
-    console(ERROR, OPTION_CERT_NOT_SET, nullptr, "opt::opt_handler");
+    console(CRITICAL, OPTION_CERT_NOT_SET, nullptr, "opt::opt_handler");
     signal_handler(EXIT_FAILURE);
   }
 

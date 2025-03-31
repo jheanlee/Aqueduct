@@ -22,7 +22,7 @@ SSL_CTX *create_context() {
   const SSL_METHOD *method = TLS_server_method();
   SSL_CTX *ctx = SSL_CTX_new(method);
   if (!ctx) {
-    console(ERROR, SSL_CREATE_CONTEXT_FAILED, nullptr, "socket_management::create_context");
+    console(CRITICAL, SSL_CREATE_CONTEXT_FAILED, nullptr, "socket_management::create_context");
     signal_handler(EXIT_FAILURE);
   }
   return ctx;
@@ -30,7 +30,7 @@ SSL_CTX *create_context() {
 
 void config_context(SSL_CTX *ctx) {
   if (SSL_CTX_use_certificate_file(ctx, cert_path, SSL_FILETYPE_PEM) <= 0 || SSL_CTX_use_PrivateKey_file(ctx, key_path, SSL_FILETYPE_PEM) <= 0) {
-    console(ERROR, SSL_LOAD_CERT_KEY_FAILED, nullptr, "socket_management::config_context");
+    console(CRITICAL, SSL_LOAD_CERT_KEY_FAILED, nullptr, "socket_management::config_context");
     signal_handler(EXIT_FAILURE);
   }
 }
@@ -52,20 +52,20 @@ int bind_socket(int &socket_fd, sockaddr_in &addr) {
 int create_socket(sockaddr_in &addr) {
   int socket_fd = socket(AF_INET, SOCK_STREAM, 0); // ipv4, tcp
   if (socket_fd == -1) {
-    console(ERROR, SOCK_CREATE_FAILED, nullptr, "socket_management::create_socket");
+    console(CRITICAL, SOCK_CREATE_FAILED, nullptr, "socket_management::create_socket");
     signal_handler(EXIT_FAILURE);
   }
 
   int status = bind_socket(socket_fd, addr);
   switch (status) {
     case -1:
-      console(ERROR, SOCK_BIND_FAILED, nullptr, "socket_management::create_socket");
+      console(CRITICAL, SOCK_BIND_FAILED, nullptr, "socket_management::create_socket");
       signal_handler(EXIT_FAILURE);
     case -2:
-      console(ERROR, SOCK_LISTEN_FAILED, nullptr, "socket_management::create_socket");
+      console(CRITICAL, SOCK_LISTEN_FAILED, nullptr, "socket_management::create_socket");
       signal_handler(EXIT_FAILURE);
     case -3:
-      console(ERROR, SOCK_SETSOCKOPT_FAILED, nullptr, "socket_management::create_socket");
+      console(CRITICAL, SOCK_SETSOCKOPT_FAILED, nullptr, "socket_management::create_socket");
       signal_handler(EXIT_FAILURE);
     default:
       break;
