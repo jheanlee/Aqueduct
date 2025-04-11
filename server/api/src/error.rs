@@ -1,5 +1,6 @@
 use axum::http::StatusCode;
 use axum::response::Response;
+use crate::console::{console, Code, Level};
 
 #[derive(Debug)]
 pub enum ApiError {
@@ -18,7 +19,10 @@ pub enum MessageError {
 impl axum::response::IntoResponse for ApiError {
   fn into_response(self) -> Response {
     match self {
-      ApiError::Error(..) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+      ApiError::Error(e) => {
+        console(Level::Warning, Code::ApiError, e.to_string().as_str(), "error::anyhow");
+        StatusCode::INTERNAL_SERVER_ERROR.into_response()
+      },
       ApiError::MessageError(..) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
     }
   }

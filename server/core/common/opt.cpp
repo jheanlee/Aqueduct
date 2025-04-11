@@ -38,12 +38,12 @@ void opt_handler(int argc, char * const argv[]) {
   app.get_formatter()->column_width(35);
   app.require_subcommand(1, 1);
 
-  app.add_option("-v,--verbose_level", verbose_level, "Output information detail level (inclusive). 10 for Debug or above, 50 for Critical only. Daemon logs have mask of max(30, verbose_level)")->capture_default_str();
+  app.add_option("-v,--verbose", verbose_level, "Output information detail level (inclusive). 10 for Debug or above, 50 for Critical only. Daemon logs have mask of max(30, verbose_level)")->capture_default_str();
   app.add_option("-d,--database", db_path_str, "The path to database file")->capture_default_str();
 
   //  run
   CLI::App *run = app.add_subcommand("run", "Run the tunneling service")->fallthrough();
-  run->add_option("-D, --daemon-mode", shared_resources::daemon_mode, "Disables stdout and use syslog or os_log instead")->capture_default_str();
+  run->add_flag("-D, --daemon-mode", shared_resources::daemon_mode, "Disables stdout and use syslog or os_log instead")->capture_default_str();
 
   run->add_option("-k,--tls-map_key", key_path_str, "The path to a private key file used for TLS encryption")->required();
   run->add_option("-c,--tls-cert", cert_path_str, "The path to a certification file used for TLS encryption")->required();

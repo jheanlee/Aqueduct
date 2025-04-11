@@ -32,23 +32,25 @@ pub struct ConnectedClients {
 #[derive(Clone)]
 pub struct AppState {
   pub socket_core: Arc<tokio::sync::Mutex<UnixStream>>,
-  pub core_status: Arc<tokio::sync::Mutex<CoreStatus>>,
-  pub clients: Arc<tokio::sync::Mutex<Vec<ConnectedClients>>>,
+  pub core_status: Arc<tokio::sync::Mutex<(bool, CoreStatus)>>,
+  pub clients: Arc<tokio::sync::Mutex<(bool, Vec<ConnectedClients>)>>,  //  (flag_error, Vec<ConnectedClients>)
 }
 
 impl AppState {
-  pub async fn set_core_status(self: Arc<Self>, new_status: CoreStatus) {
+  pub async fn set_core_status(self: Arc<Self>, flag_error: bool, new_status: CoreStatus) {
     let this = Arc::clone(&self);
     let mut status = this.core_status.lock().await;
-    status.uptime = new_status.uptime;
-    status.connected_clients = new_status.connected_clients;
-    status.api_service_up = new_status.api_service_up;
-    status.tunnel_service_up = new_status.tunnel_service_up;
+    status.0 = flag_error;
+    status.1.uptime = new_status.uptime;
+    status.1.connected_clients = new_status.connected_clients;
+    status.1.api_service_up = new_status.api_service_up;
+    status.1.tunnel_service_up = new_status.tunnel_service_up;
   }
 
-  pub async fn set_clients(self: Arc<Self>, new_clients: Vec<ConnectedClients>) {
+  pub async fn set_clients(self: Arc<Self>, flag_error: bool, new_clients: Vec<ConnectedClients>) {
     let this = Arc::clone(&self);
-    this.clients.lock().await.clear();
-    this.clients.lock().await.extend(new_clients);
+    this.clients.lock().await.0 = flag_error;
+    this.clients.lock().await.1.clear();
+    this.clients.lock().await.1.extend(new_clients);
   }
 }

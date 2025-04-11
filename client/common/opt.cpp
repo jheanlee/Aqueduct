@@ -42,7 +42,7 @@ void opt_handler(int argc, char * const argv[]) {
   CLI::App app{"Sphere-Linked-client"};
   app.get_formatter()->column_width(35);
 
-  app.add_option("-v,--verbose_level", verbose_level, "Output information detail level (inclusive). 10 for Debug or above, 50 for Critical only. Daemon logs have mask of max(30, verbose_level)")->capture_default_str();
+  app.add_option("-v,--verbose", verbose_level, "Output information detail level (inclusive). 10 for Debug or above, 50 for Critical only. Daemon logs have mask of max(30, verbose_level)")->capture_default_str();
   app.add_option("-t,--token", token, "Token for accessing server. Only use this option on trusted machine");
 
   app.add_option("-H,--host-addr", readable_host_str, "The host to stream to. Accepts ipv4 or domain")->capture_default_str();
@@ -51,7 +51,7 @@ void opt_handler(int argc, char * const argv[]) {
   app.add_option("-p,--service-port", local_service_port, "The port of the service to be tunneled")->required();
 
   app.add_option("--proxy-timeout", timeout_proxy_millisec, "The time(ms) poll() waits each call during proxying. See `man poll` for more information")->capture_default_str();
-
+  
   try {
     app.parse(argc, argv);
   } catch (const CLI::ParseError &e) {

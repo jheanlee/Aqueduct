@@ -87,9 +87,23 @@ else()
 endif()
 message(STATUS "Cargo path: ${CARGO_BIN_PATH}")
 
+#   npm
+if (DEFINED ENV{NPM_BIN_PATH)
+    set(NPM_BIN_PATH $ENV{NPM_BIN_PATH})
+else()
+    set(NPM_BIN_PATH npm)
+endif()
+message(STATUS "npm path: ${NPM_BIN_PATH}")
+
 #   server api
 add_custom_command(TARGET sphere-linked-server POST_BUILD
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/server/api
         COMMAND ${CARGO_BIN_PATH} build --release --target-dir ${CMAKE_BINARY_DIR}
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/release/api ${CMAKE_BINARY_DIR}/sphere-linked-server-api
+)
+
+#   server frontend
+add_custom_command(TARGET sphere-linked-server POST_BUILD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/server/frontend
+        COMMAND ${NPM_BIN_PATH} run build -- --outDir ${CMAKE_BINARY_DIR}/frontend
 )
