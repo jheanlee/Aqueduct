@@ -27,12 +27,34 @@ void Message::dump(char *buffer) const {
   strcat(buffer, string.c_str());
 }
 
+void Message::dump_large(char *buffer, size_t buffer_size) const {
+  if (type == '\0' || type < 0) throw std::invalid_argument("type not specified");
+  if (string.size() > buffer_size - 2) throw std::length_error("message lenght exceeding limit");
+
+  buffer[0] = type;
+  strcat(buffer, string.c_str());
+}
+
 int send_message(int &fd, char *buffer, size_t buffer_size, Message &message, std::mutex &send_mutex) {
   std::lock_guard<std::mutex> lock(send_mutex);
 
   try {
     std::memset(buffer, '\0', buffer_size);
     message.dump(buffer);
+  } catch (const std::exception &err) {
+    console(WARNING, MESSAGE_DUMP_FAILED, nullptr, "message::message::dump");
+    return -1;
+  }
+
+  return send(fd, buffer, buffer_size, 0);
+}
+
+int send_large_message(int &fd, char *buffer, size_t buffer_size, Message &message, std::mutex &send_mutex) {
+  std::lock_guard<std::mutex> lock(send_mutex);
+
+  try {
+    std::memset(buffer, '\0', buffer_size);
+    message.dump_large(buffer, buffer_size);
   } catch (const std::exception &err) {
     console(WARNING, MESSAGE_DUMP_FAILED, nullptr, "message::message::dump");
     return -1;

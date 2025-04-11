@@ -24,6 +24,8 @@
 #define CYAN        "\033[36m"
 
 void console(Level level, Code code, const char *detail, const std::string &function) {
+  if (level < verbose_level) return;
+
   bool flag_log = false;
   std::ostringstream cout_buffer, msg_buffer;
 
@@ -35,6 +37,10 @@ void console(Level level, Code code, const char *detail, const std::string &func
 
   //  level
   switch (level) {
+    case CRITICAL:
+      cout_buffer << RED;
+      cout_buffer << "[Critical] ";
+      break;
     case ERROR:
       cout_buffer << RED;
       cout_buffer << "[Error] ";
@@ -43,17 +49,10 @@ void console(Level level, Code code, const char *detail, const std::string &func
       cout_buffer << YELLOW;
       cout_buffer << "[Warning] ";
       break;
-    case NOTICE:
-      cout_buffer << "[Notice] ";
-      break;
     case INFO:
       cout_buffer << "[Info] ";
       break;
     case DEBUG:
-      if (!verbose) {
-        return;
-      }
-      cout_buffer << CYAN;
       cout_buffer << "[DEBUG] ";
       break;
   }
@@ -217,7 +216,7 @@ void console(Level level, Code code, const char *detail, const std::string &func
       msg_buffer << "Unknown option passed to program. Please use the --help option to see usage";
       break;
     case OPTION_KEY_NOT_SET:
-      msg_buffer << "Key for TLS connection is not set. Please specify the path to the private map_key using the --tls-map_key option";
+      msg_buffer << "Key for TLS connection is not set. Please specify the path to the private key using the --tls-map_key option";
       break;
     case OPTION_CERT_NOT_SET:
       msg_buffer << "Certificate for TLS connection is not set. Please specify the path to the certificate using the --tls-cert option";
@@ -318,9 +317,9 @@ void console(Level level, Code code, const char *detail, const std::string &func
       msg_buffer << "Closing with signal";
       break;
     case DEBUG_MSG:
+      cout_buffer << CYAN << "DEBUG_MSG: " << RESET;
       break;
   }
-
 
   if (detail != nullptr) {
     msg_buffer << ' ';
@@ -329,7 +328,7 @@ void console(Level level, Code code, const char *detail, const std::string &func
 
   cout_buffer << msg_buffer.str() << ' ';
 
-  if (verbose) {
+  if (verbose_level <= DEBUG) {
     cout_buffer << FAINT_GRAY;
     cout_buffer << '(';
     cout_buffer << function;
@@ -338,16 +337,15 @@ void console(Level level, Code code, const char *detail, const std::string &func
   }
   cout_buffer << '\n';
 
-  if (flag_log) {
+  if (shared_resources::daemon_mode && (flag_log || level >= std::max(verbose_level, (int) WARNING))) {
     #if defined(__OS_LOG_H__)
       switch (level) {
+        case CRITICAL:
+          os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_ERROR, "%{public}s", msg_buffer.str().c_str());
         case ERROR:
           os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_ERROR, "%{public}s", msg_buffer.str().c_str());
           break;
         case WARNING:
-          os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEFAULT, "%{public}s", msg_buffer.str().c_str());
-          break;
-        case NOTICE:
           os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEFAULT, "%{public}s", msg_buffer.str().c_str());
           break;
         case INFO:
@@ -359,14 +357,13 @@ void console(Level level, Code code, const char *detail, const std::string &func
       }
     #else
       switch (level) {
+        case CRITICAL:
+          syslog(LOG_CRIT, "%s", msg_buffer.str().c_str());
         case ERROR:
           syslog(LOG_ERR, "%s", msg_buffer.str().c_str());
           break;
         case WARNING:
           syslog(LOG_WARNING, "%s", msg_buffer.str().c_str());
-          break;
-        case NOTICE:
-          syslog(LOG_NOTICE, "%s", msg_buffer.str().c_str());
           break;
         case INFO:
           syslog(LOG_INFO, "%s", msg_buffer.str().c_str());
@@ -376,7 +373,8 @@ void console(Level level, Code code, const char *detail, const std::string &func
           break;
       }
     #endif
+  } else if (!shared_resources::daemon_mode) {
+    std::lock_guard<std::mutex> cout_lock(shared_resources::cout_mutex);
+    std::cout << cout_buffer.str();
   }
-  std::lock_guard<std::mutex> cout_lock(shared_resources::cout_mutex);
-  std::cout << cout_buffer.str();
 }

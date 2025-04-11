@@ -8,8 +8,9 @@
 
   #include "../common/shared.hpp"
 
-  int update_client_db(Client &client);
+  int update_client_db(ClientData &client);
   void update_client_db_thread_func();
+  void update_client_copy();
   void list_clients();
 
 #endif //SPHERE_LINKED_CLIENT_HPP

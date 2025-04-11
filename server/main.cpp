@@ -3,7 +3,6 @@
 //
 
 #include <thread>
-#include <chrono>
 #include <csignal>
 
 #include <unistd.h>
@@ -49,7 +48,18 @@ int main(int argc, char *argv[]) {
     console(ERROR, API_START_PROCESS_FAILED, std::to_string(errno).c_str(), "main");
   } else if (pid_api == 0) {
     //  api child
-    execlp("./sphere-linked-server-api", "./sphere-linked-server-api", nullptr);
+
+    const char *args[7];
+    args[0] = "./sphere-linked-server-api";
+    args[1] = "--database";
+    args[2] = db_path;
+    args[3] = "--verbose";
+    args[4] = std::to_string(verbose_level).c_str();
+    args[5] = (shared_resources::daemon_mode) ? "--daemon-mode" : nullptr;
+    args[6] = nullptr;
+
+    execvp("./sphere-linked-server-api", const_cast<char *const *> (args));
+
     console(ERROR, API_START_PROCESS_FAILED, std::to_string(errno).c_str(), "main_api_child");
     //  failure
     cleanup_openssl();

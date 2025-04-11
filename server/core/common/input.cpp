@@ -8,6 +8,7 @@
 #include <chrono>
 #include <ctime>
 #include <sstream>
+#include <thread>
 
 #include <fcntl.h>
 #include <poll.h>
@@ -22,8 +23,8 @@
 static void print_help() {
   std::lock_guard<std::mutex> cout_lock(shared_resources::cout_mutex);
   std::cout << "\nCommands: \n"
-               "Press \033[36mU\033[0m for uptime status\n"
                "Press \033[36mL\033[0m for a list of connected clients\n"
+               "Press \033[36mU\033[0m for uptime status\n"
                "Press \033[36mH\033[0m for this help message\n\n";
 }
 
@@ -72,14 +73,19 @@ void input_thread_func() {
 
   print_help();
   while (!shared_resources::global_flag_kill) {
-    status = poll(&pfd, 1, 500);
+    status = poll(&pfd, 1, 1000);
     if (status <= 0) continue;
 
     in = std::cin.get();
+    if (in == -1) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      continue;
+    }
 
     switch (in) {
       case 'l':
       case 'L':
+        update_client_copy();
         list_clients();
         break;
       case 'u':

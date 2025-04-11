@@ -7,11 +7,13 @@
 
   #include <string>
 
-  enum Level {
-    ERROR,
-    WARNING,
-    INFO,
-    INSTRUCTION,
+  enum Level : int {
+    CRITICAL = 50,
+    ERROR = 40,
+    WARNING = 30,
+    INFO = 20,
+    DEBUG = 10,
+    INSTRUCTION = -10,
   };
 
   enum Code {
@@ -64,6 +66,10 @@
     //  token
     ENTER_TOKEN_INSTRUCTION,
     INVALID_TOKEN,
+
+    SIGNAL,
+
+    DEBUG_MSG,
   };
 
   void console(Level level, Code code, const char *detail, const std::string &function);

@@ -23,13 +23,13 @@ std::string local_service_str = "0.0.0.0";
 const char *local_service = "0.0.0.0";
 int local_service_port = -1;
 
-int timeout_session_millisec = 10;
+int timeout_session_millisec = 1000;
 int timeout_proxy_millisec = 1;
 char hostname[NI_MAXHOST];
 std::regex reg_ipv4(R"((\d{1,3}(\.\d{1,3}){3}))");
 std::regex reg_token("SL_[A-Za-z0-9+/]{32}");
 std::string token;
-bool verbose = false;
+int verbose_level = 20;
 
 void opt_handler(int argc, char * const argv[]) {
   struct addrinfo *result;
@@ -42,7 +42,7 @@ void opt_handler(int argc, char * const argv[]) {
   CLI::App app{"Sphere-Linked-client"};
   app.get_formatter()->column_width(35);
 
-  app.add_flag("-v,--verbose", verbose, "Output detailed information");
+  app.add_option("-v,--verbose", verbose_level, "Output information detail level (inclusive). 10 for Debug or above, 50 for Critical only. Daemon logs have mask of max(30, verbose_level)")->capture_default_str();
   app.add_option("-t,--token", token, "Token for accessing server. Only use this option on trusted machine");
 
   app.add_option("-H,--host-addr", readable_host_str, "The host to stream to. Accepts ipv4 or domain")->capture_default_str();
@@ -50,9 +50,8 @@ void opt_handler(int argc, char * const argv[]) {
   app.add_option("-s,--service-addr", local_service_str, "The address of the service to be tunneled")->capture_default_str();
   app.add_option("-p,--service-port", local_service_port, "The port of the service to be tunneled")->required();
 
-  app.add_option("--session-timeout", timeout_session_millisec, "The time(ms) poll() waits each call when accepting connections. See `man poll` for more information")->capture_default_str();
   app.add_option("--proxy-timeout", timeout_proxy_millisec, "The time(ms) poll() waits each call during proxying. See `man poll` for more information")->capture_default_str();
-
+  
   try {
     app.parse(argc, argv);
   } catch (const CLI::ParseError &e) {

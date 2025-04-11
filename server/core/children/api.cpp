@@ -6,15 +6,18 @@
 #include <thread>
 #include <string>
 #include <vector>
+#include <sstream>
 
 #include <poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <nlohmann/json.hpp>
 
 #include "api.hpp"
 #include "../common/shared.hpp"
 #include "../common/console.hpp"
 #include "../tunnel/message.hpp"
+#include "../database/client.hpp"
 
 static const char *socket_path = "/tmp/sphere-linked-server-core.sock";
 
@@ -48,7 +51,7 @@ void api_control_thread_func() {
     return;
   }
 
-  console(NOTICE, API_LISTEN_STARTED, nullptr, "api::api_control");
+  console(INFO, API_LISTEN_STARTED, nullptr, "api::api_control");
   shared_resources::flag_api_service_running = true;
 
   pfds[0] = {.fd = core_fd, .events = POLLIN | POLLPRI};
@@ -70,7 +73,7 @@ void api_control_thread_func() {
     api_threads.emplace_back(api_session_thread_func, api_fd, api_addr);
   }
 
-  console(NOTICE, API_SERVICE_ENDED, nullptr, "api::api_control");
+  console(INFO, API_SERVICE_ENDED, nullptr, "api::api_control");
   shared_resources::flag_api_service_running = false;
   shared_resources::flag_api_kill = true;
 
@@ -83,7 +86,7 @@ void api_session_thread_func(int api_fd, sockaddr_un api_addr) {
   console(INFO, API_CLIENT_CONNECTION_ACCEPTED, nullptr, "api::api_session");
 
   std::atomic<bool> flag_kill(false), flag_heartbeat_received(false);
-  char inbuffer[256] = {0};
+  char inbuffer[256] = {0}, outbuffer[256] = {0}, client_buffer[32768];
   int recv_status;
   std::mutex send_mutex;
   std::thread heartbeat_thread(api_heartbeat_thread_func, std::ref(flag_kill), std::ref(api_fd), std::ref(send_mutex), std::ref(flag_heartbeat_received));
@@ -106,14 +109,50 @@ void api_session_thread_func(int api_fd, sockaddr_un api_addr) {
           flag_kill = true;
           console(INFO, API_CONNECTION_CLOSED, nullptr, "api::api_session");
           break;
-        case API_GET:
-          //TODO
+        case API_GET_SERVICE_INFO: {
+          std::chrono::duration uptime_duration = std::chrono::system_clock::now() - shared_resources::process_start;
+          nlohmann::json service_info_json;
+          service_info_json["uptime"] = std::chrono::duration_cast<std::chrono::seconds>(uptime_duration).count();
+          service_info_json["tunnel_service_up"] = shared_resources::flag_tunneling_service_running.load();
+          service_info_json["api_service_up"] = shared_resources::flag_api_service_running.load();
+          service_info_json["connected_clients"] = shared_resources::map_client.size();
+          message.type = API_GET_SERVICE_INFO;
+          message.string = to_string(service_info_json);
+          send_message(api_fd, outbuffer, sizeof(outbuffer), message, send_mutex);
+          break;
+        }
+        case API_GET_CURRENT_CLIENTS: {
+          nlohmann::json clients_json;
+          update_client_copy();
+
+          clients_json["clients"] = nlohmann::json::array();
+          std::lock_guard<std::mutex> lock(shared_resources::map_client_copy_mutex);
+          for (auto &client : shared_resources::map_client_copy) {
+            nlohmann::json client_json;
+            client_json["key"] = client.second.key;
+            client_json["ip_addr"] = client.second.ip_addr;
+            client_json["port"] = client.second.port;
+            client_json["type"] = client.second.type;
+            client_json["stream_port"] = client.second.stream_port;
+            client_json["user_addr"] = client.second.user_addr;
+            client_json["user_port"] = client.second.user_port;
+            client_json["main_addr"] = client.second.main_ip_addr;
+            client_json["main_port"] = client.second.main_port;
+            clients_json["clients"].push_back(client_json);
+          }
+          message.type = API_GET_CURRENT_CLIENTS;
+          message.string = to_string(clients_json);
+          send_large_message(api_fd, client_buffer, sizeof(client_buffer), message, send_mutex);  //  TODO: split if too many clients
+          break;
+        }
         default:
           flag_kill = true;
           break;
       }
     }
   }
+
+  close(api_fd);
 
   flag_kill = true;
 

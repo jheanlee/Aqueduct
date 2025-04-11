@@ -59,7 +59,7 @@ target_link_libraries(sphere-linked-client PRIVATE Threads::Threads)
 target_link_libraries(sphere-linked-server PRIVATE ${CMAKE_DL_LIBS})
 target_link_libraries(sphere-linked-client PRIVATE ${CMAKE_DL_LIBS})
 
-set(OPENSSL_USE_STATIC_LIBS TRUE)
+set(OPENSSL_USE_STATIC_LIBS TRUE)   #   if static openssl library not found, comment out this line to use dynamic linking
 find_package(OpenSSL REQUIRED)
 target_link_libraries(sphere-linked-server PRIVATE OpenSSL::SSL)
 target_link_libraries(sphere-linked-client PRIVATE OpenSSL::SSL)
@@ -70,6 +70,9 @@ target_link_libraries(sphere-linked-server PRIVATE SQLite::SQLite3)
 find_package(CLI11 CONFIG REQUIRED)
 target_link_libraries(sphere-linked-server PRIVATE CLI11::CLI11)
 target_link_libraries(sphere-linked-client PRIVATE CLI11::CLI11)
+
+find_package(nlohmann_json REQUIRED)
+target_link_libraries(sphere-linked-server PRIVATE nlohmann_json::nlohmann_json)
 
 if (UNIX AND NOT APPLE)
     find_library(UUID_LIB uuid REQUIRED)
@@ -84,9 +87,23 @@ else()
 endif()
 message(STATUS "Cargo path: ${CARGO_BIN_PATH}")
 
+#   npm
+if (DEFINED ENV{NPM_BIN_PATH)
+    set(NPM_BIN_PATH $ENV{NPM_BIN_PATH})
+else()
+    set(NPM_BIN_PATH npm)
+endif()
+message(STATUS "npm path: ${NPM_BIN_PATH}")
+
 #   server api
 add_custom_command(TARGET sphere-linked-server POST_BUILD
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/server/api
         COMMAND ${CARGO_BIN_PATH} build --release --target-dir ${CMAKE_BINARY_DIR}
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/release/api ${CMAKE_BINARY_DIR}/sphere-linked-server-api
+)
+
+#   server frontend
+add_custom_command(TARGET sphere-linked-server POST_BUILD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/server/frontend
+        COMMAND ${NPM_BIN_PATH} run build -- --outDir ${CMAKE_BINARY_DIR}/frontend
 )

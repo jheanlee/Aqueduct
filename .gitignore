@@ -1,7 +1,5 @@
 .DS_Store
 CMakeFiles
-.vscode
-tempCodeRunnerFile.cpp
 .idea
 cmake-build*
 
@@ -10,9 +8,7 @@ cmake-build*
 
 bin
 lib
-server/webui/front/dist
+server/frontend/dist
 
 server/api/target
-server/webui/http-server/target
-
-server/webui
+server/frontend/src/components/ui/

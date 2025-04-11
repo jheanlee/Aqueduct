@@ -9,7 +9,7 @@
   #include <poll.h>
   #include <mutex>
 
-  #define MESSAGE_MAX_STRING_SIZE 127
+  #define MESSAGE_MAX_STRING_SIZE 126
 
   #define CONNECT         '0'
   #define HEARTBEAT       '1'
@@ -23,7 +23,9 @@
 
   #define API_HEARTBEAT   'B'
   #define API_EXIT        'C'
-  #define API_GET         'D'
+  #define API_GET_SERVICE_INFO    'D'
+  #define API_GET_CURRENT_CLIENTS 'E'
+
 
   class Message {
   public:
@@ -32,9 +34,11 @@
 
     void load(char *buffer);
     void dump(char *buffer) const;
+    void dump_large(char *buffer, size_t buffer_size) const;
   };
 
   int send_message(int &fd, char *buffer, size_t buffer_size, Message &message, std::mutex &send_mutex);
+  int send_large_message(int &fd, char *buffer, size_t buffer_size, Message &message, std::mutex &send_mutex);
   int recv_message(int &fd, char *buffer, size_t buffer_size, Message &message);
   int read_message_non_block(int &fd, pollfd *pfds, char *buffer, size_t buffer_size, Message &message);
   int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message, std::mutex &send_mutex);

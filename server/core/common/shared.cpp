@@ -22,7 +22,10 @@ namespace shared_resources {
   std::atomic<size_t> map_key = 0;
   std::unordered_map<size_t, std::atomic<bool>> map_flag_kill;
   std::unordered_map<size_t, Client> map_client;
+  std::unordered_map<size_t, ClientData> map_client_data;
   std::mutex map_client_mutex;
+  std::unordered_map<size_t, Client> map_client_copy;
+  std::mutex map_client_copy_mutex;
 
   std::unordered_map<std::string, External_User> external_user_id_map;
   std::mutex external_user_mutex;
@@ -30,4 +33,3 @@ namespace shared_resources {
   pid_t pid_api = 0;
 }
 std::queue<int> proxy_ports_available;
-

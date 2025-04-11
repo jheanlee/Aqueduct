@@ -6,12 +6,12 @@
   #define SPHERE_LINKED_CONSOLE_HPP
   #include <string>
 
-  enum Level {
-    ERROR,
-    WARNING,
-    NOTICE,
-    INFO,
-    DEBUG,
+  enum Level : int {
+    CRITICAL = 50,
+    ERROR = 40,
+    WARNING = 30,
+    INFO = 20,
+    DEBUG = 10,
   };
 
   enum Code {

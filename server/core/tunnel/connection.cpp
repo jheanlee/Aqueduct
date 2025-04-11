@@ -34,7 +34,7 @@ void ssl_control_thread_func() {
   //  create, bind, listen socket
   socket_fd = create_socket(server_addr);
 
-  console(NOTICE, CONNECTION_LISTEN_STARTED, nullptr, "connection::control");
+  console(INFO, CONNECTION_LISTEN_STARTED, nullptr, "connection::control");
   shared_resources::flag_tunneling_service_running = true;
 
   //  accept connections from client
@@ -70,7 +70,7 @@ void ssl_control_thread_func() {
     session_thread.detach();
   }
 
-  console(NOTICE, TUNNEL_SERVICE_ENDED, nullptr, "connection::control");
+  console(INFO, TUNNEL_SERVICE_ENDED, nullptr, "connection::control");
   shared_resources::flag_tunneling_service_running = false;
 
   //  clean up
@@ -87,6 +87,7 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
   std::mutex send_mutex;
   Message message {.type = '\0', .string = ""};
   Client *client;
+  ClientData *client_data;
 
   struct pollfd pfds[1];
 
@@ -150,8 +151,7 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
           {
             //  find external_user (fd and extra info)
             std::unique_lock<std::mutex> external_lock(shared_resources::external_user_mutex);
-            if (shared_resources::external_user_id_map.find(message.string) !=
-                shared_resources::external_user_id_map.end()) {
+            if (shared_resources::external_user_id_map.find(message.string) != shared_resources::external_user_id_map.end()) {
               //  open proxy_thread for client-accepted external_user (by id)
               External_User external_user = shared_resources::external_user_id_map[message.string];
               shared_resources::external_user_id_map.erase(message.string);
@@ -171,11 +171,19 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
                       (int) ntohs(external_user.client.sin_port)
                   )
               );
+
+              std::pair<std::unordered_map<size_t, ClientData>::iterator, bool> iter_data_rtn = shared_resources::map_client_data.emplace(
+                  std::piecewise_construct, std::forward_as_tuple(map_key),
+                  std::forward_as_tuple(
+                      std::string(inet_ntoa(external_user.client.sin_addr))
+                  )
+              );
               client = &(iter_rtn.first->second);
+              client_data = &(iter_data_rtn.first->second);
               map_client_lock.unlock();
 
               //  external_user<->proxy_server <=== read/write io ===> proxy_server<->client(service)
-              proxy_thread = std::thread(proxy_thread_func, client_ssl, external_user, std::ref(flag_kill), std::ref(*client));
+              proxy_thread = std::thread(proxy_thread_func, client_ssl, external_user, std::ref(flag_kill), std::ref(*client), std::ref(*client_data));
               flag_proxy_type = true;
             } else flag_kill = true;
             external_lock.unlock();
@@ -202,7 +210,7 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
 
   map_client_lock.lock();
   shared_resources::map_flag_kill.erase(map_key); //  At this point, other threads holding the reference to this would have ended
-  update_client_db(shared_resources::map_client.find(map_key)->second);
+  if (flag_proxy_type) update_client_db(shared_resources::map_client_data.find(map_key)->second);
   shared_resources::map_client.erase(map_key);
   map_client_lock.unlock();
 
@@ -339,7 +347,7 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
     flag_port_found = true;
   }
   if (proxy_ports_available.empty() && !flag_port_found) {
-    console(WARNING, NO_PORT_AVAILABLE, nullptr, "connection::proxy_service");
+    console(ERROR, NO_PORT_AVAILABLE, nullptr, "connection::proxy_service");
     message.type = NO_PORT;
     flag_kill = true;
     ports_assign_lock.unlock();
@@ -390,8 +398,8 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   ports_close_lock.unlock();
 }
 
-void proxy_thread_func(SSL *client_ssl, External_User external_user, std::atomic<bool> &flag_kill, Client &client) {
-  console(INFO, PROXYING_STARTED, (client.ip_addr + ':' + std::to_string(client.port) + " <=> " + std::string(inet_ntoa(external_user.external_user.sin_addr)) + ':' + std::to_string((int)ntohs(external_user.external_user.sin_port))).c_str(), "connection::proxy");
+void proxy_thread_func(SSL *client_ssl, External_User external_user, std::atomic<bool> &flag_kill, Client &client, ClientData &client_data) {
+  console(DEBUG, PROXYING_STARTED, (client.ip_addr + ':' + std::to_string(client.port) + " <=> " + std::string(inet_ntoa(external_user.external_user.sin_addr)) + ':' + std::to_string((int)ntohs(external_user.external_user.sin_port))).c_str(), "connection::proxy");
 
   int ready_for_call = 0, ready_for_write = 0, write_status = 0;
   ssize_t nbytes = 0, io = 0;
@@ -411,7 +419,7 @@ void proxy_thread_func(SSL *client_ssl, External_User external_user, std::atomic
       memset(buffer, 0, sizeof(buffer));
       nbytes = SSL_read(client_ssl, buffer, sizeof(buffer));
       if (nbytes <= 0) {
-        console(INFO, CONNECTION_CLOSED_BY_CLIENT, (client.ip_addr + ':' + std::to_string(client.port)).c_str(), "connection::proxy");
+        console(DEBUG, CONNECTION_CLOSED_BY_CLIENT, (client.ip_addr + ':' + std::to_string(client.port)).c_str(), "connection::proxy");
         break;
       }
 
@@ -428,13 +436,13 @@ void proxy_thread_func(SSL *client_ssl, External_User external_user, std::atomic
       io = send(external_user.fd, buffer, nbytes, MSG_NOSIGNAL);
       if (io < 0) {
         if (errno == EPIPE) {
-          console(INFO, CONNECTION_CLOSED_BY_EXTERNAL_USER, (std::string(inet_ntoa(external_user.external_user.sin_addr)) + ':' + std::to_string((int)ntohs(external_user.external_user.sin_port))).c_str(), "connection::proxy");
+          console(DEBUG, CONNECTION_CLOSED_BY_EXTERNAL_USER, (std::string(inet_ntoa(external_user.external_user.sin_addr)) + ':' + std::to_string((int)ntohs(external_user.external_user.sin_port))).c_str(), "connection::proxy");
         } else {
-          console(ERROR, BUFFER_SEND_ERROR_TO_CLIENT, (client.ip_addr + ':' + std::to_string(client.port) + " => " + std::string(inet_ntoa(external_user.external_user.sin_addr)) + ':' + std::to_string((int)ntohs(external_user.external_user.sin_port))).c_str(), "connection::proxy");
+          console(WARNING, BUFFER_SEND_ERROR_TO_CLIENT, (client.ip_addr + ':' + std::to_string(client.port) + " => " + std::string(inet_ntoa(external_user.external_user.sin_addr)) + ':' + std::to_string((int)ntohs(external_user.external_user.sin_port))).c_str(), "connection::proxy");
         }
         break;
       } else {
-        client.data_sent += io;
+        client_data.data_sent += io;
       }
     }
 
@@ -449,7 +457,7 @@ void proxy_thread_func(SSL *client_ssl, External_User external_user, std::atomic
       memset(buffer, 0, sizeof(buffer));
       nbytes = recv(external_user.fd, buffer, sizeof(buffer), 0);
       if (nbytes <= 0) {
-        console(INFO, CONNECTION_CLOSED_BY_EXTERNAL_USER, (std::string(inet_ntoa(external_user.external_user.sin_addr)) + ':' + std::to_string((int)ntohs(external_user.external_user.sin_port))).c_str(), "connection::proxy");
+        console(DEBUG, CONNECTION_CLOSED_BY_EXTERNAL_USER, (std::string(inet_ntoa(external_user.external_user.sin_addr)) + ':' + std::to_string((int)ntohs(external_user.external_user.sin_port))).c_str(), "connection::proxy");
         break;
       }
 
@@ -467,16 +475,16 @@ void proxy_thread_func(SSL *client_ssl, External_User external_user, std::atomic
       write_status = SSL_write(client_ssl, buffer, nbytes);
       if (write_status < 0) {
         if (write_status == -1 && SSL_get_error(client_ssl, write_status)) {
-          console(INFO, CONNECTION_CLOSED_BY_CLIENT, (client.ip_addr + ':' + std::to_string(client.port)).c_str(), "connection::proxy");
+          console(DEBUG, CONNECTION_CLOSED_BY_CLIENT, (client.ip_addr + ':' + std::to_string(client.port)).c_str(), "connection::proxy");
         } else {
-          console(ERROR, BUFFER_SEND_ERROR_TO_CLIENT, (client.ip_addr + ':' + std::to_string(client.port) + " <= " + std::string(inet_ntoa(external_user.external_user.sin_addr)) + ':' + std::to_string((int)ntohs(external_user.external_user.sin_port))).c_str(), "connection::proxy");
+          console(WARNING, BUFFER_SEND_ERROR_TO_CLIENT, (client.ip_addr + ':' + std::to_string(client.port) + " <= " + std::string(inet_ntoa(external_user.external_user.sin_addr)) + ':' + std::to_string((int)ntohs(external_user.external_user.sin_port))).c_str(), "connection::proxy");
         }
         break;
       } else if (write_status == 0) {
-        console(INFO, CONNECTION_CLOSED_BY_CLIENT, (client.ip_addr + ':' + std::to_string(client.port)).c_str(), "connection::proxy");
+        console(DEBUG, CONNECTION_CLOSED_BY_CLIENT, (client.ip_addr + ':' + std::to_string(client.port)).c_str(), "connection::proxy");
         break;
       } else {
-        client.data_recv += write_status;
+        client_data.data_recv += write_status;
       }
     }
   }
@@ -484,5 +492,5 @@ void proxy_thread_func(SSL *client_ssl, External_User external_user, std::atomic
   close(external_user.fd);
   flag_kill = true;
 
-  console(INFO, PROXYING_ENDED, (client.ip_addr + ':' + std::to_string(client.port) + " <=> " + std::string(inet_ntoa(external_user.external_user.sin_addr)) + ':' + std::to_string((int)ntohs(external_user.external_user.sin_port))).c_str(), "connection::proxy");
+  console(DEBUG, PROXYING_ENDED, (client.ip_addr + ':' + std::to_string(client.port) + " <=> " + std::string(inet_ntoa(external_user.external_user.sin_addr)) + ':' + std::to_string((int)ntohs(external_user.external_user.sin_port))).c_str(), "connection::proxy");
 }
