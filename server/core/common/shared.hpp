@@ -2,8 +2,8 @@
 // Created by Jhean Lee on 2024/11/26.
 //
 
-#ifndef SPHERE_LINKED_SHARED_HPP
-  #define SPHERE_LINKED_SHARED_HPP
+#ifndef AQUEDUCT_SHARED_HPP
+  #define AQUEDUCT_SHARED_HPP
   #include <mutex>
   #include <unordered_map>
   #include <atomic>
@@ -99,4 +99,4 @@
   extern int timeout_api_millisec;
 
   extern const char *db_path;
-#endif //SPHERE_LINKED_SHARED_HPP
+#endif //AQUEDUCT_SHARED_HPP

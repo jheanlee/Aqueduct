@@ -2,8 +2,8 @@
 // Created by Jhean Lee on 2025/3/4.
 //
 
-#ifndef SPHERE_LINKED_API_HPP
-  #define SPHERE_LINKED_API_HPP
+#ifndef AQUEDUCT_API_HPP
+  #define AQUEDUCT_API_HPP
 
   #include <cstdio>
   #include <mutex>
@@ -15,4 +15,4 @@
   void api_session_thread_func(int api_fd, sockaddr_un api_addr);
   void api_heartbeat_thread_func(std::atomic<bool> &flag_kill, int &api_fd, std::mutex &send_mutex, std::atomic<bool> &flag_heartbeat_received);
 
-#endif //SPHERE_LINKED_API_HPP
+#endif //AQUEDUCT_API_HPP

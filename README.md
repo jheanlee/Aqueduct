@@ -1,6 +1,6 @@
-# Sphere Linked
+# Aqueduct
 
-Sphere Linked is a simple TCP Tunneling service that enables users to connect to a service in a private network without exposing other ports or devices.
+Aqueduct is a simple TCP Tunneling service that enables users to connect to a service in a private network without exposing other ports or devices.
 
 ## Quick Start
 
@@ -10,7 +10,7 @@ You can directly download [precompiled binaries](#precompiled-binaries) for your
 
 ### Precompiled Binaries
 
-Download precompiled binaries from the [release page](https://github.com/jheanlee/Sphere-Linked/releases/latest)
+Download precompiled binaries from the [release page](https://github.com/jheanlee/Aqueduct/releases/latest)
 
 Currently, there are binaries for two platforms: 
 
@@ -46,12 +46,12 @@ For other distros, or if you have issues installing the packages, please refer t
 
 #### 1. Clone the source from our repo
 ```
-git clone https://github.com/jheanlee/Sphere-Linked.git
+git clone https://github.com/jheanlee/Aqueduct.git
 ```
 
 #### 2. Switch to the directory and create a build directory
 ```
-cd Sphere-Linked && mkdir build
+cd Aqueduct && mkdir build
 ```
 
 #### 3. Run CMake
@@ -64,25 +64,25 @@ cmake . ..
 make
 ```
 
-Now you should see the binaries `sphere-linked-server` and `sphere-linked-client` in the directory.
+Now you should see the binaries `aqueduct-server` and `aqueduct-client` in the directory.
 
 ### Tokens
 
 To (re)generate a token, you can use the command below:
 ```
-./sphere-linked-server token new --name [NAME]
+./aqueduct-server token new --name [NAME]
 ```
 Optionally, you can add some notes using the `--notes` option.
 
 To get a list of all tokens, use:
 ```
-./sphere-linked-server token list
+./aqueduct-server token list
 ```
 Please notice that the tokens listed are hashed and are not usable for security.
 
 You can also remove a token using:
 ```
-./sphere-linked-server token remove --name
+./aqueduct-server token remove --name
 ```
 
 ### Key
@@ -102,7 +102,7 @@ The connection between the server and the clients will be encrypted using this p
 
 To start the server service up, use:
 ```
-sphere-linked-server run --tls-map_key [KEY] --tls-cert [CERT]
+aqueduct-server run --tls-key [KEY] --tls-cert [CERT]
 ```
 Replace `[KEY]` and `[CERT]` with the path to the map_key and certificate that we generated earlier.
 
@@ -111,7 +111,7 @@ After the server is running, we can now tunnel our services.
 
 Go to the client machine and run:
 ```
-sphere-linked-client -H [SERVER ADDR] -s [SERVICE ADDR] -p [SERVICE PORT]
+aqueduct-client -H [SERVER ADDR] -s [SERVICE ADDR] -p [SERVICE PORT]
 ```
 Replace the blanks with the corresponding values. `[SERVER ADDR]` can be either an ipv4 address (like `192.168.1.1`) or a domain (like `www.example.com`)
 
@@ -128,34 +128,35 @@ For more details or options, see the [Usage](#usage) section below
 ### Host (server)
 
 ```
-sphere-linked-server [OPTIONS]  SUBCOMMAND
+aqueduct-server [OPTIONS]  SUBCOMMAND
 ```
 
 #### Options
 
 ```
 Options:
-  -h,--help                        Print this help Message and exit
-  -v,--verbose_level                     Output detailed information
-  -d,--database TEXT [./sphere-linked.sqlite] 
+  -h,--help                        Print this help message and exit
+  -v,--verbose INT [20]            Output information detail level (inclusive). 10 for Debug or above, 50 for Critical only. Daemon logs have mask of max(30, verbose_level)
+  -d,--database TEXT [./aqueduct.sqlite] 
                                    The path to database file
 
 Subcommands:
-  run                              Run the main tunneling service
-  token                            Operations related to tokens
+  run                              Run the tunneling service
+  token                            Token management
 ```
 
 ##### run options
 ```
 Options:
-  -h,--help                        Print this help Message and exit
-  -k,--tls-map_key TEXT REQUIRED       The path to a private map_key file used for TLS encryption
+  -h,--help                        Print this help message and exit
+  -D,--daemon-mode                 Disables stdout and use syslog or os_log instead
+  -k,--tls-key TEXT REQUIRED   The path to a private key file used for TLS encryption
   -c,--tls-cert TEXT REQUIRED      The path to a certification file used for TLS encryption
   -p,--control INT [30330]         Client will connect via 0.0.0.0:<port>
   -s,--port-start INT [51000]      The proxy port of the first client will be <port>, the last being (<port> + port-limit - 1)
   -l,--port-limit INT [200]        Proxy ports will have a limit of <count> ports
-  --session-timeout INT [10]       The time(ms) poll() waits each call when accepting connections. See `man poll` for more information
-  --proxy-timeout INT [1]         The time(ms) poll() waits each call during proxying. See `man poll` for more information
+  --proxy-timeout INT [1]          The time(ms) poll() waits each call during proxying. See `man poll` for more information
+  --client-db-interval INT [1]     The interval(min) between automatic writes of client's proxied data to database
 ```
 
 
@@ -167,11 +168,16 @@ Options:
 Subcommands:
   new                              Create or regenerate a token
     Options:
+      -h,--help                        Print this help message and exit
       -n,--name TEXT REQUIRED          The name (id) of the token you want to modify
       --notes TEXT                     Some notes for this token
+      --expiry INT:INT in [0 - 3650] [100] 
+                                       Days until the expiry of the token. 0 for no expiry
+                                       
   remove                           Remove a token
     Options:
       -n,--name TEXT REQUIRED          The name (id) of the token you want to modify
+      
   list                             List all tokens
 ```
 
@@ -182,33 +188,20 @@ The host's control port and proxy port range must be accessable to client and ex
 ### Client
 
 ```
-sphere-linked-client [OPTIONS] SUBCOMMAND
+aqueduct-client [OPTIONS]
 ```
 
 #### Options
 
 ```
 Options:
-  -h,--help                        Print this help Message and exit
-  -v,--verbose_level                     Output detailed information
+  -h,--help                        Print this help message and exit
+  -v,--verbose INT [20]            Output information detail level (inclusive). 10 for Debug or above, 50 for Critical only. Daemon logs have mask of max(30, verbose_level)
   -t,--token TEXT                  Token for accessing server. Only use this option on trusted machine
   -H,--host-addr TEXT [0.0.0.0]    The host to stream to. Accepts ipv4 or domain
   -P,--host-port INT [30330]       The control port of host
-  -s,--service-addr TEXT [0.0.0.0] The address of the service to be tunneled
+  -s,--service-addr TEXT [0.0.0.0] 
+                                   The address of the service to be tunneled
   -p,--service-port INT REQUIRED   The port of the service to be tunneled
-  --session-timeout INT [10]       The time(ms) poll() waits each call when accepting connections. See `man poll` for more information
-  --proxy-timeout INT [1]         The time(ms) poll() waits each call during proxying. See `man poll` for more information
+  --proxy-timeout INT [1]          The time(ms) poll() waits each call during proxying. See `man poll` for more information
 ```
-
-### Use Examples
-
-```
-sphere-linked-server --control 63000 --port-start 61000 --port-limit 300 --tls-map_key /tls/privkey.pem --tls-cert /tls/cert
-```
-This example opens the control port at `host:63000`, at most tunnels `300` services. (the first being `host:61000`, and the last being `host:61299`),   
-using `/tls/privkey.pem` and `/tls/cert` to establish TLS connections between server and client.
-
-```
-sphere-linked-client --host-addr test.example.com --host-port 63000 --service-addr 192.168.1.100 --service-port 8080
-```
-This example connects to server via `test.example.com:63000`, and tunnels `192.168.1.100:8080` to `test.example.com`.

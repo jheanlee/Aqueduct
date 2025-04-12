@@ -2,8 +2,8 @@
 // Created by Jhean Lee on 2025/1/21.
 //
 
-#ifndef SPHERE_LINKED_DATABASE_HPP
-  #define SPHERE_LINKED_DATABASE_HPP
+#ifndef AQUEDUCT_DATABASE_HPP
+  #define AQUEDUCT_DATABASE_HPP
   #include <sqlite3.h>
   #include <string>
 
@@ -17,4 +17,4 @@
   int generate_salt(std::string &output, size_t len);
 //  int sha256(const unsigned char *data, unsigned char *output);
 
-#endif //SPHERE_LINKED_DATABASE_HPP
+#endif //AQUEDUCT_DATABASE_HPP

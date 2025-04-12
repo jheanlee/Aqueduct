@@ -2,8 +2,8 @@
 // Created by Jhean Lee on 2024/10/2.
 //
 
-#ifndef SPHERE_LINKED_CONNECTION_HPP
-  #define SPHERE_LINKED_CONNECTION_HPP
+#ifndef AQUEDUCT_CONNECTION_HPP
+  #define AQUEDUCT_CONNECTION_HPP
 
   #include <atomic>
   #include <unordered_map>
@@ -24,4 +24,4 @@
                                       SSL *client_ssl, sockaddr_in &client_addr, Client &client, std::mutex &send_mutex);
   void proxy_thread_func(SSL *client_ssl, External_User external_user, std::atomic<bool> &flag_kill, Client &client, ClientData &client_data);
 
-#endif //SPHERE_LINKED_CONNECTION_HPP
+#endif //AQUEDUCT_CONNECTION_HPP

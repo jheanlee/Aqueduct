@@ -2,8 +2,8 @@
 // Created by Jhean Lee on 2024/12/26.
 //
 
-#ifndef SPHERE_LINKED_SOCKET_MANAGEMENT_HPP
-  #define SPHERE_LINKED_SOCKET_MANAGEMENT_HPP
+#ifndef AQUEDUCT_SOCKET_MANAGEMENT_HPP
+  #define AQUEDUCT_SOCKET_MANAGEMENT_HPP
 
   #include <openssl/ssl.h>
   #include <arpa/inet.h>
@@ -18,4 +18,4 @@
 
   void init_proxy_ports_available();
 
-#endif //SPHERE_LINKED_SOCKET_MANAGEMENT_HPP
+#endif //AQUEDUCT_SOCKET_MANAGEMENT_HPP

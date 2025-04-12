@@ -2,8 +2,8 @@
 // Created by Jhean Lee on 2025/2/14.
 //
 
-#ifndef SPHERE_LINKED_CLIENT_HPP
-  #define SPHERE_LINKED_CLIENT_HPP
+#ifndef AQUEDUCT_CLIENT_HPP
+  #define AQUEDUCT_CLIENT_HPP
   #include <sqlite3.h>
 
   #include "../common/shared.hpp"
@@ -13,4 +13,4 @@
   void update_client_copy();
   void list_clients();
 
-#endif //SPHERE_LINKED_CLIENT_HPP
+#endif //AQUEDUCT_CLIENT_HPP

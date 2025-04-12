@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
   register_signal();
   shared_resources::process_start = std::chrono::system_clock::now();
   #if !(defined(__clang__) && defined(__APPLE__))
-    openlog("sphere-linked-server", LOG_PID | LOG_CONS, LOG_USER);
+    openlog("aqueduct-server", LOG_PID | LOG_CONS, LOG_USER);
   #endif
   opt_handler(argc, argv);
   init_proxy_ports_available();
@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
     //  api child
 
     const char *args[7];
-    args[0] = "./sphere-linked-server-api";
+    args[0] = "./aqueduct-server-api";
     args[1] = "--database";
     args[2] = db_path;
     args[3] = "--verbose";
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
     args[5] = (shared_resources::daemon_mode) ? "--daemon-mode" : nullptr;
     args[6] = nullptr;
 
-    execvp("./sphere-linked-server-api", const_cast<char *const *> (args));
+    execvp("./aqueduct-server-api", const_cast<char *const *> (args));
 
     console(ERROR, API_START_PROCESS_FAILED, std::to_string(errno).c_str(), "main_api_child");
     //  failure
