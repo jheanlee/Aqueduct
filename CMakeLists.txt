@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.5)
-project(Sphere-Linked)
+project(Aqueduct)
 set(CMAKE_CXX_STANDARD 17)
 
 #   server core
-add_executable(sphere-linked-server
+add_executable(aqueduct-server
         server/main.cpp
         server/core/tunnel/connection.cpp
         server/core/tunnel/connection.hpp
@@ -32,7 +32,7 @@ add_executable(sphere-linked-server
 )
 
 #   client core
-add_executable(sphere-linked-client
+add_executable(aqueduct-client
         client/main.cpp
         client/tunnel/message.cpp
         client/tunnel/message.hpp
@@ -53,30 +53,30 @@ add_executable(sphere-linked-client
 
 #   server/client dependencies
 find_package(Threads)
-target_link_libraries(sphere-linked-server PRIVATE Threads::Threads)
-target_link_libraries(sphere-linked-client PRIVATE Threads::Threads)
+target_link_libraries(aqueduct-server PRIVATE Threads::Threads)
+target_link_libraries(aqueduct-client PRIVATE Threads::Threads)
 
-target_link_libraries(sphere-linked-server PRIVATE ${CMAKE_DL_LIBS})
-target_link_libraries(sphere-linked-client PRIVATE ${CMAKE_DL_LIBS})
+target_link_libraries(aqueduct-server PRIVATE ${CMAKE_DL_LIBS})
+target_link_libraries(aqueduct-client PRIVATE ${CMAKE_DL_LIBS})
 
 set(OPENSSL_USE_STATIC_LIBS TRUE)   #   if static openssl library not found, comment out this line to use dynamic linking
 find_package(OpenSSL REQUIRED)
-target_link_libraries(sphere-linked-server PRIVATE OpenSSL::SSL)
-target_link_libraries(sphere-linked-client PRIVATE OpenSSL::SSL)
+target_link_libraries(aqueduct-server PRIVATE OpenSSL::SSL)
+target_link_libraries(aqueduct-client PRIVATE OpenSSL::SSL)
 
 find_package(SQLite3 REQUIRED)
-target_link_libraries(sphere-linked-server PRIVATE SQLite::SQLite3)
+target_link_libraries(aqueduct-server PRIVATE SQLite::SQLite3)
 
 find_package(CLI11 CONFIG REQUIRED)
-target_link_libraries(sphere-linked-server PRIVATE CLI11::CLI11)
-target_link_libraries(sphere-linked-client PRIVATE CLI11::CLI11)
+target_link_libraries(aqueduct-server PRIVATE CLI11::CLI11)
+target_link_libraries(aqueduct-client PRIVATE CLI11::CLI11)
 
 find_package(nlohmann_json REQUIRED)
-target_link_libraries(sphere-linked-server PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(aqueduct-server PRIVATE nlohmann_json::nlohmann_json)
 
 if (UNIX AND NOT APPLE)
     find_library(UUID_LIB uuid REQUIRED)
-    target_link_libraries(sphere-linked-server PRIVATE ${UUID_LIB})
+    target_link_libraries(aqueduct-server PRIVATE ${UUID_LIB})
 endif ()
 
 #   cargo
@@ -96,14 +96,14 @@ endif()
 message(STATUS "npm path: ${NPM_BIN_PATH}")
 
 #   server api
-add_custom_command(TARGET sphere-linked-server POST_BUILD
+add_custom_command(TARGET aqueduct-server POST_BUILD
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/server/api
         COMMAND ${CARGO_BIN_PATH} build --release --target-dir ${CMAKE_BINARY_DIR}
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/release/api ${CMAKE_BINARY_DIR}/sphere-linked-server-api
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/release/api ${CMAKE_BINARY_DIR}/aqueduct-server-api
 )
 
 #   server frontend
-add_custom_command(TARGET sphere-linked-server POST_BUILD
+add_custom_command(TARGET aqueduct-server POST_BUILD
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/server/frontend
         COMMAND ${NPM_BIN_PATH} run build -- --outDir ${CMAKE_BINARY_DIR}/frontend
 )

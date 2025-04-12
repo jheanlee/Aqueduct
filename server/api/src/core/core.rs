@@ -12,7 +12,7 @@ use crate::state::{AppState, ConnectedClients, CoreStatus};
 use crate::message::{api_message_type, Message};
 
 pub async fn connect_core() -> Result<UnixStream, anyhow::Error> {
-  Ok(UnixStream::connect("/tmp/sphere-linked-server-core.sock").await?)
+  Ok(UnixStream::connect("/tmp/aqueduct-server-core.sock").await?)
 }
 
 pub async fn core_io_read_thread_func(state: Arc<AppState>) -> Result<(), ()> {

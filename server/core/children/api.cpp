@@ -19,7 +19,7 @@
 #include "../tunnel/message.hpp"
 #include "../database/client.hpp"
 
-static const char *socket_path = "/tmp/sphere-linked-server-core.sock";
+static const char *socket_path = "/tmp/aqueduct-server-core.sock";
 
 void api_control_thread_func() {
   std::vector<std::thread> api_threads;

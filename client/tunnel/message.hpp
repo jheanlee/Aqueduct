@@ -2,8 +2,8 @@
 // Created by Jhean Lee on 2024/10/2.
 //
 
-#ifndef SPHERE_LINKED_MESSAGE_HPP
-  #define SPHERE_LINKED_MESSAGE_HPP
+#ifndef AQUEDUCT_MESSAGE_HPP
+  #define AQUEDUCT_MESSAGE_HPP
 
   #include <mutex>
 
@@ -34,4 +34,4 @@
   int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message, std::mutex &send_mutex);
   int ssl_recv_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message);
 
-#endif //SPHERE_LINKED_MESSAGE_HPP
+#endif //AQUEDUCT_MESSAGE_HPP

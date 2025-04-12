@@ -39,7 +39,7 @@ void opt_handler(int argc, char * const argv[]) {
   hint.ai_family = AF_INET;
   int error;
 
-  CLI::App app{"Sphere-Linked-client"};
+  CLI::App app{"Aqueduct-client"};
   app.get_formatter()->column_width(35);
 
   app.add_option("-v,--verbose", verbose_level, "Output information detail level (inclusive). 10 for Debug or above, 50 for Critical only. Daemon logs have mask of max(30, verbose_level)")->capture_default_str();

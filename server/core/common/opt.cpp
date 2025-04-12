@@ -21,12 +21,12 @@ int timeout_session_millisec = 1000;
 int timeout_proxy_millisec = 1;
 int timeout_api_millisec = 1000;
 int shared_resources::client_db_interval_min = 1;
-std::string db_path_str = "./sphere-linked.sqlite";
+std::string db_path_str = "./aqueduct.sqlite";
 std::string key_path_str;
 std::string cert_path_str;
 const char *cert_path = "\0";
 const char *key_path = "\0";
-const char *db_path = "./sphere-linked.sqlite";
+const char *db_path = "./aqueduct.sqlite";
 int verbose_level = 20;
 bool shared_resources::daemon_mode = false;
 
@@ -34,7 +34,7 @@ void opt_handler(int argc, char * const argv[]) {
   int expiry_days = 100;
   std::string name, notes;
 
-  CLI::App app{"Sphere-Linked-server"};
+  CLI::App app{"Aqueduct-server"};
   app.get_formatter()->column_width(35);
   app.require_subcommand(1, 1);
 
@@ -45,7 +45,7 @@ void opt_handler(int argc, char * const argv[]) {
   CLI::App *run = app.add_subcommand("run", "Run the tunneling service")->fallthrough();
   run->add_flag("-D, --daemon-mode", shared_resources::daemon_mode, "Disables stdout and use syslog or os_log instead")->capture_default_str();
 
-  run->add_option("-k,--tls-map_key", key_path_str, "The path to a private key file used for TLS encryption")->required();
+  run->add_option("-k,--tls-key", key_path_str, "The path to a private key file used for TLS encryption")->required();
   run->add_option("-c,--tls-cert", cert_path_str, "The path to a certification file used for TLS encryption")->required();
 
   run->add_option("-p,--control", ssl_control_port, "Client will connect via 0.0.0.0:<port>")->capture_default_str();
@@ -62,7 +62,7 @@ void opt_handler(int argc, char * const argv[]) {
   CLI::App *token_new = token->add_subcommand("new", "Create or regenerate a token")->fallthrough();
   token_new->add_option("-n,--name", name, "The name (id) of the token you want to modify")->required();
   token_new->add_option("--notes", notes, "Some notes for this token");
-  token_new->add_option("--expiry", expiry_days, "Days until the expiry of the token. 0 forno expiry")->capture_default_str()->check(CLI::Range(0, 3650));
+  token_new->add_option("--expiry", expiry_days, "Days until the expiry of the token. 0 for no expiry")->capture_default_str()->check(CLI::Range(0, 3650));
 
   CLI::App *token_remove = token->add_subcommand("remove", "Remove a token")->fallthrough();
   token_remove->add_option("-n,--name", name, "The name (id) of the token you want to modify")->required();

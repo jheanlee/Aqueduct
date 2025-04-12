@@ -2,8 +2,8 @@
 // Created by Jhean Lee on 2025/1/24.
 //
 
-#ifndef SPHERE_LINKED_CONSOLE_HPP
-  #define SPHERE_LINKED_CONSOLE_HPP
+#ifndef AQUEDUCT_CONSOLE_HPP
+  #define AQUEDUCT_CONSOLE_HPP
   #include <string>
 
   enum Level : int {
@@ -112,4 +112,4 @@
   };
 
   void console(Level level, Code code, const char *detail, const std::string &function);
-#endif //SPHERE_LINKED_CONSOLE_HPP
+#endif //AQUEDUCT_CONSOLE_HPP
