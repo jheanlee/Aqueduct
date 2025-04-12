@@ -87,11 +87,11 @@ You can also remove a token using:
 
 ### Key
 
-Before you can start tunneling your service, you need a pair of map_key and certificate on the server for secure (TLS) connection.
+Before you can start tunneling your service, you need a pair of key and certificate on the server for secure (TLS) connection.
 
 If you already have those, you can [skip](#connection) this step. Here, we are going to use OpenSSL to generate them:
 ```
-openssl req -x509 -newkey rsa:4096 -keyout map_key.pem -out cert.pem -sha256 -days 365 -nodes
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 365 -nodes
 ```
 Fill out the prompted instructions.
 
@@ -104,7 +104,7 @@ To start the server service up, use:
 ```
 aqueduct-server run --tls-key [KEY] --tls-cert [CERT]
 ```
-Replace `[KEY]` and `[CERT]` with the path to the map_key and certificate that we generated earlier.
+Replace `[KEY]` and `[CERT]` with the path to the key and certificate that we generated earlier.
 
 #### Client
 After the server is running, we can now tunnel our services.
