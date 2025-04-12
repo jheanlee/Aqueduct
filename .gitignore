@@ -12,3 +12,4 @@ server/frontend/dist
 
 server/api/target
 server/frontend/src/components/ui/
+server/target/

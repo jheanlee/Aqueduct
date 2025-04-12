@@ -14,7 +14,7 @@ use clap::Parser;
 use sea_orm::{DatabaseConnection};
 use crate::console::{console, Code, Level};
 use crate::core::core::{client_thread_func, connect_core, core_io_read_thread_func, get_status, status_thread_func};
-use crate::domain::clients::{get_connected_clients, update_clients};
+use crate::domain::clients::{get_client_db, get_connected_clients, update_clients};
 use crate::orm::connection::connect_database;
 use crate::state::{CoreStatus};
 
@@ -64,9 +64,9 @@ async fn main() {
     .route("/api/status", get(get_status))
     .route("/api/clients/connected", get(get_connected_clients))
     .route("/api/clients/update", post(update_clients))
-    // .route("/client/db", get())
-    // .route("/token/list", get())
-    // .route("/token/modify", post())
+    .route("/api/clients/db", get(get_client_db))
+    // .route("/api/token/list", get())
+    // .route("/api/token/modify", post())
     .fallback_service(frontend_server_dir)
     .with_state(arc_state);
 

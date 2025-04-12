@@ -38,10 +38,10 @@ void check_tables(sqlite3 *db) {
 
   //  authentication table
   const char *sql_auth = "CREATE TABLE IF NOT EXISTS auth("
-                         "name TEXT PRIMARY KEY,"
-                         "token TEXT,"
+                         "name TEXT PRIMARY KEY NOT NULL,"
+                         "token TEXT NOT NULL,"
                          "notes TEXT,"
-                         "expiry NUMERIC" //  seconds since epoch or null for no expiry
+                         "expiry BIGINT" //  seconds since epoch or null for no expiry
                          ");";
   if (sqlite3_exec(db, sql_auth, nullptr, nullptr, &errmsg) != SQLITE_OK) {
     console(CRITICAL, SQLITE_CREATE_TABLE_FAILED, errmsg, "database::check_tables");
@@ -51,7 +51,7 @@ void check_tables(sqlite3 *db) {
 
   //  salt table
   const char *sql_salt = "CREATE TABLE IF NOT EXISTS salt("
-                         "salt TEXT PRIMARY KEY"
+                         "salt TEXT PRIMARY KEY NOT NULL"
                          ");";
   if (sqlite3_exec(db, sql_salt, nullptr, nullptr, &errmsg) != SQLITE_OK) {
     console(CRITICAL, SQLITE_CREATE_TABLE_FAILED, errmsg, "database::check_tables");
@@ -77,9 +77,9 @@ void check_tables(sqlite3 *db) {
 
   //  client table
   const char *sql_client = "CREATE TABLE IF NOT EXISTS client("
-                           "ip TEXT PRIMARY KEY, "
-                           "sent INTEGER, "
-                           "received INTEGER"
+                           "ip TEXT PRIMARY KEY NOT NULL, "
+                           "sent BIGINT NOT NULL, "
+                           "received BIGINT NOT NULL"
                            ");";
   if (sqlite3_exec(db, sql_client, nullptr, nullptr, &errmsg) != SQLITE_OK) {
     console(CRITICAL, SQLITE_CREATE_TABLE_FAILED, errmsg, "database::check_tables");
