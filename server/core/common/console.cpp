@@ -143,7 +143,7 @@ void console(Level level, Code code, const char *detail, const std::string &func
       break;
     case SSL_LOAD_CERT_KEY_FAILED:
       flag_log = true;
-      msg_buffer << "Failed to load SSL certificate or map_key";
+      msg_buffer << "Failed to load SSL certificate or key";
       break;
     case SQLITE_OPEN_FAILED:
       flag_log = true;
@@ -216,7 +216,7 @@ void console(Level level, Code code, const char *detail, const std::string &func
       msg_buffer << "Unknown option passed to program. Please use the --help option to see usage";
       break;
     case OPTION_KEY_NOT_SET:
-      msg_buffer << "Key for TLS connection is not set. Please specify the path to the private key using the --tls-map_key option";
+      msg_buffer << "Key for TLS connection is not set. Please specify the path to the private key using the --tls-key option";
       break;
     case OPTION_CERT_NOT_SET:
       msg_buffer << "Certificate for TLS connection is not set. Please specify the path to the certificate using the --tls-cert option";
