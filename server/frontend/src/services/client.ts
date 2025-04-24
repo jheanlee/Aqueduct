@@ -1,4 +1,4 @@
-import {fetcher} from "../core/fetcher.ts";
+import {fetcher} from "../core/fetcher";
 
 export const getStatus = async () => {
   return await fetcher.get<{
@@ -15,7 +15,7 @@ export const getStatus = async () => {
     });
 }
 
-export const listConnectedClients = async ()=>{
+export const listConnectedClients = async () => {
   return await fetcher.get<{
     "key": number,
     "ip_addr": string,
@@ -36,5 +36,21 @@ export const listConnectedClients = async ()=>{
 }
 
 export const updateConnectedClients = async () => {
-  return await fetcher.post("/api/clients/update").catch(() => {return null});
+  return await fetcher.post("/api/clients/update").catch(() => {
+    return null
+  });
+}
+
+export const listClientsDb = async () => {
+  return await fetcher.get<{
+    "ip": string,
+    "sent": number,
+    "received": number
+  }[]>("/api/clients/db")
+    .then((res) => {
+      return res.data;
+    })
+    .catch(() => {
+      return null;
+    });
 }

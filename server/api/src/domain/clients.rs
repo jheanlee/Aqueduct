@@ -31,7 +31,7 @@ pub async fn update_clients(State(state): State<Arc<AppState>>) -> Result<impl I
   }
 }
 
-pub async fn get_client_db(State(state): State<Arc<AppState>>) -> Result<Response<Body>, ApiError> {
+pub async fn get_client_db(State(_state): State<Arc<AppState>>) -> Result<Response<Body>, ApiError> {
   let response_builder = Response::builder().header(http::header::CONTENT_TYPE, "application/json");
   let clients: Vec<entity::entities::client::Model> = list_client_db().await?;
 

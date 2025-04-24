@@ -18,6 +18,7 @@
 #include "../common/console.hpp"
 #include "../tunnel/message.hpp"
 #include "../database/client.hpp"
+#include "token.hpp"
 
 static const char *socket_path = "/tmp/aqueduct-server-core.sock";
 
@@ -143,6 +144,17 @@ void api_session_thread_func(int api_fd, sockaddr_un api_addr) {
           message.type = API_GET_CURRENT_CLIENTS;
           message.string = to_string(clients_json);
           send_large_message(api_fd, client_buffer, sizeof(client_buffer), message, send_mutex);  //  TODO: split if too many clients
+          break;
+        }
+        case API_GENERATE_NEW_TOKEN: {
+          std::pair<std::string, std::string> new_token = generate_token();
+
+          nlohmann::json token_json;
+          token_json["token"] = new_token.first;
+          token_json["hashed"] = new_token.second;
+          message.type = API_GENERATE_NEW_TOKEN;
+          message.string = to_string(token_json);
+          send_message(api_fd, outbuffer, sizeof(outbuffer), message, send_mutex);
           break;
         }
         default:

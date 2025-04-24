@@ -1,5 +1,5 @@
 use crate::console::color_code::{CYAN, FAINT_GRAY, RED, RESET, YELLOW};
-use crate::{SharedResources, SHARED_CELL};
+use crate::{SHARED_CELL};
 
 mod color_code {
   pub const RESET: &str = "\x1b[0m";
@@ -39,7 +39,7 @@ pub enum Code {
 }
 
 pub fn console(level: Level, code: Code, detail: &str, function: &str) {
-  if (level.clone() as u8) < SHARED_CELL.get().unwrap_or(&SharedResources{ verbose_level: Level::Debug as u8, daemon_mode: false, database_connection: None }).verbose_level {
+  if SHARED_CELL.get().is_some() && (level.clone() as u8) <  SHARED_CELL.get().unwrap().verbose_level {
     return;
   }
   let mut output: String = String::new();

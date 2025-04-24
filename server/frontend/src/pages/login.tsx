@@ -1,5 +1,5 @@
-import { Field, Input, Button, Fieldset, Flex } from "@chakra-ui/react";
-import { PasswordInput } from "../components/ui/password-input.tsx";
+import {Field, Input, Button, Fieldset, Flex} from "@chakra-ui/react";
+import {PasswordInput} from "../components/ui/password-input.tsx";
 
 function Login() {
   return (
@@ -8,12 +8,12 @@ function Login() {
         <Fieldset.Content>
           <Field.Root>
             <Field.Label>Username</Field.Label>
-            <Input />
+            <Input/>
           </Field.Root>
 
           <Field.Root>
             <Field.Label>Password</Field.Label>
-            <PasswordInput />
+            <PasswordInput/>
           </Field.Root>
         </Fieldset.Content>
         <Button>Login</Button>

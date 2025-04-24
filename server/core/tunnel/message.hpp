@@ -25,6 +25,7 @@
   #define API_EXIT        'C'
   #define API_GET_SERVICE_INFO    'D'
   #define API_GET_CURRENT_CLIENTS 'E'
+  #define API_GENERATE_NEW_TOKEN  'F'
 
 
   class Message {
@@ -33,6 +34,7 @@
     std::string string;
 
     void load(char *buffer);
+    void load(char *buffer, size_t limit);
     void dump(char *buffer) const;
     void dump_large(char *buffer, size_t buffer_size) const;
   };
@@ -40,7 +42,9 @@
   int send_message(int &fd, char *buffer, size_t buffer_size, Message &message, std::mutex &send_mutex);
   int send_large_message(int &fd, char *buffer, size_t buffer_size, Message &message, std::mutex &send_mutex);
   int recv_message(int &fd, char *buffer, size_t buffer_size, Message &message);
+  int recv_message(int &fd, char *buffer, size_t buffer_size, Message &message, size_t limit);
   int read_message_non_block(int &fd, pollfd *pfds, char *buffer, size_t buffer_size, Message &message);
+  int read_message_non_block(int &fd, pollfd *pfds, char *buffer, size_t buffer_size, Message &message, size_t limit);
   int ssl_send_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message, std::mutex &send_mutex);
   int ssl_recv_message(SSL *ssl, char *buffer, size_t buffer_size, Message &message);
   int ssl_read_message_non_block(SSL *ssl, pollfd *pfds, char *buffer, size_t buffer_size, Message &message);

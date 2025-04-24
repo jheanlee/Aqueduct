@@ -60,8 +60,8 @@ int main(int argc, char *argv[]) {
 
     execvp("./aqueduct-server-api", const_cast<char *const *> (args));
 
+    //  api child call failure
     console(ERROR, API_START_PROCESS_FAILED, std::to_string(errno).c_str(), "main_api_child");
-    //  failure
     cleanup_openssl();
     exit(EXIT_FAILURE);
   }

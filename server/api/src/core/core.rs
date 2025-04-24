@@ -10,6 +10,13 @@ use crate::console::{console, Code, Level};
 use crate::error::{ApiError};
 use crate::state::{AppState, ConnectedClients, CoreStatus};
 use crate::message::{api_message_type, Message};
+use crate::SHARED_CELL;
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct NewToken {
+  token: String,
+  hashed: String,
+}
 
 pub async fn connect_core() -> Result<UnixStream, anyhow::Error> {
   Ok(UnixStream::connect("/tmp/aqueduct-server-core.sock").await?)
@@ -89,6 +96,15 @@ pub async fn core_io_read_thread_func(state: Arc<AppState>) -> Result<(), ()> {
           HashMap::new()
         });
         state_clone.set_clients(flag_error, new_clients["clients"].clone()).await;
+      },
+      api_message_type::API_GENERATE_NEW_TOKEN => {
+        let new_token = serde_json::from_str::<NewToken>(message.message_string.as_str()).unwrap_or_else(|e| {
+          console(Level::Error, Code::ApiDumpFailed, e.to_string().as_str(), "core::core_io_read");
+          NewToken{ token: "".to_string(), hashed: "".to_string() }
+        });
+
+        SHARED_CELL.get().unwrap().token_channel.token_queue.lock().await.push_back((new_token.token, new_token.hashed));
+        SHARED_CELL.get().unwrap().token_channel.notify.notify_one();
       }
       _ => {}
     }
@@ -165,6 +181,22 @@ pub async fn client_thread_func(socket_core: Arc<Mutex<UnixStream>>) {
 
 pub async fn send_client_message(socket_core: Arc<Mutex<UnixStream>>) -> Result<StatusCode, ApiError> {
   let mut message = Message{ message_type: api_message_type::API_GET_CURRENT_CLIENTS, message_string: "".to_owned() };
+
+  loop {
+    socket_core.lock().await.writable().await?;
+    match socket_core.lock().await.try_write(message.dump()?.as_ref()) {
+      Ok(_n) => break,
+      Err(ref e) if e.kind() == tokio::io::ErrorKind::WouldBlock => continue,
+      Err(ref e) if e.kind() == tokio::io::ErrorKind::BrokenPipe => return Ok(StatusCode::SERVICE_UNAVAILABLE),
+      Err(e) => return Err(e.into()),
+    }
+  }
+
+  Ok(StatusCode::OK)
+}
+
+pub async fn send_new_token_message(socket_core: Arc<Mutex<UnixStream>>) -> Result<StatusCode, ApiError> {
+  let mut message = Message{ message_type: api_message_type::API_GENERATE_NEW_TOKEN, message_string: "".to_owned() };
 
   loop {
     socket_core.lock().await.writable().await?;

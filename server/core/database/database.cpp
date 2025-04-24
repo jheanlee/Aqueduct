@@ -203,35 +203,35 @@ int generate_salt(std::string &output, size_t len) {
   return 0;
 }
 
-//int sha256(const unsigned char *data, unsigned char *output) {
-//  EVP_MD_CTX *ctx = EVP_MD_CTX_new();
-//  if (ctx == nullptr) {
-//    console(ERROR, SHA256_INIT_CONTEXT_FAILED, nullptr, "database::sha256");
-//    return 1;
-//  }
-//  if (!EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr)) {
-//    console(ERROR, SHA256_SET_CONTEXT_FAILED, nullptr, "database::sha256");
-//    EVP_MD_CTX_free(ctx);
-//    return 1;
-//  }
-//  if (!EVP_DigestUpdate(ctx, data, strlen(reinterpret_cast<const char *>(data)))) {
-//    console(ERROR, SHA256_UPDATE_CONTEXT_FAILED, nullptr, "database::sha256");
-//    EVP_MD_CTX_free(ctx);
-//    return 1;
-//  }
-//
-//  unsigned char hash[EVP_MAX_MD_SIZE];
-//  unsigned int hash_len;
-//  if (!EVP_DigestFinal_ex(ctx, hash, &hash_len)) {
-//    console(ERROR, SHA256_FINALISE_CONTEXT_FAILED, nullptr, "database::sha256");
-//    EVP_MD_CTX_free(ctx);
-//    return 1;
-//  }
-//
-//  for (int i = 0; i < hash_len; i++) {
-//    output[i] = hash[i];
-//  }
-//
-//  EVP_MD_CTX_free(ctx);
-//  return 0;
-//}
+int sha256(const unsigned char *data, unsigned char *output) {
+  EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+  if (ctx == nullptr) {
+    console(ERROR, SHA256_INIT_CONTEXT_FAILED, nullptr, "database::sha256");
+    return 1;
+  }
+  if (!EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr)) {
+    console(ERROR, SHA256_SET_CONTEXT_FAILED, nullptr, "database::sha256");
+    EVP_MD_CTX_free(ctx);
+    return 1;
+  }
+  if (!EVP_DigestUpdate(ctx, data, strlen(reinterpret_cast<const char *>(data)))) {
+    console(ERROR, SHA256_UPDATE_CONTEXT_FAILED, nullptr, "database::sha256");
+    EVP_MD_CTX_free(ctx);
+    return 1;
+  }
+
+  unsigned char hash[EVP_MAX_MD_SIZE];
+  unsigned int hash_len;
+  if (!EVP_DigestFinal_ex(ctx, hash, &hash_len)) {
+    console(ERROR, SHA256_FINALISE_CONTEXT_FAILED, nullptr, "database::sha256");
+    EVP_MD_CTX_free(ctx);
+    return 1;
+  }
+
+  for (int i = 0; i < hash_len; i++) {
+    output[i] = hash[i];
+  }
+
+  EVP_MD_CTX_free(ctx);
+  return 0;
+}
