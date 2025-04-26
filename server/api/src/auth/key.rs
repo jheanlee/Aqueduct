@@ -19,3 +19,12 @@ pub async fn init_jwt_keys(key_path: String) -> Result<JwtKeys, ApiError> {
 
   Ok(JwtKeys { encoding_key, decoding_key })
 }
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct Claims {
+  sub: String,
+  exp: usize,
+  iat: usize,
+  iss: String,
+}
+

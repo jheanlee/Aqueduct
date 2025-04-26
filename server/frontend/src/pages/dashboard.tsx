@@ -1,6 +1,17 @@
-import {Container, Grid, GridItem, Text, Alert, Box, Spinner, Status, Stack, Heading} from "@chakra-ui/react";
-import {useEffect, useState} from "react";
-import {getStatus} from "../services/client.ts";
+import {
+  Container,
+  Grid,
+  GridItem,
+  Text,
+  Alert,
+  Box,
+  Spinner,
+  Status,
+  Stack,
+  Heading,
+} from "@chakra-ui/react";
+import { useEffect, useState } from "react";
+import { getStatus } from "../services/client.ts";
 
 function Dashboard() {
   const [flagStatusError, setFlagStatusError] = useState<boolean>(false);
@@ -22,7 +33,7 @@ function Dashboard() {
         setFlagStatusError(true);
       }
     })();
-  }, [])
+  }, []);
 
   return (
     <Container w="100%" h="100%" p="1rem">
@@ -30,7 +41,7 @@ function Dashboard() {
         <GridItem rowSpan={1} colSpan={1}>
           <Alert.Root status="error" hidden={!flagStatusError}>
             <Alert.Indicator>
-              <Spinner size="sm"/>
+              <Spinner size="sm" />
             </Alert.Indicator>
             <Alert.Content>
               <Alert.Title>Connection Lost</Alert.Title>
@@ -43,14 +54,14 @@ function Dashboard() {
           <Box p={10} bg="bg.muted" hidden={flagStatusError}>
             <Stack>
               <Heading>Overview</Heading>
-              <FormatUptime uptime={uptime}/>
-              <Status.Root colorPalette={(tunnelServiceUp) ? "green" : "red"}>
-                <Status.Indicator/>
-                {"Tunnel Service: " + ((tunnelServiceUp) ? "Online" : "Offline")}
+              <FormatUptime uptime={uptime} />
+              <Status.Root colorPalette={tunnelServiceUp ? "green" : "red"}>
+                <Status.Indicator />
+                {"Tunnel Service: " + (tunnelServiceUp ? "Online" : "Offline")}
               </Status.Root>
-              <Status.Root colorPalette={(apiServiceUp) ? "green" : "red"}>
-                <Status.Indicator/>
-                {"API Service: " + ((apiServiceUp) ? "Online" : "Offline")}
+              <Status.Root colorPalette={apiServiceUp ? "green" : "red"}>
+                <Status.Indicator />
+                {"API Service: " + (apiServiceUp ? "Online" : "Offline")}
               </Status.Root>
               <Text>{"Connected Clients: " + connectedClients.toString()}</Text>
             </Stack>
@@ -58,14 +69,14 @@ function Dashboard() {
         </GridItem>
       </Grid>
     </Container>
-  )
+  );
 }
 
 type UptimeProp = {
   uptime: number;
-}
+};
 
-function FormatUptime({uptime}: UptimeProp) {
+function FormatUptime({ uptime }: UptimeProp) {
   const seconds = uptime % 60;
   uptime /= 60;
   const minutes = Math.floor(uptime % 60);
@@ -76,11 +87,9 @@ function FormatUptime({uptime}: UptimeProp) {
 
   return (
     <Text>
-      {
-        `Uptime: ${days.toString()}d:${hours.toString().padStart(2, '0')}h:${minutes.toString().padStart(2, '0')}m:${seconds.toString().padStart(2, '0')}s`
-      }
+      {`Uptime: ${days.toString()}d:${hours.toString().padStart(2, "0")}h:${minutes.toString().padStart(2, "0")}m:${seconds.toString().padStart(2, "0")}s`}
     </Text>
-  )
+  );
 }
 
 export default Dashboard;

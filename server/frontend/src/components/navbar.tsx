@@ -1,5 +1,5 @@
-import {Box, Button, Flex, Spacer} from "@chakra-ui/react";
-import {Link} from "react-router";
+import { Box, Button, Flex, Spacer } from "@chakra-ui/react";
+import { Link } from "react-router";
 
 function Navbar() {
   return (
@@ -20,7 +20,7 @@ function Navbar() {
         </Button>
       </Box>
 
-      <Spacer/>
+      <Spacer />
 
       <Button m={2}>
         <Link to="/login">login</Link>

@@ -51,7 +51,6 @@ pub async fn token_update(modification: TokenModification) -> Result<String, Api
       }
     } else {
       token.notes = Set(modification.notes);
-      token.expiry = Set(expiry(modification.expiry_days));
       token.update(&SHARED_CELL.get().unwrap().database_connection.clone().unwrap()).await?;
       Ok("".to_string())
     }
