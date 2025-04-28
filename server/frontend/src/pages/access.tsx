@@ -102,8 +102,7 @@ function Tokens() {
                 <Table.Cell>{item.name}</Table.Cell>
                 <Table.Cell>{item.notes}</Table.Cell>
                 <Table.Cell>
-                  {item.expiry !== null
-                    ? new Date(item.expiry * 1000)
+                  {(item.expiry !== null) ? new Date(item.expiry * 1000)
                         .toISOString()
                         .replace("T", " ")
                         .replace(".000Z", " UTC")
@@ -182,7 +181,7 @@ function NewToken({ onExitComplete }: NewTokenProps) {
                           return;
                         }
 
-                        if ((await checkToken(event.target.value)) === false) {
+                        if (!(await checkToken(event.target.value))) {
                           setNameError("unavailable");
                         } else {
                           setNameError(null);
@@ -204,7 +203,7 @@ function NewToken({ onExitComplete }: NewTokenProps) {
                     <Input
                       onChange={(event) => {
                         setNewNotes(
-                          event.target.value !== "" ? event.target.value : null,
+                          (event.target.value !== "") ? event.target.value : null,
                         );
                       }}
                     />
@@ -268,7 +267,7 @@ function NewToken({ onExitComplete }: NewTokenProps) {
                     setNameError("required");
                     return;
                   }
-                  if ((await checkToken(newName)) === false) {
+                  if (!(await checkToken(newName))) {
                     setNameError("unavailable");
                     return;
                   }
@@ -276,8 +275,8 @@ function NewToken({ onExitComplete }: NewTokenProps) {
                   const res = await modifyTokens({
                     name: newName,
                     token_update: true,
-                    notes: newNotes != "" ? newNotes : null,
-                    expiry_days: newExpiry != 0 ? newExpiry : null,
+                    notes: (newNotes != "") ? newNotes : null,
+                    expiry_days: (newExpiry != 0) ? newExpiry : null,
                   });
 
                   setTokenGenerated(true);
@@ -356,10 +355,10 @@ function EditToken({ name, notes, onExitComplete }: EditTokenProp) {
                   <Field.Root>
                     <Field.Label>Notes</Field.Label>
                     <Input
-                      value={newNotes !== null ? newNotes : ""}
+                      value={(newNotes !== null) ? newNotes : ""}
                       onChange={(event) => {
                         setNewNotes(
-                          event.target.value != "" ? event.target.value : null,
+                          (event.target.value != "") ? event.target.value : null,
                         );
                       }}
                     />
@@ -443,8 +442,8 @@ function EditToken({ name, notes, onExitComplete }: EditTokenProp) {
                   const res = await modifyTokens({
                     name: name,
                     token_update: update,
-                    notes: newNotes != "" ? newNotes : null,
-                    expiry_days: newExpiry != 0 ? newExpiry : null,
+                    notes: (newNotes != "") ? newNotes : null,
+                    expiry_days: (newExpiry != 0) ? newExpiry : null,
                   });
 
                   setTokenGenerated(true);

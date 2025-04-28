@@ -2,7 +2,7 @@ import {
   Alert,
   Collapsible,
   Container,
-  // createListCollection,
+  createListCollection,
   Field,
   Flex,
   For,
@@ -11,7 +11,7 @@ import {
   IconButton,
   Input,
   Spinner,
-  // Select,
+  Select,
   Table,
   Tabs,
 } from "@chakra-ui/react";
@@ -76,26 +76,31 @@ function Connected() {
 
   const [filterClient, setFilterClient] = useState<RegExp>(/./);
   const [filterStreamPort, setFilterStreamPort] = useState<RegExp>(/./);
-  // const clientTypes = createListCollection({
-  //   items: [
-  //     {label: "connection", value: 0},
-  //     {label: "proxy", value: 4}
-  //   ]
-  // });
+  const clientTypes = createListCollection({
+    items: [
+      { label: "connection", value: "0" },
+      { label: "proxy", value: "4" },
+    ],
+  });
+  const [filterTypes, setFilterTypes] = useState<string[]>([]);
   const [filterUser, setFilterUser] = useState<RegExp>(/./);
   const [filterMain, setFilterMain] = useState<RegExp>(/./);
 
   return (
     <>
-      <Alert.Root status="error" m={3} hidden={!clientsError}>
-        <Alert.Indicator>
-          <Spinner size="sm" />
-        </Alert.Indicator>
-        <Alert.Content>
-          <Alert.Title>Connection Lost</Alert.Title>
-          <Alert.Description>Unable to connect to api server</Alert.Description>
-        </Alert.Content>
-      </Alert.Root>
+      {clientsError && (
+        <Alert.Root status="error" m={3}>
+          <Alert.Indicator>
+            <Spinner size="sm" />
+          </Alert.Indicator>
+          <Alert.Content>
+            <Alert.Title>Connection Lost</Alert.Title>
+            <Alert.Description>
+              Unable to connect to api server
+            </Alert.Description>
+          </Alert.Content>
+        </Alert.Root>
+      )}
 
       <HStack m="2px">
         <IconButton
@@ -134,32 +139,34 @@ function Connected() {
               <Input
                 placeholder="client"
                 onChange={(event) =>
-                  setFilterClient(
-                    event.target.value != "" ? RegExp(event.target.value) : /./,
-                  )
+                  setFilterClient(event.target.value != "" ? RegExp(event.target.value) : /./)
                 }
               />
             </Field.Root>
-            {/*<Select.Root multiple collection={clientTypes}>*/}
-            {/*  <Select.Control>*/}
-            {/*    <Select.Trigger>*/}
-            {/*      <Select.ValueText placeholder="client type"/>*/}
-            {/*    </Select.Trigger>*/}
-            {/*    <Select.IndicatorGroup>*/}
-            {/*      <Select.Indicator/>*/}
-            {/*    </Select.IndicatorGroup>*/}
-            {/*  </Select.Control>*/}
-            {/*  <Select.Positioner>*/}
-            {/*    <Select.Content>*/}
-            {/*      {clientTypes.items.map((type) => (*/}
-            {/*        <Select.Item item={type} key={type.value}>*/}
-            {/*          {type.label}*/}
-            {/*          <Select.ItemIndicator/>*/}
-            {/*        </Select.Item>*/}
-            {/*      ))}*/}
-            {/*    </Select.Content>*/}
-            {/*  </Select.Positioner>*/}
-            {/*</Select.Root>*/}
+            <Select.Root
+              multiple
+              collection={clientTypes}
+              onValueChange={(event) => setFilterTypes(event.value)}
+            >
+              <Select.Control>
+                <Select.Trigger>
+                  <Select.ValueText placeholder="client type" />
+                </Select.Trigger>
+                <Select.IndicatorGroup>
+                  <Select.Indicator />
+                </Select.IndicatorGroup>
+              </Select.Control>
+              <Select.Positioner>
+                <Select.Content>
+                  {clientTypes.items.map((type) => (
+                    <Select.Item item={type} key={type.value}>
+                      {type.label}
+                      <Select.ItemIndicator />
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Select.Root>
             <Field.Root invalid={invalidPort}>
               <Input
                 placeholder="stream port"
@@ -188,9 +195,7 @@ function Connected() {
               <Input
                 placeholder="user"
                 onChange={(event) =>
-                  setFilterUser(
-                    event.target.value != "" ? RegExp(event.target.value) : /./,
-                  )
+                  setFilterUser(event.target.value != "" ? RegExp(event.target.value) : /./)
                 }
               />
             </Field.Root>
@@ -198,9 +203,7 @@ function Connected() {
               <Input
                 placeholder="client main"
                 onChange={(event) =>
-                  setFilterMain(
-                    event.target.value != "" ? RegExp(event.target.value) : /./,
-                  )
+                  setFilterMain(event.target.value != "" ? RegExp(event.target.value) : /./)
                 }
               />
             </Field.Root>
@@ -224,9 +227,10 @@ function Connected() {
             each={clients.filter(
               (client) =>
                 filterClient.test(client.ip_addr + ":" + client.port) &&
+                (filterTypes.length == 0 || filterTypes.includes(client.type.toString())) &&
                 filterStreamPort.test(client.stream_port.toString()) &&
                 filterUser.test(client.user_addr + ":" + client.user_port) &&
-                filterMain.test(client.main_addr + ":" + client.main_port),
+                filterMain.test(client.main_addr + ":" + client.main_port)
             )}
           >
             {(item) => (
@@ -263,7 +267,7 @@ function Connected() {
 }
 
 function Usage() {
-  const [flagClientsDbError, setFlagClientsDbError] = useState<boolean>(false);
+  const [clientsDbError, setClientsDbError] = useState<boolean>(false);
   const [clientsData, setClientsData] = useState<
     {
       ip: string;
@@ -276,10 +280,10 @@ function Usage() {
     (async () => {
       const res = await listClientsDb();
       if (res !== null) {
-        setFlagClientsDbError(false);
+        setClientsDbError(false);
         setClientsData(res);
       } else {
-        setFlagClientsDbError(true);
+        setClientsDbError(true);
       }
     })();
   }, []);
@@ -288,7 +292,7 @@ function Usage() {
 
   return (
     <>
-      <Alert.Root status="error" m={3} hidden={!flagClientsDbError}>
+      <Alert.Root status="error" m={3} hidden={!clientsDbError}>
         <Alert.Indicator>
           <Spinner size="sm" />
         </Alert.Indicator>
@@ -303,14 +307,14 @@ function Usage() {
           <IconButton
             onClick={async () => {
               if (!(await updateConnectedClients())) {
-                setFlagClientsDbError(true);
+                setClientsDbError(true);
               }
               const res = await listClientsDb();
               if (res !== null) {
-                setFlagClientsDbError(false);
+                setClientsDbError(false);
                 setClientsData(res);
               } else {
-                setFlagClientsDbError(true);
+                setClientsDbError(true);
               }
             }}
             variant="ghost"
