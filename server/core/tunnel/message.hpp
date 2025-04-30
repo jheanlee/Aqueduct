@@ -20,7 +20,7 @@
   #define AUTH_SUCCESS    '6'
   #define AUTH_FAILED     '7'
   #define DB_ERROR        '8'
-
+  
   #define API_HEARTBEAT   'B'
   #define API_EXIT        'C'
   #define API_GET_SERVICE_INFO    'D'

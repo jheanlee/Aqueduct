@@ -86,6 +86,18 @@ void check_tables(sqlite3 *db) {
     sqlite3_free(errmsg);
     signal_handler(EXIT_FAILURE);
   }
+
+  //  web_auth table
+  const char *sql_web_auth = "CREATE TABLE IF NOT EXISTS web_auth("
+                             "username TEXT PRIMARY KEY NOT NULL, "
+                             "hashed_password TEXT NOT NULL, "
+                             "salt TEXT NOT NULL"
+                             ");";
+  if (sqlite3_exec(db, sql_web_auth, nullptr, nullptr, &errmsg) != SQLITE_OK) {
+    console(CRITICAL, SQLITE_CREATE_TABLE_FAILED, errmsg, "database::check_tables");
+    sqlite3_free(errmsg);
+    signal_handler(EXIT_FAILURE);
+  }
 }
 
 void sqlite_sha256(sqlite3_context *context, int argc, sqlite3_value **argv) {

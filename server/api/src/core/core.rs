@@ -105,7 +105,7 @@ pub async fn core_io_read_thread_func(state: Arc<AppState>) -> Result<(), ()> {
 
         SHARED_CELL.get().unwrap().token_channel.token_queue.lock().await.push_back((new_token.token, new_token.hashed));
         SHARED_CELL.get().unwrap().token_channel.notify.notify_one();
-      }
+      },
       _ => {}
     }
 
@@ -132,7 +132,7 @@ pub async fn status_thread_func(socket_core: Arc<Mutex<UnixStream>>) {
   loop {
     let status = send_status_message(Arc::clone(&socket_core)).await;
     match status {
-      Ok(ref c) if c == &StatusCode::SERVICE_UNAVAILABLE => break,
+      Ok(ref c) if c == &StatusCode::SERVICE_UNAVAILABLE => console(Level::Error, Code::SockConnectionLost, "", "core::status_thread"),
       Ok(_) => {},
       Err(_) => break,
     }

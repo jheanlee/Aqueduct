@@ -18,6 +18,7 @@ use tokio::net::UnixStream;
 use crate::console::{console, Code, Level};
 use crate::core::core::{client_thread_func, connect_core, core_io_read_thread_func, get_status, status_thread_func};
 use crate::domain::clients::{get_client_db, get_connected_clients, update_clients};
+use crate::domain::login::{authenticate, check_web_user, modify_web_user};
 use crate::domain::tokens::{check_token, delete_token_item, get_tokens, modify_token_item};
 use crate::orm::connection::connect_database;
 use crate::state::{CoreStatus};
@@ -52,7 +53,7 @@ async fn main() {
       console(Level::Critical, Code::DatabaseConnectionFailed, e.to_string().as_str(), "main");
       panic!();
     })),
-    token_channel: TokenChannel{ token_queue: Mutex::new(VecDeque::new()), notify: Notify::new() }
+    token_channel: TokenChannel{ token_queue: Mutex::new(VecDeque::new()), notify: Notify::new() },
   };
 
   SHARED_CELL.set(shared_resources).unwrap_or_else(|_| {
@@ -82,6 +83,9 @@ async fn main() {
     .route("/api/tokens/check", get(check_token))
     .route("/api/tokens/modify", post(modify_token_item))
     .route("/api/tokens/delete", post(delete_token_item))
+    .route("/api/users/check", get(check_web_user))
+    .route("/api/users/modify", post(modify_web_user))
+    .route("/api/users/auth", post(authenticate))
     .fallback_service(frontend_server_dir)
     .with_state(arc_state);
 

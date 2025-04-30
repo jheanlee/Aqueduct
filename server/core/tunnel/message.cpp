@@ -29,7 +29,7 @@ void Message::load(char *buffer, size_t limit) {
 
 void Message::dump(char *buffer) const {
   if (type == '\0' || type < 0) throw std::invalid_argument("type not specified");
-  if (string.size() > MESSAGE_MAX_STRING_SIZE) throw std::length_error("message lenght exceeding limit");
+  if (string.size() > MESSAGE_MAX_STRING_SIZE) throw std::length_error("message length exceeding limit");
 
   buffer[0] = type;
   strcat(buffer, string.c_str());
@@ -37,7 +37,7 @@ void Message::dump(char *buffer) const {
 
 void Message::dump_large(char *buffer, size_t buffer_size) const {
   if (type == '\0' || type < 0) throw std::invalid_argument("type not specified");
-  if (string.size() > buffer_size - 2) throw std::length_error("message lenght exceeding limit");
+  if (string.size() > buffer_size - 2) throw std::length_error("message length exceeding limit");
 
   buffer[0] = type;
   strcat(buffer, string.c_str());

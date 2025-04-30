@@ -317,7 +317,7 @@ void console(Level level, Code code, const char *detail, const std::string &func
       msg_buffer << "Closing with signal";
       break;
     case DEBUG_MSG:
-      cout_buffer << CYAN << "DEBUG_MSG: " << RESET;
+      cout_buffer << CYAN << "DEBUG_MSG:" << RESET;
       break;
   }
 

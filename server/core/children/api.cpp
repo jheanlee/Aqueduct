@@ -6,7 +6,6 @@
 #include <thread>
 #include <string>
 #include <vector>
-#include <sstream>
 
 #include <poll.h>
 #include <sys/socket.h>

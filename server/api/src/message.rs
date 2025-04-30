@@ -1,3 +1,6 @@
+use crate::console::Code::DebugMsg;
+use crate::console::console;
+use crate::console::Level::Debug;
 use crate::error::ApiError;
 use crate::error::MessageError;
 

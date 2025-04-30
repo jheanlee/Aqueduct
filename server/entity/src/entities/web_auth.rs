@@ -3,9 +3,13 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "salt")]
+#[sea_orm(table_name = "web_auth")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false, column_type = "Text")]
+    pub username: String,
+    #[sea_orm(column_type = "Text")]
+    pub hashed_password: String,
+    #[sea_orm(column_type = "Text")]
     pub salt: String,
 }
 
