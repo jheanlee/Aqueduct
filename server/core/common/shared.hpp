@@ -45,6 +45,17 @@
     sockaddr_in server;                   //  the proxy port this user is connected to
   };
 
+  namespace config {
+    extern std::string ssl_cert_path_str;
+    extern std::string ssl_private_key_path_str;
+    extern std::string jwt_public_key_path_str;
+    extern std::string jwt_private_key_path_str;
+    extern const char *ssl_cert_path;
+    extern const char *ssl_private_key_path;
+    extern const char *jwt_public_key_path;
+    extern const char *jwt_private_key_path;
+  }
+
   namespace shared_resources {
     extern std::atomic<bool> global_flag_kill;
     extern std::atomic<bool> flag_handling_signal;
@@ -78,9 +89,6 @@
   }
   //  TODO: move these someday
   extern int verbose_level;
-
-  extern const char *cert_path;
-  extern const char *key_path;
 
   static const char *host = "0.0.0.0";
   extern int ssl_control_port;

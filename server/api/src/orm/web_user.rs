@@ -1,7 +1,7 @@
 use data_encoding::{BASE32, BASE64};
 use openssl::rand::rand_bytes;
 use openssl::sha::Sha256;
-use sea_orm::{ActiveModelTrait, EntityTrait, Set};
+use sea_orm::{EntityTrait, Set};
 use entity::entities::web_auth;
 use crate::error::ApiError;
 use crate::SHARED_CELL;
@@ -45,15 +45,15 @@ pub async fn user_update(username: String, password: String) -> Result<(), ApiEr
 pub async fn user_authenticate(username: String, password: String) -> Result<Option<bool>, ApiError> {
   let cell = SHARED_CELL.get().unwrap();
   let db = cell.database_connection.clone().unwrap();
-  
+
   let user = web_auth::Entity::find_by_id(username).one(&db).await?;
-  
+
   if let Some(user) = user {
     let mut hasher = Sha256::new();
     hasher.update(&user.salt.as_bytes());
     hasher.update(&password.as_bytes());
     let hashed_password = BASE32.encode(&hasher.finish());
-    
+
     Ok(Some(user.hashed_password == hashed_password))
   } else {
     Ok(None)

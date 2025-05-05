@@ -145,6 +145,30 @@ void console(Level level, Code code, const char *detail, const std::string &func
       flag_log = true;
       msg_buffer << "Failed to load SSL certificate or key";
       break;
+    case SSL_INIT_FAILED:
+      flag_log = true;
+      msg_buffer << "Failed to initialise key/certificate generation";
+      break;
+    case SSL_BIO_FAILED:
+      flag_log = true;
+      msg_buffer << "Failed to initialise key/certificate's BIO";
+      break;
+    case SSL_RSA_FAILED:
+      flag_log = true;
+      msg_buffer << "Failed to generate RSA key";
+      break;
+    case SSL_KEY_WRITE_FAILED:
+      flag_log = true;
+      msg_buffer << "Failed to write key into file";
+      break;
+    case SSL_CERT_WRITE_FAILED:
+      flag_log = true;
+      msg_buffer << "Failed to write certificate into file";
+      break;
+    case SSL_CERT_SIGN_FAILED:
+      flag_log = true;
+      msg_buffer << "Failed to sign certificate";
+      break;
     case SQLITE_OPEN_FAILED:
       flag_log = true;
       msg_buffer << "Failed to open SQLite database:";
@@ -311,6 +335,10 @@ void console(Level level, Code code, const char *detail, const std::string &func
     case NO_PORT_AVAILABLE:
       flag_log = true;
       msg_buffer << "No available ports";
+      break;
+    case CREATE_DIR_FAILED:
+      flag_log = true;
+      msg_buffer << "Unable to create directory";
       break;
     case SIGNAL:
       flag_log = true;

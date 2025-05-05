@@ -15,10 +15,11 @@ use axum::routing::{get, post};
 use clap::Parser;
 use sea_orm::{DatabaseConnection};
 use tokio::net::UnixStream;
+use crate::auth::key::{init_jwt_keys, JwtKeys};
 use crate::console::{console, Code, Level};
 use crate::core::core::{client_thread_func, connect_core, core_io_read_thread_func, get_status, status_thread_func};
 use crate::domain::clients::{get_client_db, get_connected_clients, update_clients};
-use crate::domain::login::{authenticate, check_web_user, modify_web_user};
+use crate::domain::login::{login, check_web_user, modify_web_user};
 use crate::domain::tokens::{check_token, delete_token_item, get_tokens, modify_token_item};
 use crate::orm::connection::connect_database;
 use crate::state::{CoreStatus};
@@ -34,6 +35,7 @@ pub struct SharedResources {
   pub socket_core: Arc<Mutex<UnixStream>>,
   pub database_connection: Option<DatabaseConnection>,
   pub token_channel: TokenChannel,
+  pub jwt_keys: JwtKeys,
 }
 
 static SHARED_CELL: once_cell::sync::OnceCell<SharedResources> = once_cell::sync::OnceCell::new();
@@ -41,6 +43,11 @@ static SHARED_CELL: once_cell::sync::OnceCell<SharedResources> = once_cell::sync
 #[tokio::main]
 async fn main() {
   let args = crate::opt::Args::parse();
+  
+  let jwt_keys = init_jwt_keys(args.private_key, args.public_key).await.unwrap_or_else(|e| {
+    console(Level::Critical, Code::KeyInitFailed, e.to_string().as_str(), "main");
+    panic!();
+  });
 
   let shared_resources = SharedResources {
     verbose_level: args.verbose,
@@ -54,6 +61,7 @@ async fn main() {
       panic!();
     })),
     token_channel: TokenChannel{ token_queue: Mutex::new(VecDeque::new()), notify: Notify::new() },
+    jwt_keys: jwt_keys,
   };
 
   SHARED_CELL.set(shared_resources).unwrap_or_else(|_| {
@@ -85,7 +93,7 @@ async fn main() {
     .route("/api/tokens/delete", post(delete_token_item))
     .route("/api/users/check", get(check_web_user))
     .route("/api/users/modify", post(modify_web_user))
-    .route("/api/users/auth", post(authenticate))
+    .route("/api/users/login", post(login))
     .fallback_service(frontend_server_dir)
     .with_state(arc_state);
 

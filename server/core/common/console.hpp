@@ -40,9 +40,18 @@
     SOCK_SETSOCKOPT_FAILED,
     SOCK_POLL_ERR,
 
+    //  ssl (connection)
     SSL_CREATE_CONTEXT_FAILED,
     SSL_ACCEPT_FAILED,
     SSL_LOAD_CERT_KEY_FAILED,
+
+    //  ssl (cert, key)
+    SSL_INIT_FAILED,
+    SSL_BIO_FAILED,
+    SSL_RSA_FAILED,
+    SSL_KEY_WRITE_FAILED,
+    SSL_CERT_WRITE_FAILED,
+    SSL_CERT_SIGN_FAILED,
 
     //  database
     SQLITE_OPEN_FAILED,
@@ -104,6 +113,9 @@
     PROXYING_STARTED,
     PROXYING_ENDED,
     NO_PORT_AVAILABLE,
+
+    //  file
+    CREATE_DIR_FAILED,
 
     //  signal
     SIGNAL,

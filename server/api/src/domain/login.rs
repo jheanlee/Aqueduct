@@ -2,6 +2,7 @@ use axum::body::Body;
 use axum::extract::Query;
 use axum::{http, Json};
 use axum::response::{IntoResponse, Response};
+use crate::auth::jwt_tokens::generate_jwt;
 use crate::error::ApiError;
 use crate::orm::web_user::{if_user_exists, user_authenticate, user_update};
 
@@ -33,16 +34,17 @@ pub struct UserAuthentication {
   username: String,
   password: String
 }
-pub async fn authenticate(Json(authentication): Json<UserAuthentication>) -> Result<Response<Body>, ApiError> {
-  let res = user_authenticate(authentication.username, authentication.password).await?;
+pub async fn login(Json(authentication): Json<UserAuthentication>) -> Result<Response<Body>, ApiError> {
+  let res = user_authenticate(authentication.username.clone(), authentication.password).await?;
   let status = match res {
     Some(auth) => if auth { "success" } else { "failed" },
     None => "not found"
   };
-  
+
   let response_builder = Response::builder().header(http::header::CONTENT_TYPE, "application/json");
   let response_body = Body::from(serde_json::json!({
-    "status": status
+    "status": status,
+    "token": generate_jwt(authentication.username).await?
   }).to_string());
   let response = response_builder.body(response_body)?;
   Ok(response)

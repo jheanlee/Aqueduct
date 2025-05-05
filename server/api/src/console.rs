@@ -24,6 +24,8 @@ pub enum Code {
   
   DatabaseConnectionFailed,
   
+  KeyInitFailed,
+  
   SockConnectionFailed,
   SockBindFailed,
   SockServeFailed,
@@ -75,6 +77,9 @@ pub fn console(level: Level, code: Code, detail: &str, function: &str) {
     Code::DatabaseConnectionFailed => {
       output += "Failed to connect to database";
     }
+    Code::KeyInitFailed => {
+      output += "Failed to initialise keys for JWT"
+    }
     Code::SockConnectionFailed => {
       output += "Failed to connect to core";
     }
@@ -120,7 +125,7 @@ pub fn console(level: Level, code: Code, detail: &str, function: &str) {
   
   if SHARED_CELL.get().unwrap().verbose_level <= Level::Debug as u8 {
     output += FAINT_GRAY;
-    output += format!(" (api::{})", function).as_str();
+    output += format!(" (API::{})", function).as_str();
     output += RESET;
   }
   

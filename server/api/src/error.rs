@@ -21,8 +21,8 @@ impl axum::response::IntoResponse for ApiError {
   fn into_response(self) -> Response {
     match self {
       ApiError::Error(e) => {
-        println!("{:}", e);
-        console(Level::Warning, Code::ApiError, e.to_string().as_str(), "error::anyhow");
+        console(Level::Warning, Code::ApiError, "", "error::anyhow");
+        println!("Error info: {:}", e);  // TODO better formatting
         StatusCode::INTERNAL_SERVER_ERROR.into_response()
       },
       ApiError::MessageError(..) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),

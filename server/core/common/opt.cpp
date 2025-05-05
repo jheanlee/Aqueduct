@@ -6,6 +6,7 @@
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
 #include <CLI/Formatter.hpp>
+#include <sys/stat.h>
 
 #include "opt.hpp"
 #include "shared.hpp"
@@ -13,6 +14,7 @@
 #include "../database/authentication.hpp"
 #include "../database/database.hpp"
 #include "signal_handler.hpp"
+#include "../key/generation.hpp"
 
 int ssl_control_port = 30330;
 int proxy_port_start = 51000;
@@ -22,10 +24,6 @@ int timeout_proxy_millisec = 1;
 int timeout_api_millisec = 1000;
 int shared_resources::client_db_interval_min = 1;
 std::string db_path_str = "./aqueduct.sqlite";
-std::string key_path_str;
-std::string cert_path_str;
-const char *cert_path = "\0";
-const char *key_path = "\0";
 const char *db_path = "./aqueduct.sqlite";
 int verbose_level = 20;
 bool shared_resources::daemon_mode = false;
@@ -45,8 +43,14 @@ void opt_handler(int argc, char * const argv[]) {
   CLI::App *run = app.add_subcommand("run", "Run the tunneling service")->fallthrough();
   run->add_flag("-D, --daemon-mode", shared_resources::daemon_mode, "Disables stdout and use syslog or os_log instead")->capture_default_str();
 
-  run->add_option("-k,--tls-key", key_path_str, "The path to a private key file used for TLS encryption")->required();
-  run->add_option("-c,--tls-cert", cert_path_str, "The path to a certification file used for TLS encryption")->required();
+  CLI::Option *ssl_private_key = run->add_option("--ssl-private-key", config::ssl_private_key_path_str, "The path to a private key file used for TLS encryption");
+  CLI::Option *ssl_cert = run->add_option("--ssl-cert", config::ssl_cert_path_str, "The path to a certification file used for TLS encryption");
+  CLI::Option *jwt_private_key = run->add_option("--jwt-private-key", config::ssl_private_key_path_str, "The path to a private key file used for JWT encoding");
+  CLI::Option *jwt_public_key = run->add_option("--jwt-public-key", config::ssl_cert_path_str, "The path to a public key file used for JWT decoding");
+  ssl_private_key->needs(ssl_cert);
+  ssl_cert->needs(ssl_private_key);
+  jwt_private_key->needs(jwt_public_key);
+  jwt_public_key->needs(jwt_private_key);
 
   run->add_option("-p,--control", ssl_control_port, "Client will connect via 0.0.0.0:<port>")->capture_default_str();
   run->add_option("-s,--port-start", proxy_port_start, "The proxy port of the first client will be <port>, the last being (<port> + port-limit - 1)")->capture_default_str();
@@ -76,9 +80,45 @@ void opt_handler(int argc, char * const argv[]) {
   }
 
   db_path = db_path_str.c_str();
-  key_path = key_path_str.c_str();
-  cert_path = cert_path_str.c_str();
 
+  //  key/cert generation
+  struct stat st;
+  if (config::ssl_private_key_path_str.empty()) {
+    config::ssl_private_key_path_str = "./credentials/aqueduct-ssl-private.pem";
+    config::ssl_cert_path_str = "./credentials/aqueduct-ssl-cert";
+
+    if (stat("./credentials/aqueduct-ssl-private.pem", &st) != 0 || stat("./credentials/aqueduct-ssl-cert", &st) != 0) {
+      if (mkdir("./credentials", 0700) != 0 && errno != EEXIST) {
+        console(CRITICAL, CREATE_DIR_FAILED, std::to_string(errno).c_str(), "opt::opt_handler");
+        signal_handler(EXIT_FAILURE);
+      }
+      if (generate_ssl_key_cert("./credentials") != 0) {
+        signal_handler(EXIT_FAILURE);
+      }
+    }
+  }
+
+  if (config::jwt_private_key_path_str.empty()) {
+    config::jwt_private_key_path_str = "./credentials/aqueduct-jwt-private.pem";
+    config::jwt_public_key_path_str = "./credentials/aqueduct-jwt-public.pem";
+
+    if (stat("./credentials/aqueduct-jwt-private.pem", &st) != 0 || stat("./credentials/aqueduct-jwt-public.pem", &st) != 0) {
+      if (mkdir("./credentials", 0700) != 0 && errno != EEXIST) {
+        console(CRITICAL, CREATE_DIR_FAILED, std::to_string(errno).c_str(), "opt::opt_handler");
+        signal_handler(EXIT_FAILURE);
+      }
+      if (generate_jwt_key_pair("./credentials") != 0) {
+        signal_handler(EXIT_FAILURE);
+      }
+    }
+  }
+
+  config::ssl_cert_path = config::ssl_cert_path_str.c_str();
+  config::ssl_private_key_path = config::ssl_private_key_path_str.c_str();
+  config::jwt_public_key_path = config::jwt_public_key_path_str.c_str();
+  config::jwt_private_key_path = config::jwt_private_key_path_str.c_str();
+
+  //  token actions
   if (*token) {
     open_db(&shared_resources::db);
     create_sqlite_functions(shared_resources::db);
@@ -119,19 +159,7 @@ void opt_handler(int argc, char * const argv[]) {
   if (ssl_control_port < 1024) {
     console(WARNING, PORT_WELL_KNOWN, nullptr, "opt::opt_handler");
   }
-
-  //  TLS
-  if (key_path_str.empty()) {
-    console(CRITICAL, OPTION_KEY_NOT_SET, nullptr, "opt::opt_handler");
-    signal_handler(EXIT_FAILURE);
-  }
-  if (cert_path_str.empty()) {
-    console(CRITICAL, OPTION_CERT_NOT_SET, nullptr, "opt::opt_handler");
-    signal_handler(EXIT_FAILURE);
-  }
-
-  console(INFO, INFO_CERT_PATH, cert_path, "opt::opt_handler");
-  console(INFO, INFO_KEY_PATH, key_path, "opt::opt_handler");
+  
   console(INFO, INFO_DB_PATH, db_path, "opt::opt_handler");
   console(INFO, INFO_HOST, (std::string(host) + ':' + std::to_string(ssl_control_port)).c_str(), "opt::opt_handler");
 }

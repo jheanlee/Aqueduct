@@ -31,6 +31,8 @@ add_executable(aqueduct-server
         server/core/children/api.hpp
         server/core/children/token.cpp
         server/core/children/token.hpp
+        server/core/key/generation.cpp
+        server/core/key/generation.hpp
 )
 
 #   client core
