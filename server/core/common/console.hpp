@@ -6,12 +6,13 @@
   #define AQUEDUCT_CONSOLE_HPP
   #include <string>
 
-  enum Level : int {
-    CRITICAL = 50,
-    ERROR = 40,
-    WARNING = 30,
-    INFO = 20,
-    DEBUG = 10,
+  enum Level {
+    CRITICAL,
+    ERROR,
+    WARNING,
+    NOTICE,
+    INFO,
+    DEBUG,
   };
 
   enum Code {
@@ -40,9 +41,18 @@
     SOCK_SETSOCKOPT_FAILED,
     SOCK_POLL_ERR,
 
+    //  ssl (connection)
     SSL_CREATE_CONTEXT_FAILED,
     SSL_ACCEPT_FAILED,
     SSL_LOAD_CERT_KEY_FAILED,
+
+    //  ssl (cert, key)
+    SSL_INIT_FAILED,
+    SSL_BIO_FAILED,
+    SSL_RSA_FAILED,
+    SSL_KEY_WRITE_FAILED,
+    SSL_CERT_WRITE_FAILED,
+    SSL_CERT_SIGN_FAILED,
 
     //  database
     SQLITE_OPEN_FAILED,
@@ -55,16 +65,17 @@
     SQLITE_CLOSE_SUCCESS,
     SQLITE_CLOSE_FAILED,
 
-    INVALID_DB,
-
-    //  token
-    GENERATED_TOKEN,
-    REMOVED_TOKEN,
     SHA256_INIT_CONTEXT_FAILED,
     SHA256_SET_CONTEXT_FAILED,
     SHA256_UPDATE_CONTEXT_FAILED,
     SHA256_FINALISE_CONTEXT_FAILED,
     RAND_FAILED,
+
+    INVALID_DB,
+
+    //  token
+    GENERATED_TOKEN,
+    REMOVED_TOKEN,
 
     //  option
     OPTION_UNKNOWN,
@@ -76,8 +87,10 @@
     PORT_INVALID_LIMIT,
     PORT_MAY_EXCEED,
 
-    INFO_KEY_PATH,
-    INFO_CERT_PATH,
+    INFO_SSL_KEY_PATH,
+    INFO_SSL_CERT_PATH,
+    INFO_JWT_PUBKEY_PATH,
+    INFO_JWT_PRIVKEY_PATH,
     INFO_DB_PATH,
     INFO_HOST,
 
@@ -103,6 +116,9 @@
     PROXYING_STARTED,
     PROXYING_ENDED,
     NO_PORT_AVAILABLE,
+
+    //  file
+    CREATE_DIR_FAILED,
 
     //  signal
     SIGNAL,

@@ -15,7 +15,7 @@
 int new_token(const std::string &name, const std::string &notes, int expiry_days) {
   std::string buffer;
   if (generate_salt(buffer, 32) < 0) return -1;
-  std::string token = "SL_" + buffer;
+  std::string token = "AQ_" + buffer;
   std::chrono::system_clock::time_point time = std::chrono::system_clock::now() + std::chrono::hours (expiry_days * 24);
   std::chrono::duration duration = std::chrono::duration_cast<std::chrono::seconds>(time.time_since_epoch());
 
@@ -51,7 +51,7 @@ int new_token(const std::string &name, const std::string &notes, int expiry_days
   }
 
   sqlite3_finalize(stmt);
-  console(INFO, GENERATED_TOKEN, (name + ": " + token).c_str(), "authentication::new_token");
+  console(NOTICE, GENERATED_TOKEN, (name + ": " + token).c_str(), "authentication::new_token");
   return 0;
 }
 
@@ -76,7 +76,7 @@ int remove_token(const std::string &name) {
   }
 
   sqlite3_finalize(stmt);
-  console(INFO, REMOVED_TOKEN, nullptr, "authentication::remove_token");
+  console(NOTICE, REMOVED_TOKEN, nullptr, "authentication::remove_token");
   return 0;
 }
 

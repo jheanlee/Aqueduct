@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cstring>
 #include <string>
+#include <regex>
 
 #include <unistd.h>
 #include <uuid/uuid.h>
@@ -17,6 +18,8 @@
 #include "../database/database.hpp"
 #include "../common/console.hpp"
 #include "../database/client.hpp"
+
+static const std::regex reg_token("AQ_[A-Za-z0-9+/]{32}");
 
 void ssl_control_thread_func() {
   int socket_fd = 0, status = 0;
@@ -34,7 +37,7 @@ void ssl_control_thread_func() {
   //  create, bind, listen socket
   socket_fd = create_socket(server_addr);
 
-  console(INFO, CONNECTION_LISTEN_STARTED, nullptr, "connection::control");
+  console(NOTICE, CONNECTION_LISTEN_STARTED, nullptr, "connection::control");
   shared_resources::flag_tunneling_service_running = true;
 
   //  accept connections from client
@@ -70,7 +73,7 @@ void ssl_control_thread_func() {
     session_thread.detach();
   }
 
-  console(INFO, TUNNEL_SERVICE_ENDED, nullptr, "connection::control");
+  console(NOTICE, TUNNEL_SERVICE_ENDED, nullptr, "connection::control");
   shared_resources::flag_tunneling_service_running = false;
 
   //  clean up
@@ -190,8 +193,8 @@ void ssl_session_thread_func(int client_fd, SSL *client_ssl, sockaddr_in client_
           }
           goto proxy;
         case AUTHENTICATION:
-          flag_auth_received = true;
           auth = message.string;
+          flag_auth_received = true;
           break;
         default:
           flag_kill = true;
@@ -268,7 +271,8 @@ void proxy_service_port_thread_func(std::atomic<bool> &flag_kill, std::atomic<bo
   ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message, send_mutex);
 
   while (!flag_kill && !flag_auth_received) std::this_thread::yield();
-  if (auth.empty()) {
+
+  if (!std::regex_match(auth, reg_token)) {
     message = {.type = AUTH_FAILED, .string = ""};
     ssl_send_message(client_ssl, outbuffer, sizeof(outbuffer), message, send_mutex);
     console(INFO, AUTHENTICATION_FAILED, (std::string(inet_ntoa(client_addr.sin_addr)) + ':' + std::to_string((int)ntohs(client_addr.sin_port))).c_str(), "connection::proxy_service");

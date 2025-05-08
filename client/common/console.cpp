@@ -16,7 +16,7 @@
 //  TODO system log
 
 void console(Level level, Code code, const char *detail, const std::string &function) {
-  if (level < verbose_level) return;
+  if (level < verbose_level && level != INSTRUCTION) return;
 
   std::stringstream cout_buffer, msg_buffer;
 

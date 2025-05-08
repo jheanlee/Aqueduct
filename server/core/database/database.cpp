@@ -38,10 +38,10 @@ void check_tables(sqlite3 *db) {
 
   //  authentication table
   const char *sql_auth = "CREATE TABLE IF NOT EXISTS auth("
-                         "name TEXT PRIMARY KEY,"
-                         "token TEXT,"
+                         "name TEXT PRIMARY KEY NOT NULL,"
+                         "token TEXT NOT NULL,"
                          "notes TEXT,"
-                         "expiry NUMERIC" //  seconds since epoch or null for no expiry
+                         "expiry BIGINT" //  seconds since epoch or null for no expiry
                          ");";
   if (sqlite3_exec(db, sql_auth, nullptr, nullptr, &errmsg) != SQLITE_OK) {
     console(CRITICAL, SQLITE_CREATE_TABLE_FAILED, errmsg, "database::check_tables");
@@ -51,7 +51,7 @@ void check_tables(sqlite3 *db) {
 
   //  salt table
   const char *sql_salt = "CREATE TABLE IF NOT EXISTS salt("
-                         "salt TEXT PRIMARY KEY"
+                         "salt TEXT PRIMARY KEY NOT NULL"
                          ");";
   if (sqlite3_exec(db, sql_salt, nullptr, nullptr, &errmsg) != SQLITE_OK) {
     console(CRITICAL, SQLITE_CREATE_TABLE_FAILED, errmsg, "database::check_tables");
@@ -77,11 +77,23 @@ void check_tables(sqlite3 *db) {
 
   //  client table
   const char *sql_client = "CREATE TABLE IF NOT EXISTS client("
-                           "ip TEXT PRIMARY KEY, "
-                           "sent INTEGER, "
-                           "received INTEGER"
+                           "ip TEXT PRIMARY KEY NOT NULL, "
+                           "sent BIGINT NOT NULL, "
+                           "received BIGINT NOT NULL"
                            ");";
   if (sqlite3_exec(db, sql_client, nullptr, nullptr, &errmsg) != SQLITE_OK) {
+    console(CRITICAL, SQLITE_CREATE_TABLE_FAILED, errmsg, "database::check_tables");
+    sqlite3_free(errmsg);
+    signal_handler(EXIT_FAILURE);
+  }
+
+  //  web_auth table
+  const char *sql_web_auth = "CREATE TABLE IF NOT EXISTS web_auth("
+                             "username TEXT PRIMARY KEY NOT NULL, "
+                             "hashed_password TEXT NOT NULL, "
+                             "salt TEXT NOT NULL"
+                             ");";
+  if (sqlite3_exec(db, sql_web_auth, nullptr, nullptr, &errmsg) != SQLITE_OK) {
     console(CRITICAL, SQLITE_CREATE_TABLE_FAILED, errmsg, "database::check_tables");
     sqlite3_free(errmsg);
     signal_handler(EXIT_FAILURE);
@@ -203,35 +215,35 @@ int generate_salt(std::string &output, size_t len) {
   return 0;
 }
 
-//int sha256(const unsigned char *data, unsigned char *output) {
-//  EVP_MD_CTX *ctx = EVP_MD_CTX_new();
-//  if (ctx == nullptr) {
-//    console(ERROR, SHA256_INIT_CONTEXT_FAILED, nullptr, "database::sha256");
-//    return 1;
-//  }
-//  if (!EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr)) {
-//    console(ERROR, SHA256_SET_CONTEXT_FAILED, nullptr, "database::sha256");
-//    EVP_MD_CTX_free(ctx);
-//    return 1;
-//  }
-//  if (!EVP_DigestUpdate(ctx, data, strlen(reinterpret_cast<const char *>(data)))) {
-//    console(ERROR, SHA256_UPDATE_CONTEXT_FAILED, nullptr, "database::sha256");
-//    EVP_MD_CTX_free(ctx);
-//    return 1;
-//  }
-//
-//  unsigned char hash[EVP_MAX_MD_SIZE];
-//  unsigned int hash_len;
-//  if (!EVP_DigestFinal_ex(ctx, hash, &hash_len)) {
-//    console(ERROR, SHA256_FINALISE_CONTEXT_FAILED, nullptr, "database::sha256");
-//    EVP_MD_CTX_free(ctx);
-//    return 1;
-//  }
-//
-//  for (int i = 0; i < hash_len; i++) {
-//    output[i] = hash[i];
-//  }
-//
-//  EVP_MD_CTX_free(ctx);
-//  return 0;
-//}
+int sha256(const unsigned char *data, unsigned char *output) {
+  EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+  if (ctx == nullptr) {
+    console(ERROR, SHA256_INIT_CONTEXT_FAILED, nullptr, "database::sha256");
+    return 1;
+  }
+  if (!EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr)) {
+    console(ERROR, SHA256_SET_CONTEXT_FAILED, nullptr, "database::sha256");
+    EVP_MD_CTX_free(ctx);
+    return 1;
+  }
+  if (!EVP_DigestUpdate(ctx, data, strlen(reinterpret_cast<const char *>(data)))) {
+    console(ERROR, SHA256_UPDATE_CONTEXT_FAILED, nullptr, "database::sha256");
+    EVP_MD_CTX_free(ctx);
+    return 1;
+  }
+
+  unsigned char hash[EVP_MAX_MD_SIZE];
+  unsigned int hash_len;
+  if (!EVP_DigestFinal_ex(ctx, hash, &hash_len)) {
+    console(ERROR, SHA256_FINALISE_CONTEXT_FAILED, nullptr, "database::sha256");
+    EVP_MD_CTX_free(ctx);
+    return 1;
+  }
+
+  for (int i = 0; i < hash_len; i++) {
+    output[i] = hash[i];
+  }
+
+  EVP_MD_CTX_free(ctx);
+  return 0;
+}

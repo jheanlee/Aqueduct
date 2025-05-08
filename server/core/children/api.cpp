@@ -6,7 +6,6 @@
 #include <thread>
 #include <string>
 #include <vector>
-#include <sstream>
 
 #include <poll.h>
 #include <sys/socket.h>
@@ -18,6 +17,7 @@
 #include "../common/console.hpp"
 #include "../tunnel/message.hpp"
 #include "../database/client.hpp"
+#include "token.hpp"
 
 static const char *socket_path = "/tmp/aqueduct-server-core.sock";
 
@@ -83,7 +83,7 @@ void api_control_thread_func() {
 }
 
 void api_session_thread_func(int api_fd, sockaddr_un api_addr) {
-  console(INFO, API_CLIENT_CONNECTION_ACCEPTED, nullptr, "api::api_session");
+  console(NOTICE, API_CLIENT_CONNECTION_ACCEPTED, nullptr, "api::api_session");
 
   std::atomic<bool> flag_kill(false), flag_heartbeat_received(false);
   char inbuffer[256] = {0}, outbuffer[256] = {0}, client_buffer[32768];
@@ -107,7 +107,6 @@ void api_session_thread_func(int api_fd, sockaddr_un api_addr) {
           break;
         case API_EXIT:
           flag_kill = true;
-          console(INFO, API_CONNECTION_CLOSED, nullptr, "api::api_session");
           break;
         case API_GET_SERVICE_INFO: {
           std::chrono::duration uptime_duration = std::chrono::system_clock::now() - shared_resources::process_start;
@@ -145,6 +144,17 @@ void api_session_thread_func(int api_fd, sockaddr_un api_addr) {
           send_large_message(api_fd, client_buffer, sizeof(client_buffer), message, send_mutex);  //  TODO: split if too many clients
           break;
         }
+        case API_GENERATE_NEW_TOKEN: {
+          std::pair<std::string, std::string> new_token = generate_token();
+
+          nlohmann::json token_json;
+          token_json["token"] = new_token.first;
+          token_json["hashed"] = new_token.second;
+          message.type = API_GENERATE_NEW_TOKEN;
+          message.string = to_string(token_json);
+          send_message(api_fd, outbuffer, sizeof(outbuffer), message, send_mutex);
+          break;
+        }
         default:
           flag_kill = true;
           break;
@@ -153,9 +163,8 @@ void api_session_thread_func(int api_fd, sockaddr_un api_addr) {
   }
 
   close(api_fd);
-
   flag_kill = true;
-
+  console(NOTICE, API_CONNECTION_CLOSED, nullptr, "api::api_session");
   heartbeat_thread.join();
 }
 
@@ -185,7 +194,7 @@ void api_heartbeat_thread_func(std::atomic<bool> &flag_kill, int &api_fd, std::m
       heartbeat_duration = std::chrono::duration_cast<std::chrono::seconds> (std::chrono::system_clock::now() - timer);
 
       if (heartbeat_duration > std::chrono::seconds(heartbeat_timeout_sec)) {
-        console(INFO, API_HEARTBEAT_TIMEOUT, nullptr, "api::api_heartbeat");
+        console(NOTICE, API_HEARTBEAT_TIMEOUT, nullptr, "api::api_heartbeat");
         flag_kill = true;
         return;
       }

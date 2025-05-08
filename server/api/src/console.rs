@@ -1,5 +1,5 @@
 use crate::console::color_code::{CYAN, FAINT_GRAY, RED, RESET, YELLOW};
-use crate::{SharedResources, SHARED_CELL};
+use crate::{SHARED_CELL};
 
 mod color_code {
   pub const RESET: &str = "\x1b[0m";
@@ -24,6 +24,8 @@ pub enum Code {
   
   DatabaseConnectionFailed,
   
+  KeyInitFailed,
+  
   SockConnectionFailed,
   SockBindFailed,
   SockServeFailed,
@@ -39,7 +41,7 @@ pub enum Code {
 }
 
 pub fn console(level: Level, code: Code, detail: &str, function: &str) {
-  if (level.clone() as u8) < SHARED_CELL.get().unwrap_or(&SharedResources{ verbose_level: Level::Debug as u8, daemon_mode: false, database_connection: None }).verbose_level {
+  if SHARED_CELL.get().is_some() && (level.clone() as u8) <  SHARED_CELL.get().unwrap().verbose_level {
     return;
   }
   let mut output: String = String::new();
@@ -74,6 +76,9 @@ pub fn console(level: Level, code: Code, detail: &str, function: &str) {
     }
     Code::DatabaseConnectionFailed => {
       output += "Failed to connect to database";
+    }
+    Code::KeyInitFailed => {
+      output += "Failed to initialise keys for JWT"
     }
     Code::SockConnectionFailed => {
       output += "Failed to connect to core";
@@ -113,14 +118,14 @@ pub fn console(level: Level, code: Code, detail: &str, function: &str) {
     }
   }
 
-  if detail.is_empty() {
+  if !detail.is_empty() {
     output += ": ";
     output += detail;
   }
   
   if SHARED_CELL.get().unwrap().verbose_level <= Level::Debug as u8 {
     output += FAINT_GRAY;
-    output += format!(" (api::{})", function).as_str();
+    output += format!(" (API::{})", function).as_str();
     output += RESET;
   }
   

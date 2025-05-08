@@ -23,10 +23,25 @@
 #define FAINT_GRAY  "\033[2;90m"
 #define CYAN        "\033[36m"
 
-void console(Level level, Code code, const char *detail, const std::string &function) {
-  if (level < verbose_level) return;
+static int to_int(Level level) {
+  switch (level) {
+    case CRITICAL:
+      return 50;
+    case ERROR:
+      return 40;
+    case WARNING:
+    case NOTICE:
+      return 30;
+    case INFO:
+      return 20;
+    case DEBUG:
+      return 10;
+  }
+}
 
-  bool flag_log = false;
+void console(Level level, Code code, const char *detail, const std::string &function) {
+  if (to_int(level) < verbose_level) return;
+
   std::ostringstream cout_buffer, msg_buffer;
 
   //  timestamp
@@ -49,6 +64,7 @@ void console(Level level, Code code, const char *detail, const std::string &func
       cout_buffer << YELLOW;
       cout_buffer << "[Warning] ";
       break;
+    case NOTICE:
     case INFO:
       cout_buffer << "[Info] ";
       break;
@@ -61,31 +77,24 @@ void console(Level level, Code code, const char *detail, const std::string &func
   //  code
   switch (code) {
     case API_SOCK_CREATE_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to create socket, api and webui services will not be available";
       break;
     case API_SOCK_BIND_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to bind socket, api and webui services will not be available";
       break;
     case API_SOCK_LISTEN_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to listen on socket, api and webui services will not be available";
       break;
     case API_SOCK_ACCEPT_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to accept on socket, api and webui services may not be available";
       break;
     case API_SOCK_POLL_ERR:
-      flag_log = true;
       msg_buffer << "An error has been returned by poll(), api and webui services may not be available. errno:";
       break;
     case API_LISTEN_STARTED:
-      flag_log = true;
       msg_buffer << "API service has started";
       break;
     case API_SERVICE_ENDED:
-      flag_log = true;
       msg_buffer << "API service has ended";
       break;
     case API_CLIENT_CONNECTION_ACCEPTED:
@@ -98,118 +107,108 @@ void console(Level level, Code code, const char *detail, const std::string &func
       msg_buffer << "API clienct heartbeat timed out";
       break;
     case API_START_PROCESS_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to run API process, errno:";
       break;
     case API_PROCESS_STARTED:
-      flag_log = true;
       msg_buffer << "API process has been successfully started";
       break;
     case API_PROCESS_ENDED:
-      flag_log = true;
       msg_buffer << "API process has ended with exit code";
       break;
     case SOCK_CREATE_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to create socket";
       break;
     case SOCK_BIND_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to bind socket";
       break;
     case SOCK_LISTEN_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to listen on socket";
       break;
     case SOCK_ACCEPT_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to accept on socket";
       break;
     case SOCK_SETSOCKOPT_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to set socket options";
       break;
     case SOCK_POLL_ERR:
-      flag_log = true;
       msg_buffer << "An error has been returned by poll(), errno:";
       break;
     case SSL_CREATE_CONTEXT_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to create SSL context";
       break;
     case SSL_ACCEPT_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to accept SSL connection";
       break;
     case SSL_LOAD_CERT_KEY_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to load SSL certificate or key";
       break;
+    case SSL_INIT_FAILED:
+      msg_buffer << "Failed to initialise key/certificate generation";
+      break;
+    case SSL_BIO_FAILED:
+      msg_buffer << "Failed to initialise key/certificate's BIO";
+      break;
+    case SSL_RSA_FAILED:
+      msg_buffer << "Failed to generate RSA key";
+      break;
+    case SSL_KEY_WRITE_FAILED:
+      msg_buffer << "Failed to write key into file";
+      break;
+    case SSL_CERT_WRITE_FAILED:
+      msg_buffer << "Failed to write certificate into file";
+      break;
+    case SSL_CERT_SIGN_FAILED:
+      msg_buffer << "Failed to sign certificate";
+      break;
     case SQLITE_OPEN_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to open SQLite database:";
       break;
     case SQLITE_CREATE_TABLE_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to create SQLite table:";
       break;
     case SQLITE_PREPARE_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to prepare SQL statement:";
       break;
     case SQLITE_BIND_PARAMETER_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to bind SQL parameter:";
       break;
     case SQLITE_STEP_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to execute SQL statement:";
       break;
     case SQLITE_RETRIEVE_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to retrieve data from database:";
       break;
     case SQLITE_CLOSING:
       msg_buffer << "Closing SQLite database";
       break;
     case SQLITE_CLOSE_SUCCESS:
-      flag_log = true;
       msg_buffer << "Successfully closed SQLite database";
       break;
     case SQLITE_CLOSE_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to close SQLite database:";
       break;
     case INVALID_DB:
-      flag_log = true;
       msg_buffer << "Invalid database pointer";
       break;
     case GENERATED_TOKEN:
-      flag_log = true;
       msg_buffer << "A new token has been generated for";
       break;
     case REMOVED_TOKEN:
-      flag_log = true;
       msg_buffer << "Token removed successfully";
       break;
     case SHA256_INIT_CONTEXT_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to initialise SHA256 context";
       break;
     case SHA256_SET_CONTEXT_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to set SHA256 context";
       break;
     case SHA256_UPDATE_CONTEXT_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to update SHA256 context";
       break;
     case SHA256_FINALISE_CONTEXT_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to finalise SHA256 context";
       break;
     case RAND_FAILED:
-      flag_log = true;
       msg_buffer << "Failed to generate random bytes";
       break;
     case OPTION_UNKNOWN:
@@ -236,20 +235,22 @@ void console(Level level, Code code, const char *detail, const std::string &func
     case PORT_MAY_EXCEED:
       msg_buffer << "Port numbers may exceed 65535";
       break;
-    case INFO_KEY_PATH:
-      flag_log = true;
-      msg_buffer << "TLS private key:";
+    case INFO_SSL_KEY_PATH:
+      msg_buffer << "SSL private key:";
       break;
-    case INFO_CERT_PATH:
-      flag_log = true;
-      msg_buffer << "TLS certificate:";
+    case INFO_SSL_CERT_PATH:
+      msg_buffer << "SSL certificate:";
+      break;
+    case INFO_JWT_PRIVKEY_PATH:
+      msg_buffer << "JWT private key:";
+      break;
+    case INFO_JWT_PUBKEY_PATH:
+      msg_buffer << "JWT public key:";
       break;
     case INFO_DB_PATH:
-      flag_log = true;
       msg_buffer << "Database file:";
       break;
     case INFO_HOST:
-      flag_log = true;
       msg_buffer << "Streaming host:";
       break;
     case MESSAGE_SEND_FAILED:
@@ -268,11 +269,9 @@ void console(Level level, Code code, const char *detail, const std::string &func
       msg_buffer << "Failed to send buffer to external user:";
       break;
     case CONNECTION_LISTEN_STARTED:
-      flag_log = true;
       msg_buffer << "Listening for connection";
       break;
     case TUNNEL_SERVICE_ENDED:
-      flag_log = true;
       msg_buffer << "Tunnel service has ended";
       break;
     case CLIENT_CONNECTION_ACCEPTED:
@@ -309,15 +308,16 @@ void console(Level level, Code code, const char *detail, const std::string &func
       msg_buffer << "Proxying ended:";
       break;
     case NO_PORT_AVAILABLE:
-      flag_log = true;
       msg_buffer << "No available ports";
       break;
+    case CREATE_DIR_FAILED:
+      msg_buffer << "Unable to create directory";
+      break;
     case SIGNAL:
-      flag_log = true;
       msg_buffer << "Closing with signal";
       break;
     case DEBUG_MSG:
-      cout_buffer << CYAN << "DEBUG_MSG: " << RESET;
+      cout_buffer << CYAN << "DEBUG_MSG:" << RESET;
       break;
   }
 
@@ -328,16 +328,16 @@ void console(Level level, Code code, const char *detail, const std::string &func
 
   cout_buffer << msg_buffer.str() << ' ';
 
-  if (verbose_level <= DEBUG) {
+  if (verbose_level <= to_int(DEBUG)) {
     cout_buffer << FAINT_GRAY;
-    cout_buffer << '(';
+    cout_buffer << "(CORE::";
     cout_buffer << function;
     cout_buffer << ')';
     cout_buffer << RESET;
   }
   cout_buffer << '\n';
 
-  if (shared_resources::daemon_mode && (flag_log || level >= std::max(verbose_level, (int) WARNING))) {
+  if (shared_resources::daemon_mode && to_int(level) >= std::max(verbose_level, to_int(WARNING))) {
     #if defined(__OS_LOG_H__)
       switch (level) {
         case CRITICAL:
@@ -346,6 +346,9 @@ void console(Level level, Code code, const char *detail, const std::string &func
           os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_ERROR, "%{public}s", msg_buffer.str().c_str());
           break;
         case WARNING:
+          os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEFAULT, "%{public}s", msg_buffer.str().c_str());
+          break;
+        case NOTICE:
           os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEFAULT, "%{public}s", msg_buffer.str().c_str());
           break;
         case INFO:
@@ -363,6 +366,9 @@ void console(Level level, Code code, const char *detail, const std::string &func
           syslog(LOG_ERR, "%s", msg_buffer.str().c_str());
           break;
         case WARNING:
+          syslog(LOG_WARNING, "%s", msg_buffer.str().c_str());
+          break;
+        case NOTICE:
           syslog(LOG_WARNING, "%s", msg_buffer.str().c_str());
           break;
         case INFO:

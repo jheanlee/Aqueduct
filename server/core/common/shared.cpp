@@ -4,6 +4,17 @@
 
 #include "shared.hpp"
 
+namespace config {
+  std::string ssl_cert_path_str;
+  std::string ssl_private_key_path_str;
+  std::string jwt_public_key_path_str;
+  std::string jwt_private_key_path_str;
+  const char *ssl_cert_path = "\0";
+  const char *ssl_private_key_path = "\0";
+  const char *jwt_public_key_path = "\0";
+  const char *jwt_private_key_path = "\0";
+}
+
 namespace shared_resources {
   std::atomic<bool> global_flag_kill(false);
   std::atomic<bool> flag_handling_signal(false);

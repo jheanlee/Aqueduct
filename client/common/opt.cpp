@@ -27,7 +27,7 @@ int timeout_session_millisec = 1000;
 int timeout_proxy_millisec = 1;
 char hostname[NI_MAXHOST];
 std::regex reg_ipv4(R"((\d{1,3}(\.\d{1,3}){3}))");
-std::regex reg_token("SL_[A-Za-z0-9+/]{32}");
+std::regex reg_token("AQ_[A-Za-z0-9+/]{32}");
 std::string token;
 int verbose_level = 20;
 
@@ -98,10 +98,13 @@ void opt_handler(int argc, char * const argv[]) {
   if (token.empty()) {
     console(INSTRUCTION, ENTER_TOKEN_INSTRUCTION, nullptr, "option");
     std::cin >> token;
-    if (!std::regex_match(token, reg_token)) {
-      console(ERROR, INVALID_TOKEN, nullptr, "option");
-      signal_handler(EXIT_FAILURE);
-    }
+  }
+
+  token.erase(std::remove(token.begin(), token.end(), ' '), token.end());
+  token.erase(std::remove(token.begin(), token.end(), '\n'), token.end());
+  if (!std::regex_match(token, reg_token)) {
+    console(ERROR, INVALID_TOKEN, nullptr, "option");
+    signal_handler(EXIT_FAILURE);
   }
 
   console(INFO, INFO_HOST, (std::string(readable_host) + '(' + std::string(host) + ')' + ':' + std::to_string(host_main_port)).c_str(), "option");

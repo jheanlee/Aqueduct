@@ -6,6 +6,7 @@ use crate::console::{console, Code, Level};
 pub enum ApiError {
   Error(anyhow::Error),
   MessageError(MessageError),
+  JsonDumpError
 }
 
 #[derive(Debug)]
@@ -24,6 +25,7 @@ impl axum::response::IntoResponse for ApiError {
         StatusCode::INTERNAL_SERVER_ERROR.into_response()
       },
       ApiError::MessageError(..) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+      ApiError::JsonDumpError => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
     }
   }
 }

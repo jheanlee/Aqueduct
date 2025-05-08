@@ -14,6 +14,11 @@ function Navbar() {
           <Link to="/client">Clients</Link>
         </Button>
       </Box>
+      <Box>
+        <Button variant="plain">
+          <Link to="/access">Access</Link>
+        </Button>
+      </Box>
 
       <Spacer />
 

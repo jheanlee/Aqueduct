@@ -1,3 +1,6 @@
+use crate::console::Code::DebugMsg;
+use crate::console::console;
+use crate::console::Level::Debug;
 use crate::error::ApiError;
 use crate::error::MessageError;
 
@@ -8,6 +11,7 @@ pub mod api_message_type {
   pub const API_EXIT: u8 = 'C' as u8;
   pub const API_GET_SERVICE_INFO: u8 = 'D' as u8;
   pub const API_GET_CURRENT_CLIENTS: u8 = 'E' as u8;
+  pub const API_GENERATE_NEW_TOKEN: u8 = 'F' as u8;
 }
 
 pub struct Message {
