@@ -45,8 +45,8 @@ void opt_handler(int argc, char * const argv[]) {
 
   CLI::Option *ssl_private_key = run->add_option("--ssl-private-key", config::ssl_private_key_path_str, "The path to a private key file used for TLS encryption");
   CLI::Option *ssl_cert = run->add_option("--ssl-cert", config::ssl_cert_path_str, "The path to a certification file used for TLS encryption");
-  CLI::Option *jwt_private_key = run->add_option("--jwt-private-key", config::ssl_private_key_path_str, "The path to a private key file used for JWT encoding");
-  CLI::Option *jwt_public_key = run->add_option("--jwt-public-key", config::ssl_cert_path_str, "The path to a public key file used for JWT decoding");
+  CLI::Option *jwt_private_key = run->add_option("--jwt-private-key", config::jwt_private_key_path_str, "The path to a private key file used for JWT encoding");
+  CLI::Option *jwt_public_key = run->add_option("--jwt-public-key", config::jwt_public_key_path_str, "The path to a public key file used for JWT decoding");
   ssl_private_key->needs(ssl_cert);
   ssl_cert->needs(ssl_private_key);
   jwt_private_key->needs(jwt_public_key);
@@ -159,7 +159,11 @@ void opt_handler(int argc, char * const argv[]) {
   if (ssl_control_port < 1024) {
     console(WARNING, PORT_WELL_KNOWN, nullptr, "opt::opt_handler");
   }
-  
-  console(INFO, INFO_DB_PATH, db_path, "opt::opt_handler");
-  console(INFO, INFO_HOST, (std::string(host) + ':' + std::to_string(ssl_control_port)).c_str(), "opt::opt_handler");
+
+  console(NOTICE, INFO_HOST, (std::string(host) + ':' + std::to_string(ssl_control_port)).c_str(), "opt::opt_handler");
+  console(NOTICE, INFO_DB_PATH, db_path, "opt::opt_handler");
+  console(NOTICE, INFO_JWT_PUBKEY_PATH, config::jwt_public_key_path, "opt::opt_handler");
+  console(NOTICE, INFO_JWT_PRIVKEY_PATH, config::jwt_private_key_path, "opt::opt_handler");
+  console(NOTICE, INFO_SSL_KEY_PATH, config::ssl_private_key_path, "opt::opt_handler");
+  console(NOTICE, INFO_SSL_CERT_PATH, config::ssl_cert_path, "opt::opt_handler");
 }

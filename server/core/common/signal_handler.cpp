@@ -31,7 +31,7 @@ void signal_handler(int signal) {
   shared_resources::flag_handling_signal = true;
   shared_resources::global_flag_kill = true;
   if (signal == 0) {
-    console(INFO, SIGNAL, std::to_string(signal).c_str(), "signal_handler");
+    console(NOTICE, SIGNAL, std::to_string(signal).c_str(), "signal_handler");
   } else {
     console(WARNING, SIGNAL, std::to_string(signal).c_str(), "signal_handler");
   }
@@ -41,7 +41,7 @@ void signal_handler(int signal) {
     kill(shared_resources::pid_api, SIGTERM);
     int api_exit_status;
     waitpid(shared_resources::pid_api, &api_exit_status, 0);
-    console(INFO, API_PROCESS_ENDED, (std::to_string(api_exit_status) + ' ').c_str(), "signal_handler");
+    console(NOTICE, API_PROCESS_ENDED, (std::to_string(api_exit_status) + ' ').c_str(), "signal_handler");
   }
 
   //  close db

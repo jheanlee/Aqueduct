@@ -6,12 +6,13 @@
   #define AQUEDUCT_CONSOLE_HPP
   #include <string>
 
-  enum Level : int {
-    CRITICAL = 50,
-    ERROR = 40,
-    WARNING = 30,
-    INFO = 20,
-    DEBUG = 10,
+  enum Level {
+    CRITICAL,
+    ERROR,
+    WARNING,
+    NOTICE,
+    INFO,
+    DEBUG,
   };
 
   enum Code {
@@ -86,8 +87,10 @@
     PORT_INVALID_LIMIT,
     PORT_MAY_EXCEED,
 
-    INFO_KEY_PATH,
-    INFO_CERT_PATH,
+    INFO_SSL_KEY_PATH,
+    INFO_SSL_CERT_PATH,
+    INFO_JWT_PUBKEY_PATH,
+    INFO_JWT_PRIVKEY_PATH,
     INFO_DB_PATH,
     INFO_HOST,
 

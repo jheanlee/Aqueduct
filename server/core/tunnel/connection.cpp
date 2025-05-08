@@ -37,7 +37,7 @@ void ssl_control_thread_func() {
   //  create, bind, listen socket
   socket_fd = create_socket(server_addr);
 
-  console(INFO, CONNECTION_LISTEN_STARTED, nullptr, "connection::control");
+  console(NOTICE, CONNECTION_LISTEN_STARTED, nullptr, "connection::control");
   shared_resources::flag_tunneling_service_running = true;
 
   //  accept connections from client
@@ -73,7 +73,7 @@ void ssl_control_thread_func() {
     session_thread.detach();
   }
 
-  console(INFO, TUNNEL_SERVICE_ENDED, nullptr, "connection::control");
+  console(NOTICE, TUNNEL_SERVICE_ENDED, nullptr, "connection::control");
   shared_resources::flag_tunneling_service_running = false;
 
   //  clean up
