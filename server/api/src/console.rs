@@ -118,7 +118,7 @@ pub fn console(level: Level, code: Code, detail: &str, function: &str) {
     }
   }
 
-  if detail.is_empty() {
+  if !detail.is_empty() {
     output += ": ";
     output += detail;
   }

@@ -3,7 +3,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 use entity::entities::{auth};
 use entity::entities::prelude::Auth;
-use crate::core::core::send_new_token_message;
+use crate::core::io::send_new_token_message;
 use crate::domain::tokens::TokenModification;
 use crate::error::ApiError;
 use crate::SHARED_CELL;

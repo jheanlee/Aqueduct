@@ -1,12 +1,10 @@
 use std::collections::HashMap;
 use std::sync::Arc;
-use axum::body::Body;
 use tokio::net::UnixStream;
-use axum::extract::State;
-use axum::http;
-use axum::http::{Response, StatusCode};
+use axum::http::StatusCode;
 use tokio::sync::Mutex;
 use crate::console::{console, Code, Level};
+use crate::core::connection::reconnect;
 use crate::error::{ApiError};
 use crate::state::{AppState, ConnectedClients, CoreStatus};
 use crate::message::{api_message_type, Message};
@@ -16,10 +14,6 @@ use crate::SHARED_CELL;
 pub struct NewToken {
   token: String,
   hashed: String,
-}
-
-pub async fn connect_core() -> Result<UnixStream, anyhow::Error> {
-  Ok(UnixStream::connect("/tmp/aqueduct-server-core.sock").await?)
 }
 
 pub async fn core_io_read_thread_func(state: Arc<AppState>) -> Result<(), ()> {
@@ -37,27 +31,32 @@ pub async fn core_io_read_thread_func(state: Arc<AppState>) -> Result<(), ()> {
       };
       
       if let Some(r) = s {
-        if let Ok(_) = r {
-          match socket_core_guard.try_read(&mut buffer) {
-            //  pipe closed
-            Ok(n) if n == 0 => return Ok(()),
-            //  data read
-            Ok(_n) => break,
-            //  no data available
-            Err(ref e) if e.kind() == tokio::io::ErrorKind::WouldBlock => continue,
-            //  closed
-            Err(ref e) if e.kind() == tokio::io::ErrorKind::BrokenPipe => {
-              console(Level::Error, Code::SockConnectionLost, "", "core::core_io_read");
-              return Err(())
-            },
-            //  other errors
-            Err(e) => {
-              console(Level::Error, Code::SockReadError, format!("{}", e).as_str(), "core::core_io_read");
-              return Err(())
-            },
+        match r { 
+          Ok(_) => {
+            match socket_core_guard.try_read(&mut buffer) {
+              //  pipe closed
+              Ok(n) if n == 0 => return Ok(()),
+              //  data read
+              Ok(_n) => break,
+              //  no data available
+              Err(ref e) if e.kind() == tokio::io::ErrorKind::WouldBlock => continue,
+              //  closed
+              Err(ref e) if e.kind() == tokio::io::ErrorKind::BrokenPipe => {
+                if reconnect(Arc::clone(&state_clone.socket_core)).await.is_err() {
+                  console(Level::Critical, Code::SockConnectionLost, "", "core::core_io_read");
+                  panic!()
+                }
+              },
+              //  other errors
+              Err(e) => {
+                console(Level::Error, Code::SockReadError, format!("{}", e).as_str(), "core::core_io_read");
+                return Err(())
+              },
+            }
+          },
+          Err(e) => {
+            console(Level::Error, Code::SockSelectError, format!("{}", e).as_str(), "core::core_io_read");
           }
-        } else {
-          console(Level::Error, Code::SockSelectError, "", "core::core_io_read");
         }
       }
     }
@@ -132,7 +131,12 @@ pub async fn status_thread_func(socket_core: Arc<Mutex<UnixStream>>) {
   loop {
     let status = send_status_message(Arc::clone(&socket_core)).await;
     match status {
-      Ok(ref c) if c == &StatusCode::SERVICE_UNAVAILABLE => console(Level::Error, Code::SockConnectionLost, "", "core::status_thread"),
+      Ok(ref c) if c == &StatusCode::SERVICE_UNAVAILABLE => {
+        if reconnect(Arc::clone(&socket_core)).await.is_err() {
+          console(Level::Critical, Code::SockConnectionLost, "", "core::status_thread");
+          panic!()
+        }
+      },
       Ok(_) => {},
       Err(_) => break,
     }
@@ -156,16 +160,6 @@ pub async fn send_status_message(socket_core: Arc<Mutex<UnixStream>>) -> Result<
   Ok(StatusCode::OK)
 }
 
-pub async fn get_status(State(state): State<Arc<AppState>>) -> Result<Response<Body>, ApiError> {
-  let response_builder = Response::builder().header(http::header::CONTENT_TYPE, "application/json");
-  if state.core_status.lock().await.0 {
-    return Ok(response_builder.status(StatusCode::SERVICE_UNAVAILABLE).body(Body::from(""))?);
-  }
-  let response_body = Body::from(state.core_status.lock().await.1.to_string()?);
-  let response = response_builder.body(response_body)?;
-
-  Ok(response)
-}
 
 pub async fn client_thread_func(socket_core: Arc<Mutex<UnixStream>>) {
   loop {

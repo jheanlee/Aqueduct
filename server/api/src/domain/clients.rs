@@ -4,7 +4,7 @@ use axum::extract::State;
 use axum::http;
 use axum::http::{Response, StatusCode};
 use axum::response::IntoResponse;
-use crate::core::core::send_client_message;
+use crate::core::io::send_client_message;
 use crate::error::ApiError;
 use crate::orm::clients::list_client_db;
 use crate::state::AppState;
