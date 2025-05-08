@@ -10,7 +10,6 @@ import {
   HStack,
   IconButton,
   Input,
-  Spinner,
   Select,
   Table,
   Tabs,
@@ -90,9 +89,7 @@ function Connected() {
     <>
       {clientsError && (
         <Alert.Root status="error" m={3}>
-          <Alert.Indicator>
-            <Spinner size="sm" />
-          </Alert.Indicator>
+          <Alert.Indicator />
           <Alert.Content>
             <Alert.Title>Connection Lost</Alert.Title>
             <Alert.Description>
@@ -293,9 +290,7 @@ function Usage() {
   return (
     <>
       <Alert.Root status="error" m={3} hidden={!clientsDbError}>
-        <Alert.Indicator>
-          <Spinner size="sm" />
-        </Alert.Indicator>
+        <Alert.Indicator/>
         <Alert.Content>
           <Alert.Title>Connection Lost</Alert.Title>
           <Alert.Description>Unable to connect to api server</Alert.Description>

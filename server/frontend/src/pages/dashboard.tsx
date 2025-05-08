@@ -5,7 +5,6 @@ import {
   Text,
   Alert,
   Box,
-  Spinner,
   Status,
   Stack,
   Heading,
@@ -21,7 +20,7 @@ function Dashboard() {
   const [connectedClients, setConnectedClients] = useState<number>(0);
 
   useEffect(() => {
-    const interval = setInterval(async () => {
+    const updateStatus = async () => {
       const res = await getStatus();
       if (res !== null) {
         setFlagStatusError(false);
@@ -32,11 +31,13 @@ function Dashboard() {
       } else {
         setFlagStatusError(true);
       }
-    }, 5000);
+    }
 
-    return () => {
-      clearInterval(interval);
-    };
+    (async () => await updateStatus()) ();
+
+    const interval = setInterval(async () => await updateStatus(), 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -45,9 +46,7 @@ function Dashboard() {
         <GridItem rowSpan={1} colSpan={1}>
           {flagStatusError && (
             <Alert.Root status="error">
-              <Alert.Indicator>
-                <Spinner size="sm" />
-              </Alert.Indicator>
+              <Alert.Indicator />
               <Alert.Content>
                 <Alert.Title>Connection Lost</Alert.Title>
                 <Alert.Description>

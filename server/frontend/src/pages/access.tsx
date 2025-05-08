@@ -16,7 +16,6 @@ import {
   Input,
   NumberInput,
   Spacer,
-  Spinner,
   Table,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
@@ -67,9 +66,7 @@ function Tokens() {
     <>
       {tokensError && (
         <Alert.Root status="error" m={3}>
-          <Alert.Indicator>
-            <Spinner size="sm" />
-          </Alert.Indicator>
+          <Alert.Indicator/>
           <Alert.Content>
             <Alert.Title>Connection Lost</Alert.Title>
             <Alert.Description>
