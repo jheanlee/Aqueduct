@@ -1,6 +1,7 @@
 use axum::body::Body;
 use axum::extract::Query;
 use axum::{http, Json};
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use crate::auth::jwt_tokens::generate_jwt;
 use crate::error::ApiError;
@@ -34,18 +35,16 @@ pub struct UserAuthentication {
   username: String,
   password: String
 }
-pub async fn login(Json(authentication): Json<UserAuthentication>) -> Result<Response<Body>, ApiError> {
+pub async fn login(Json(authentication): Json<UserAuthentication>) -> Result<Response, ApiError> {
   let res = user_authenticate(authentication.username.clone(), authentication.password).await?;
-  let status = match res {
-    Some(auth) => if auth { "success" } else { "failed" },
-    None => "not found"
-  };
-
-  let response_builder = Response::builder().header(http::header::CONTENT_TYPE, "application/json");
-  let response_body = Body::from(serde_json::json!({
-    "status": status,
+  if res.is_none() || !res.unwrap() {
+    Ok(StatusCode::UNAUTHORIZED.into_response())
+  } else {
+    let response_builder = Response::builder().header(http::header::CONTENT_TYPE, "application/json");
+    let response_body = Body::from(serde_json::json!({
     "token": generate_jwt(authentication.username).await?
   }).to_string());
-  let response = response_builder.body(response_body)?;
-  Ok(response)
+    let response = response_builder.body(response_body)?;
+    Ok(response)
+  }
 }

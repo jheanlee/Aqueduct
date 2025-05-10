@@ -10,11 +10,13 @@ mod auth;
 
 use std::collections::VecDeque;
 use std::sync::Arc;
+use axum::middleware;
 use tokio::sync::{Mutex, Notify};
 use axum::routing::{get, post};
 use clap::Parser;
 use sea_orm::{DatabaseConnection};
 use tokio::net::UnixStream;
+use crate::auth::jwt_tokens::verify_jwt;
 use crate::auth::key::{init_jwt_keys, JwtKeys};
 use crate::console::{console, Code, Level};
 use crate::core::connection::connect_core;
@@ -95,6 +97,7 @@ async fn main() {
     .route("/api/tokens/delete", post(delete_token_item))
     .route("/api/users/check", get(check_web_user))
     .route("/api/users/modify", post(modify_web_user))
+    .layer(middleware::from_fn(verify_jwt))
     .route("/api/users/login", post(login))
     .fallback_service(frontend_server_dir)
     .with_state(arc_state);

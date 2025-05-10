@@ -18,3 +18,5 @@ sea-orm = { version = "1.1.8", features = ["sqlx-sqlite", "runtime-tokio-native-
 jsonwebtoken = { version = "9.3.1", features = ["use_pem"] }
 data-encoding = "2.9.0"
 openssl = { version = "0.10.72", features = ["vendored"] }
+futures-util = "0.3.31"
+tower = "0.5.2"
