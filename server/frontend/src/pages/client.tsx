@@ -64,11 +64,11 @@ function Connected() {
   useEffect(() => {
     (async () => {
       const res = await listConnectedClients();
-      if (res !== null) {
+      if (typeof res == "number") {
+        setClientsError(true);
+      } else {
         setClientsError(false);
         setClients(res);
-      } else {
-        setClientsError(true);
       }
     })();
   }, []);
@@ -102,15 +102,15 @@ function Connected() {
       <HStack m="2px">
         <IconButton
           onClick={async () => {
-            if (!(await updateConnectedClients())) {
+            if (await updateConnectedClients() !== 200) {
               setClientsError(true);
             }
             const res = await listConnectedClients();
-            if (res !== null) {
+            if (typeof res === "number") {
+              setClientsError(true);
+            } else {
               setClientsError(false);
               setClients(res);
-            } else {
-              setClientsError(true);
             }
           }}
           variant="ghost"
@@ -276,11 +276,11 @@ function Usage() {
   useEffect(() => {
     (async () => {
       const res = await listClientsDb();
-      if (res !== null) {
+      if (typeof res === "number") {
+        setClientsDbError(true);
+      } else {
         setClientsDbError(false);
         setClientsData(res);
-      } else {
-        setClientsDbError(true);
       }
     })();
   }, []);
@@ -301,15 +301,15 @@ function Usage() {
         <HStack m="2px">
           <IconButton
             onClick={async () => {
-              if (!(await updateConnectedClients())) {
+              if (await updateConnectedClients() !== 200) {
                 setClientsDbError(true);
               }
               const res = await listClientsDb();
-              if (res !== null) {
+              if (typeof res === "number") {
+                setClientsDbError(true);
+              } else {
                 setClientsDbError(false);
                 setClientsData(res);
-              } else {
-                setClientsDbError(true);
               }
             }}
             variant="ghost"

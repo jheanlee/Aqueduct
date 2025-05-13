@@ -54,11 +54,11 @@ function Tokens() {
 
   const fetchData = async () => {
     const res = await listTokens();
-    if (res !== null) {
+    if (typeof res === "number") {
+      setTokensError(true);
+    } else {
       setTokensError(false);
       setTokens(res);
-    } else {
-      setTokensError(true);
     }
   };
 
@@ -178,7 +178,8 @@ function NewToken({ onExitComplete }: NewTokenProps) {
                           return;
                         }
 
-                        if (!(await checkToken(event.target.value))) {
+                        const res = await checkToken(event.target.value);
+                        if (typeof res === "number" || !res.available) {
                           setNameError("unavailable");
                         } else {
                           setNameError(null);
@@ -253,9 +254,9 @@ function NewToken({ onExitComplete }: NewTokenProps) {
 
           <Dialog.Footer>
             {!tokenGenerated && (
-              <Dialog.CloseTrigger>
+              <Dialog.ActionTrigger>
                 <Button variant="outline">Cancel</Button>
-              </Dialog.CloseTrigger>
+              </Dialog.ActionTrigger>
             )}
             {!tokenGenerated && (
               <Button
@@ -264,7 +265,8 @@ function NewToken({ onExitComplete }: NewTokenProps) {
                     setNameError("required");
                     return;
                   }
-                  if (!(await checkToken(newName))) {
+                  const check_res = await checkToken(newName);
+                  if (typeof check_res === "number" || !check_res.available) {
                     setNameError("unavailable");
                     return;
                   }
@@ -278,10 +280,10 @@ function NewToken({ onExitComplete }: NewTokenProps) {
 
                   setTokenGenerated(true);
 
-                  if (res !== null) {
-                    setNewToken(res.token);
-                  } else {
+                  if (typeof res === "number") {
                     setNewToken(null);
+                  } else {
+                    setNewToken(res.token);
                   }
                 }}
               >
@@ -289,9 +291,9 @@ function NewToken({ onExitComplete }: NewTokenProps) {
               </Button>
             )}
             {tokenGenerated && (
-              <Dialog.CloseTrigger>
+              <Dialog.ActionTrigger>
                 <Button variant="outline">Close</Button>
-              </Dialog.CloseTrigger>
+              </Dialog.ActionTrigger>
             )}
           </Dialog.Footer>
         </Dialog.Content>
@@ -429,9 +431,9 @@ function EditToken({ name, notes, onExitComplete }: EditTokenProp) {
 
           <Dialog.Footer>
             {!tokenGenerated && (
-              <Dialog.CloseTrigger>
+              <Dialog.ActionTrigger>
                 <Button variant="outline">Cancel</Button>
-              </Dialog.CloseTrigger>
+              </Dialog.ActionTrigger>
             )}
             {!tokenGenerated && (
               <Button
@@ -445,10 +447,10 @@ function EditToken({ name, notes, onExitComplete }: EditTokenProp) {
 
                   setTokenGenerated(true);
 
-                  if (res !== null) {
-                    setNewToken(res.token);
-                  } else {
+                  if (typeof res === "number") {
                     setNewToken(null);
+                  } else {
+                    setNewToken(res.token);
                   }
                 }}
               >
@@ -457,9 +459,9 @@ function EditToken({ name, notes, onExitComplete }: EditTokenProp) {
             )}
 
             {tokenGenerated && (
-              <Dialog.CloseTrigger>
+              <Dialog.ActionTrigger>
                 <Button variant="outline">Close</Button>
-              </Dialog.CloseTrigger>
+              </Dialog.ActionTrigger>
             )}
           </Dialog.Footer>
         </Dialog.Content>
@@ -497,22 +499,22 @@ function DeleteToken({ name, onExitComplete }: DeleteTokenProp) {
           </Dialog.Header>
 
           <Dialog.Footer>
-            <Dialog.CloseTrigger>
+            <Dialog.ActionTrigger>
               <Button variant="outline">Cancel</Button>
-            </Dialog.CloseTrigger>
-            <Dialog.CloseTrigger>
+            </Dialog.ActionTrigger>
+            <Dialog.ActionTrigger>
               <Button
                 colorPalette="red"
                 loading={flagLoading}
                 onClick={async () => {
                   setFlagLoading(true);
                   const res = await deleteToken(name);
-                  if (res !== null && res.rows_affected == 1) {
+                  if (typeof res !== "number" && res.rows_affected == 1) {
                     toaster.create({
                       description: "Successfully removed token '" + name + "'",
                       type: "success",
                     });
-                  } else if (res !== null && res.rows_affected == 0) {
+                  } else if (typeof res !== "number" && res.rows_affected == 0) {
                     toaster.create({
                       description:
                         "Couldn't find any token with the name '" + name + "'",
@@ -532,7 +534,7 @@ function DeleteToken({ name, onExitComplete }: DeleteTokenProp) {
               >
                 Delete
               </Button>
-            </Dialog.CloseTrigger>
+            </Dialog.ActionTrigger>
           </Dialog.Footer>
         </Dialog.Content>
       </Dialog.Positioner>
