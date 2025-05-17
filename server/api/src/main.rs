@@ -22,7 +22,7 @@ use crate::console::{console, Code, Level};
 use crate::core::connection::connect_core;
 use crate::core::io::{client_thread_func, core_io_read_thread_func, status_thread_func};
 use crate::domain::clients::{get_client_db, get_connected_clients, update_clients};
-use crate::domain::login::{login, check_web_user, modify_web_user};
+use crate::domain::users::{login, check_web_user, modify_web_user, get_web_users, delete_web_user};
 use crate::domain::status::get_status;
 use crate::domain::tokens::{check_token, delete_token_item, get_tokens, modify_token_item};
 use crate::orm::connection::connect_database;
@@ -47,7 +47,13 @@ static SHARED_CELL: once_cell::sync::OnceCell<SharedResources> = once_cell::sync
 #[tokio::main]
 async fn main() {
   let args = crate::opt::Args::parse();
-  
+
+  // if std::env::consts::OS == "macos" {
+  //   oslog::OsLogger::new("").level_filter(log::LevelFilter::Info);
+  // } else {
+  //   //TODO
+  // }
+
   let jwt_keys = init_jwt_keys(args.private_key, args.public_key).await.unwrap_or_else(|e| {
     console(Level::Critical, Code::KeyInitFailed, e.to_string().as_str(), "main");
     panic!();
@@ -82,23 +88,30 @@ async fn main() {
   let frontend_server_dir = tower_http::services::ServeDir::new("frontend");
 
   let arc_state = Arc::new(state);
-  let status_thread = tokio::spawn(status_thread_func(Arc::clone(&arc_state.socket_core)));
-  let client_thread = tokio::spawn(client_thread_func(Arc::clone(&arc_state.socket_core)));
-  let core_io_read_thread = tokio::spawn(core_io_read_thread_func(Arc::clone(&arc_state)));
+  let _status_thread = tokio::spawn(status_thread_func(Arc::clone(&arc_state.socket_core)));
+  let _client_thread = tokio::spawn(client_thread_func(Arc::clone(&arc_state.socket_core)));
+  let _core_io_read_thread = tokio::spawn(core_io_read_thread_func(Arc::clone(&arc_state)));
 
   let app = axum::Router::new()
     .route("/api/status", get(get_status))
+
     .route("/api/clients/connected", get(get_connected_clients))
     .route("/api/clients/update", post(update_clients))
     .route("/api/clients/db", get(get_client_db))
+
     .route("/api/tokens/list", get(get_tokens))
     .route("/api/tokens/check", get(check_token))
     .route("/api/tokens/modify", post(modify_token_item))
     .route("/api/tokens/delete", post(delete_token_item))
+
+    .route("/api/users/list", get(get_web_users))
     .route("/api/users/check", get(check_web_user))
     .route("/api/users/modify", post(modify_web_user))
+    .route("/api/users/delete", post(delete_web_user))
+
     .layer(middleware::from_fn(verify_jwt))
     .route("/api/users/login", post(login))
+
     .fallback_service(frontend_server_dir)
     .with_state(arc_state);
 

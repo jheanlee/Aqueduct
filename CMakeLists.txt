@@ -92,7 +92,7 @@ endif()
 message(STATUS "Cargo path: ${CARGO_BIN_PATH}")
 
 #   npm
-if (DEFINED ENV{NPM_BIN_PATH)
+if (DEFINED ENV{NPM_BIN_PATH})
     set(NPM_BIN_PATH $ENV{NPM_BIN_PATH})
 else()
     set(NPM_BIN_PATH npm)

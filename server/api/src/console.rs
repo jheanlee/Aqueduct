@@ -37,6 +37,8 @@ pub enum Code {
   MessageInvalid,
   ApiDumpFailed,
   ApiError,
+  
+  #[allow(dead_code)]
   DebugMsg,
 }
 

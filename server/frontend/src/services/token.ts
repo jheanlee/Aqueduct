@@ -40,7 +40,7 @@ export const checkToken = async (name: string) => {
   }
 };
 
-export const modifyTokens = async (data: {
+export const modifyToken = async (data: {
   name: string;
   token_update: boolean;
   notes: string | null;

@@ -16,23 +16,39 @@ import {
   Input,
   NumberInput,
   Spacer,
-  Table,
+  Table, Tabs, useClipboard,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import {
   checkToken,
   deleteToken,
   listTokens,
-  modifyTokens,
+  modifyToken,
 } from "../services/token";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { RxPlus } from "react-icons/rx";
 import { toaster } from "../components/ui/toaster.tsx";
+import {PasswordInput} from "../components/ui/password-input.tsx";
+import {checkUser, deleteUser, listUsers, modifyUser} from "../services/auth.ts";
 
 function Access() {
   return (
     <Container w="100%" h="100%" p="1rem">
-      <Tokens />
+      <Tabs.Root variant="subtle">
+        <Tabs.List>
+          <Tabs.Trigger value="Tokens">Tokens</Tabs.Trigger>
+          <Tabs.Trigger value="Web Management">Web Management</Tabs.Trigger>
+        </Tabs.List>
+
+        <Tabs.Content value="Tokens">
+          <Tokens />
+        </Tabs.Content>
+
+        <Tabs.Content value="Web Management">
+          <WebManagement />
+        </Tabs.Content>
+      </Tabs.Root>
+
     </Container>
   );
 }
@@ -137,6 +153,8 @@ function NewToken({ onExitComplete }: NewTokenProps) {
   const [tokenGenerated, setTokenGenerated] = useState<boolean>(false);
   const [newToken, setNewToken] = useState<string | null>(null);
 
+  const clipboard = useClipboard({value: newToken || ""});
+
   const handleExitComplete = () => {
     setNameError(null);
     setNewName("");
@@ -181,6 +199,7 @@ function NewToken({ onExitComplete }: NewTokenProps) {
                         const res = await checkToken(event.target.value);
                         if (typeof res === "number" || !res.available) {
                           setNameError("unavailable");
+                          setNewName("");
                         } else {
                           setNameError(null);
                         }
@@ -234,7 +253,14 @@ function NewToken({ onExitComplete }: NewTokenProps) {
                   <Alert.Indicator />
                   <Alert.Title>New token:</Alert.Title>
                   <Alert.Description>
-                    <Code size="lg">{newToken}</Code>
+                    <Code h="100%" size="lg" onClick={ () => {
+                        clipboard.copy();
+                        toaster.create({
+                          description: "Token has been copied to clipboard",
+                          type: "info",
+                        });
+                      }
+                    }>{newToken}</Code>
                   </Alert.Description>
                 </Alert.Root>
               </Flex>
@@ -268,10 +294,11 @@ function NewToken({ onExitComplete }: NewTokenProps) {
                   const check_res = await checkToken(newName);
                   if (typeof check_res === "number" || !check_res.available) {
                     setNameError("unavailable");
+                    setNewName("");
                     return;
                   }
 
-                  const res = await modifyTokens({
+                  const res = await modifyToken({
                     name: newName,
                     token_update: true,
                     notes: (newNotes != "") ? newNotes : null,
@@ -315,6 +342,8 @@ function EditToken({ name, notes, onExitComplete }: EditTokenProp) {
 
   const [tokenGenerated, setTokenGenerated] = useState<boolean>(false);
   const [newToken, setNewToken] = useState<string | null>(null);
+
+  const clipboard = useClipboard({value: newToken || ""});
 
   const handleExitComplete = () => {
     setNewNotes(notes);
@@ -405,7 +434,14 @@ function EditToken({ name, notes, onExitComplete }: EditTokenProp) {
                 <Alert.Indicator />
                 <Alert.Title>New token:</Alert.Title>
                 <Alert.Description>
-                  <Code size="lg">{newToken}</Code>
+                  <Code h="100%" size="lg" onClick={ () => {
+                      clipboard.copy();
+                      toaster.create({
+                        description: "Token has been copied to clipboard",
+                        type: "info",
+                      });
+                    }
+                  }>{newToken}</Code>
                 </Alert.Description>
               </Alert.Root>
             )}
@@ -438,7 +474,7 @@ function EditToken({ name, notes, onExitComplete }: EditTokenProp) {
             {!tokenGenerated && (
               <Button
                 onClick={async () => {
-                  const res = await modifyTokens({
+                  const res = await modifyToken({
                     name: name,
                     token_update: update,
                     notes: (newNotes != "") ? newNotes : null,
@@ -526,6 +562,365 @@ function DeleteToken({ name, onExitComplete }: DeleteTokenProp) {
                         "An error has occurred while deleting token '" +
                         name +
                         "'",
+                      type: "error",
+                    });
+                  }
+                  setFlagLoading(false);
+                }}
+              >
+                Delete
+              </Button>
+            </Dialog.ActionTrigger>
+          </Dialog.Footer>
+        </Dialog.Content>
+      </Dialog.Positioner>
+    </Dialog.Root>
+  );
+}
+
+function WebManagement() {
+  const [users, setUsers] = useState<
+    {
+      "username": string
+    }[]
+  >([]);
+  const [usersError, setUsersError] = useState<boolean>(false);
+  
+  const [editUsername, setEditUsername] = useState<string | null>(null);
+  const [deleteUsername, setDeleteUsername] = useState<string | null>(null);
+  
+
+  useEffect(() => {
+    void fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    const res = await listUsers();
+    if (typeof res === "number") {
+      setUsersError(true);
+    } else {
+      setUsersError(false);
+      setUsers(res);
+    }
+  };
+
+  return (
+    <>
+      {usersError && (
+        <Alert.Root status="error" m={3}>
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>Connection Lost</Alert.Title>
+            <Alert.Description>
+              Unable to connect to api server
+            </Alert.Description>
+          </Alert.Content>
+        </Alert.Root>
+      )}
+
+      <Flex w="100%">
+        <Heading>Manage Users</Heading>
+        <Spacer />
+        <NewUser onExitComplete={fetchData} />
+      </Flex>
+
+      <Table.Root>
+        <Table.Header>
+          <Table.Row>
+            <Table.ColumnHeader>Username</Table.ColumnHeader>
+            <Table.ColumnHeader>Actions</Table.ColumnHeader>
+          </Table.Row>
+        </Table.Header>
+
+        <Table.Body>
+          <For each={users}>
+            {(item) => (
+              <Table.Row>
+                <Table.Cell>{item.username}</Table.Cell>
+                <Table.Cell>
+                  <Group>
+                    <IconButton
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEditUsername(item.username);
+                      }}
+                    >
+                      <MdEdit />
+                    </IconButton>
+                    <IconButton
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setDeleteUsername(item.username);
+                      }}
+                    >
+                      <MdDelete />
+                    </IconButton>
+                  </Group>
+                </Table.Cell>
+              </Table.Row>
+            )}
+          </For>
+        </Table.Body>
+      </Table.Root>
+
+      <EditUser
+        username={editUsername}
+        clearUsername={() => setEditUsername(null)}
+        onExitComplete={ async () => {
+          await fetchData();
+          setEditUsername(null);
+        }}
+      />
+      <DeleteUser username={deleteUsername} onExitComplete={async () => {
+        await fetchData();
+        setDeleteUsername(null);
+      }} />
+    </>
+  );
+}
+
+interface NewUserProp {
+  onExitComplete: () => void;
+}
+
+function NewUser({ onExitComplete }: NewUserProp) {
+  const [open, setOpen] = useState<boolean>(false);
+  const [username, setUsername] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+
+  const handleExitComplete = () => {
+    setOpen(false);
+    setUsername("");
+    setPassword("");
+    setUsernameError(null);
+    onExitComplete();
+  };
+
+  return (
+    <Dialog.Root placement="center" open={open} onOpenChange={(event) => setOpen(event.open)} onExitComplete={handleExitComplete}>
+      <Dialog.Trigger>
+        <IconButton variant="outline" size="sm">
+          <RxPlus />
+        </IconButton>
+      </Dialog.Trigger>
+
+      <Dialog.Backdrop />
+
+      <Dialog.Positioner>
+        <Dialog.Content>
+          <Dialog.Header>
+            <Dialog.Title>New User</Dialog.Title>
+          </Dialog.Header>
+
+          <Dialog.Body p={5}>
+            <Fieldset.Root>
+              <Fieldset.Content>
+                <Field.Root invalid={usernameError !== null}>
+                  <Field.Label>Username</Field.Label>
+                  <Input
+                    onChange={ async (event) => {
+                      if (event.target.value === "") {
+                        setUsernameError("required");
+                        setUsername("");
+                        return;
+                      }
+                      const res = await checkUser({username: event.target.value});
+                      if (typeof res === "number" || !res.available) {
+                        setUsernameError("unavailable");
+                        setUsername("");
+                        return;
+                      }
+                      setUsername(event.target.value);
+                      setUsernameError(null);
+                    }}
+                  />
+                  {usernameError === "required" && (
+                    <Field.ErrorText>This field is required</Field.ErrorText>
+                  )}
+                  {usernameError === "unavailable" && (
+                    <Field.ErrorText>
+                      Another user with the same name exists
+                    </Field.ErrorText>
+                  )}
+                </Field.Root>
+
+
+                <Field.Root>
+                  <Field.Label>Password</Field.Label>
+                  <PasswordInput
+                    onChange={ (event) => {
+                      setPassword(event.target.value);
+                    }}
+                  />
+                </Field.Root>
+              </Fieldset.Content>
+            </Fieldset.Root>
+          </Dialog.Body>
+
+          <Dialog.Footer>
+            <Dialog.ActionTrigger>
+              <Button variant="outline">Cancel</Button>
+            </Dialog.ActionTrigger>
+
+            <Button onClick={async () => {
+              if (username === "") {
+                setUsernameError("required");
+                return;
+              }
+              const check_res = await checkUser({username});
+              if (typeof check_res === "number" || !check_res.available) {
+                setUsernameError("unavailable");
+                setUsername("");
+                return;
+              }
+
+              const res = await modifyUser({ username, password });
+              if (res == 200) {
+                toaster.create({
+                  description: "Successfully created user",
+                  type: "success",
+                });
+              } else {
+                toaster.create({
+                  description: "An error has occurred while creating user",
+                  type: "error",
+                });
+              }
+              setOpen(false);
+            }}>
+              Create
+            </Button>
+          </Dialog.Footer>
+        </Dialog.Content>
+      </Dialog.Positioner>
+    </Dialog.Root>
+  );
+}
+
+interface EditUserProp {
+  username: string | null;
+  clearUsername: () => void;
+  onExitComplete: () => void;
+}
+
+function EditUser({ username, clearUsername, onExitComplete }: EditUserProp) {
+  const [password, setPassword] = useState<string>("");
+
+  const handleExitComplete = () => {
+    setPassword("");
+    onExitComplete();
+  };
+  
+  return (
+    <Dialog.Root placement="center" open={username !== null} onExitComplete={handleExitComplete}>
+      <Dialog.Backdrop />
+
+      <Dialog.Positioner>
+        <Dialog.Content>
+          <Dialog.Header>
+            <Dialog.Title>Edit '{username}'</Dialog.Title>
+          </Dialog.Header>
+
+          <Dialog.Body p={5}>
+            <Fieldset.Root>
+              <Fieldset.Content>
+                <Field.Root>
+                  <Field.Label>Username</Field.Label>
+                  <Input disabled value={username || ""} />
+                </Field.Root>
+
+                <Field.Root>
+                  <Field.Label>Password</Field.Label>
+                  <PasswordInput
+                    onChange={ (event) => {
+                      setPassword(event.target.value);
+                    }}
+                  />
+                </Field.Root>
+              </Fieldset.Content>
+            </Fieldset.Root>
+          </Dialog.Body>
+
+          <Dialog.Footer>
+            <Button variant="outline" onClick={clearUsername}>Cancel</Button>
+
+            <Button onClick={async () => {
+              if (username === null) return;
+              const res = await modifyUser({ username, password });
+              if (res == 200) {
+                toaster.create({
+                  description: "Successfully modified user",
+                  type: "success",
+                });
+              } else {
+                toaster.create({
+                  description: "An error has occurred while modifying user",
+                  type: "error",
+                });
+              }
+              clearUsername();
+            }}>
+              Update
+            </Button>
+          </Dialog.Footer>
+        </Dialog.Content>
+      </Dialog.Positioner>
+    </Dialog.Root>
+  );
+}
+
+interface DeleteUserProp {
+  username: string | null;
+  onExitComplete: () => void;
+}
+
+function DeleteUser({ username, onExitComplete }: DeleteUserProp) {
+  const [flagLoading, setFlagLoading] = useState<boolean>(false);
+
+  return (
+    <Dialog.Root
+      placement="center"
+      role="alertdialog"
+      onExitComplete={onExitComplete}
+    >
+      <Dialog.Backdrop />
+
+      <Dialog.Positioner>
+        <Dialog.Content>
+          <Dialog.Header>
+            <Dialog.Title>Delete '{username}'?</Dialog.Title>
+          </Dialog.Header>
+
+          <Dialog.Footer>
+            <Dialog.ActionTrigger>
+              <Button variant="outline">Cancel</Button>
+            </Dialog.ActionTrigger>
+            <Dialog.ActionTrigger>
+              <Button
+                colorPalette="red"
+                loading={flagLoading}
+                onClick={async () => {
+                  if (username === null) return;
+                  setFlagLoading(true);
+                  const res = await deleteUser({username});
+                  if (typeof res !== "number" && res.rows_affected == 1) {
+                    toaster.create({
+                      description: "Successfully removed user '" + username + "'",
+                      type: "success",
+                    });
+                  } else if (typeof res !== "number" && res.rows_affected == 0) {
+                    toaster.create({
+                      description:
+                        "Couldn't find any token with the name '" + username + "'",
+                      type: "info",
+                    });
+                  } else {
+                    toaster.create({
+                      description:
+                        "An error has occurred while deleting token '" + username + "'",
                       type: "error",
                     });
                   }

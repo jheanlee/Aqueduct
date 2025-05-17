@@ -116,7 +116,7 @@ void api_session_thread_func(int api_fd, sockaddr_un api_addr) {
           service_info_json["api_service_up"] = shared_resources::flag_api_service_running.load();
           service_info_json["connected_clients"] = shared_resources::map_client.size();
           message.type = API_GET_SERVICE_INFO;
-          message.string = to_string(service_info_json);
+          message.string = service_info_json.dump();
           send_message(api_fd, outbuffer, sizeof(outbuffer), message, send_mutex);
           break;
         }
@@ -140,8 +140,8 @@ void api_session_thread_func(int api_fd, sockaddr_un api_addr) {
             clients_json["clients"].push_back(client_json);
           }
           message.type = API_GET_CURRENT_CLIENTS;
-          message.string = to_string(clients_json);
-          send_large_message(api_fd, client_buffer, sizeof(client_buffer), message, send_mutex);  //  TODO: split if too many clients
+          message.string = clients_json.dump();
+          send_large_message(api_fd, client_buffer, sizeof(client_buffer), message, send_mutex);
           break;
         }
         case API_GENERATE_NEW_TOKEN: {
@@ -151,7 +151,7 @@ void api_session_thread_func(int api_fd, sockaddr_un api_addr) {
           token_json["token"] = new_token.first;
           token_json["hashed"] = new_token.second;
           message.type = API_GENERATE_NEW_TOKEN;
-          message.string = to_string(token_json);
+          message.string = token_json.dump();
           send_message(api_fd, outbuffer, sizeof(outbuffer), message, send_mutex);
           break;
         }

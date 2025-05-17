@@ -37,6 +37,7 @@ static int to_int(Level level) {
     case DEBUG:
       return 10;
   }
+  return -1;
 }
 
 void console(Level level, Code code, const char *detail, const std::string &function) {

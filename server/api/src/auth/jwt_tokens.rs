@@ -1,10 +1,10 @@
-use axum::http::{HeaderMap, StatusCode};
-use axum::response::{IntoResponse, Response};
-use axum::extract::Request;
-use axum::middleware::Next;
-use jsonwebtoken::{get_current_timestamp, Algorithm, Header, Validation};
 use crate::error::ApiError;
 use crate::SHARED_CELL;
+use axum::extract::Request;
+use axum::http::{HeaderMap, StatusCode};
+use axum::middleware::Next;
+use axum::response::Response;
+use jsonwebtoken::{get_current_timestamp, Algorithm, Header, Validation};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct Claims {
