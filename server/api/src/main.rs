@@ -48,11 +48,31 @@ static SHARED_CELL: once_cell::sync::OnceCell<SharedResources> = once_cell::sync
 async fn main() {
   let args = crate::opt::Args::parse();
 
-  // if std::env::consts::OS == "macos" {
-  //   oslog::OsLogger::new("").level_filter(log::LevelFilter::Info);
-  // } else {
-  //   //TODO
-  // }
+  if args.daemon_mode {
+    if cfg!(target_os = "macos") {
+      #[cfg(target_os = "macos")]
+      {
+        oslog::OsLogger::new("cloud.drizzling.aqueduct")
+          .level_filter(log::LevelFilter::Info)
+          .init()
+          .expect("unable to set oslog");
+      }
+    } else {
+      #[cfg(target_os = "linux")]
+      {
+        let formatter = syslog::Formatter3164 {
+          facility: syslog::Facility::LOG_DAEMON,
+          hostname: None,
+          process: "aqueduct-server".into(),
+          pid: 0,
+        };
+        let logger = syslog::unix(formatter).expect("unable to connect to syslog");
+        log::set_boxed_logger(Box::new(syslog::BasicLogger::new(logger)))
+          .map(|()| log::set_max_level(log::LevelFilter::Info))
+          .expect("could not register logger");
+      }
+    }
+  }
 
   let jwt_keys = init_jwt_keys(args.private_key, args.public_key).await.unwrap_or_else(|e| {
     console(Level::Critical, Code::KeyInitFailed, e.to_string().as_str(), "main");

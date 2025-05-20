@@ -16,6 +16,10 @@ namespace config {
 }
 
 namespace shared_resources {
+  #if defined(__OS_LOG_H__)
+  os_log_t os_log_aqueduct;
+  #endif
+
   std::atomic<bool> global_flag_kill(false);
   std::atomic<bool> flag_handling_signal(false);
   std::atomic<bool> flag_tunneling_service_running(false);

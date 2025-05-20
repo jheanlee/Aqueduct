@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(Aqueduct)
+project(Aqueduct VERSION 0.2.0)
 set(CMAKE_CXX_STANDARD 17)
 
 #   server core

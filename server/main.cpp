@@ -6,7 +6,9 @@
 #include <csignal>
 
 #include <unistd.h>
-#if !(defined(__clang__) && defined(__APPLE__))
+#if defined(__clang__) && defined(__APPLE__)
+  #include <os/log.h>
+#else
   #include <sys/syslog.h>
 #endif
 
@@ -25,8 +27,10 @@
 int main(int argc, char *argv[]) {
   register_signal();
   shared_resources::process_start = std::chrono::system_clock::now();
-  #if !(defined(__clang__) && defined(__APPLE__))
-    openlog("aqueduct-server", LOG_PID | LOG_CONS, LOG_USER);
+  #if defined(__OS_LOG_H__)
+    shared_resources::os_log_aqueduct = os_log_create("cloud.drizzling.aqueduct", "network");
+  #else
+    openlog("aqueduct-server", LOG_PID | LOG_CONS, LOG_DAEMON);
   #endif
   opt_handler(argc, argv);
   init_proxy_ports_available();

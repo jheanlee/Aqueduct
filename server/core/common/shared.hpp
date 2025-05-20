@@ -15,6 +15,9 @@
 
   #include <sqlite3.h>
   #include <netinet/in.h>
+  #if defined(__clang__) && defined(__APPLE__)
+    #include <os/log.h>
+  #endif
 
   struct Client {
     const size_t key;
@@ -57,6 +60,10 @@
   }
 
   namespace shared_resources {
+    #if defined(__OS_LOG_H__)
+    extern os_log_t os_log_aqueduct;
+    #endif
+
     extern std::atomic<bool> global_flag_kill;
     extern std::atomic<bool> flag_handling_signal;
     extern std::atomic<bool> flag_tunneling_service_running;

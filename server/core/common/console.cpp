@@ -342,21 +342,21 @@ void console(Level level, Code code, const char *detail, const std::string &func
     #if defined(__OS_LOG_H__)
       switch (level) {
         case CRITICAL:
-          os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_ERROR, "%{public}s", msg_buffer.str().c_str());
+          os_log_with_type(shared_resources::os_log_aqueduct, OS_LOG_TYPE_FAULT, "%{public}s", msg_buffer.str().c_str());
         case ERROR:
-          os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_ERROR, "%{public}s", msg_buffer.str().c_str());
+          os_log_with_type(shared_resources::os_log_aqueduct, OS_LOG_TYPE_ERROR, "%{public}s", msg_buffer.str().c_str());
           break;
         case WARNING:
-          os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEFAULT, "%{public}s", msg_buffer.str().c_str());
+          os_log_with_type(shared_resources::os_log_aqueduct, OS_LOG_TYPE_DEFAULT, "%{public}s", msg_buffer.str().c_str());
           break;
         case NOTICE:
-          os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEFAULT, "%{public}s", msg_buffer.str().c_str());
+          os_log_with_type(shared_resources::os_log_aqueduct, OS_LOG_TYPE_DEFAULT, "%{public}s", msg_buffer.str().c_str());
           break;
         case INFO:
-          os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_INFO, "%{public}s", msg_buffer.str().c_str());
+          os_log_with_type(shared_resources::os_log_aqueduct, OS_LOG_TYPE_INFO, "%{public}s", msg_buffer.str().c_str());
           break;
         case DEBUG:
-          os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEBUG, "%{public}s", msg_buffer.str().c_str());
+          os_log_with_type(shared_resources::os_log_aqueduct, OS_LOG_TYPE_DEBUG, "%{public}s", msg_buffer.str().c_str());
           break;
       }
     #else
@@ -370,7 +370,7 @@ void console(Level level, Code code, const char *detail, const std::string &func
           syslog(LOG_WARNING, "%s", msg_buffer.str().c_str());
           break;
         case NOTICE:
-          syslog(LOG_WARNING, "%s", msg_buffer.str().c_str());
+          syslog(LOG_NOTICE, "%s", msg_buffer.str().c_str());
           break;
         case INFO:
           syslog(LOG_INFO, "%s", msg_buffer.str().c_str());
