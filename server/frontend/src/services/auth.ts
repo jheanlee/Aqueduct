@@ -1,5 +1,6 @@
 import { fetcher } from "../core/fetcher.ts";
 import { isAxiosError } from "axios";
+import {toaster} from "../components/ui/toaster.tsx";
 
 export const login = async (data: { username: string; password: string }) => {
   try {
@@ -27,6 +28,12 @@ export const listUsers = async () => {
     return res.data;
   } catch (error) {
     if (isAxiosError(error)) {
+      if (error.status === 401) {
+        toaster.create({
+          description: "Session expired",
+          type: "error",
+        });
+      }
       return error.status || 500;
     }
     return 500;
@@ -43,6 +50,12 @@ export const checkUser = async (params: {
     return res.data;
   } catch (error) {
     if (isAxiosError(error)) {
+      if (error.status === 401) {
+        toaster.create({
+          description: "Session expired",
+          type: "error",
+        });
+      }
       return error.status || 500;
     }
     return 500;
@@ -58,6 +71,12 @@ export const modifyUser = async (data: {
     return 200;
   } catch (error) {
     if (isAxiosError(error)) {
+      if (error.status === 401) {
+        toaster.create({
+          description: "Session expired",
+          type: "error",
+        });
+      }
       return error.status || 500;
     }
     return 500;
@@ -72,6 +91,12 @@ export const deleteUser = async (data: {
     return res.data;
   } catch (error) {
     if (isAxiosError(error)) {
+      if (error.status === 401) {
+        toaster.create({
+          description: "Session expired",
+          type: "error",
+        });
+      }
       return error.status || 500;
     }
     return 500;
