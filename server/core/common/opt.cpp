@@ -20,9 +20,7 @@
 int ssl_control_port = 30330;
 int proxy_port_start = 51000;
 int proxy_port_limit = 200;
-int timeout_session_millisec = 1000;
 int timeout_proxy_millisec = 1;
-int timeout_api_millisec = 1000;
 int shared_resources::client_db_interval_min = 1;
 std::string db_path_str = "./aqueduct.sqlite";
 const char *db_path = "./aqueduct.sqlite";
@@ -57,7 +55,7 @@ void opt_handler(int argc, char * const argv[]) {
   run->add_option("-s,--port-start", proxy_port_start, "The proxy port of the first client will be <port>, the last being (<port> + port-limit - 1)")->capture_default_str();
   run->add_option("-l,--port-limit", proxy_port_limit, "Proxy ports will have a limit of <count> ports")->capture_default_str();
 
-  run->add_option("--proxy-timeout", timeout_proxy_millisec, "The time(ms) poll() waits each call during proxying. See `man poll` for more information")->capture_default_str();
+  run->add_option("--proxy-timeout", timeout_proxy_millisec, "The time(ms) poll() waits each call during proxying")->capture_default_str();
 
   run->add_option("--client-db-interval", shared_resources::client_db_interval_min, "The interval(min) between automatic writes of client's proxied data to database")->capture_default_str();
 

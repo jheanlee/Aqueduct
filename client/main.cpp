@@ -10,6 +10,11 @@
 
 #include <unistd.h>
 #include <poll.h>
+#if defined(__clang__) && defined(__APPLE__)
+  #include <os/log.h>
+#else
+  #include <sys/syslog.h>
+#endif
 
 #include "tunnel/message.hpp"
 #include "common/config.hpp"
@@ -18,9 +23,15 @@
 #include "tunnel/socket_management.hpp"
 #include "common/console.hpp"
 #include "common/signal_handler.hpp"
+#include "common/shared.hpp"
 
 int main(int argc, char *argv[]) {
   register_signal();
+  #if defined(__OS_LOG_H__)
+    shared_resources::os_log_aqueduct = os_log_create("cloud.drizzling.aqueduct", "core");
+  #else
+    openlog("aqueduct-client", LOG_PID | LOG_CONS, LOG_DAEMON);
+  #endif
   opt_handler(argc, argv);
   init_openssl();
 
@@ -61,7 +72,7 @@ int main(int argc, char *argv[]) {
     signal_handler(EXIT_FAILURE);
   }
 
-  console(INFO, CONNECTED_TO_HOST, (std::string(host) + ':' + std::to_string(host_main_port)).c_str(), "main");
+  console(NOTICE, CONNECTED_TO_HOST, (std::string(host) + ':' + std::to_string(host_main_port)).c_str(), "main");
 
   //  send CONNECT message
   if (ssl_send_message(server_ssl, outbuffer, sizeof(outbuffer), message, send_mutex) <= 0){
@@ -98,7 +109,7 @@ int main(int argc, char *argv[]) {
       SSL_free(server_ssl);
       SSL_CTX_free(ctx);
       close(server_fd);
-      console(INFO, CONNECTION_CLOSED, (std::string(host) + ':' + std::to_string(host_main_port)).c_str(), "main");
+      console(NOTICE, CONNECTION_CLOSED, (std::string(host) + ':' + std::to_string(host_main_port)).c_str(), "main");
       flag_kill = true;
       break;
     } else {
@@ -108,7 +119,7 @@ int main(int argc, char *argv[]) {
           send_heartbeat_message(server_ssl, outbuffer, send_mutex);
           break;
         case STREAM_PORT:
-          console(INFO, STREAM_PORT_OPENED, (std::string(readable_host) + ':' + message.string).c_str(), "main");
+          console(NOTICE, STREAM_PORT_OPENED, (std::string(readable_host) + ':' + message.string).c_str(), "main");
           service_thread = std::thread(service_thread_func, std::ref(flag_kill), std::ref(user_id));
           flag_service_thread = true;
           break;

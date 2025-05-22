@@ -8,7 +8,7 @@
   extern const char *readable_host;
   extern int host_main_port;
 
-  extern int timeout_session_millisec;
+  const int timeout_session_millisec = 1000;
   extern int timeout_proxy_millisec;
 
   extern const char *local_service;

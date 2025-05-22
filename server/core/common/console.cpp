@@ -386,6 +386,7 @@ void console(Level level, Code code, const char *detail, const std::string &func
       switch (level) {
         case CRITICAL:
           os_log_with_type(shared_resources::os_log_aqueduct, OS_LOG_TYPE_FAULT, "%{public}s", msg_buffer.str().c_str());
+          break;
         case ERROR:
           os_log_with_type(shared_resources::os_log_aqueduct, OS_LOG_TYPE_ERROR, "%{public}s", msg_buffer.str().c_str());
           break;
@@ -408,6 +409,7 @@ void console(Level level, Code code, const char *detail, const std::string &func
       switch (level) {
         case CRITICAL:
           syslog(LOG_CRIT, "%s", msg_buffer.str().c_str());
+          break;
         case ERROR:
           syslog(LOG_ERR, "%s", msg_buffer.str().c_str());
           break;
@@ -423,13 +425,12 @@ void console(Level level, Code code, const char *detail, const std::string &func
         case DEBUG:
           syslog(LOG_DEBUG, "%s", msg_buffer.str().c_str());
           break;
-        case INSTRUCTIOn:
+        case INSTRUCTION:
           break;
       }
     #endif
   } else if (!shared_resources::daemon_mode) {
     std::lock_guard<std::mutex> cout_lock(shared_resources::cout_mutex);
     std::cout << cout_buffer.str();
-
   }
 }

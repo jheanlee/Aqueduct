@@ -61,7 +61,7 @@
 
   namespace shared_resources {
     #if defined(__OS_LOG_H__)
-    extern os_log_t os_log_aqueduct;
+      extern os_log_t os_log_aqueduct;
     #endif
 
     extern std::atomic<bool> global_flag_kill;
@@ -109,9 +109,9 @@
   static const int heartbeat_sleep_sec = 30;
   static const int heartbeat_timeout_sec = 30;
 
-  extern int timeout_session_millisec;
+  const int timeout_session_millisec = 1000;
   extern int timeout_proxy_millisec;
-  extern int timeout_api_millisec;
+  const int timeout_api_millisec = 1000;
 
   extern const char *db_path;
 #endif //AQUEDUCT_SHARED_HPP

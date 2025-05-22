@@ -13,6 +13,7 @@
 #include "opt.hpp"
 #include "console.hpp"
 #include "signal_handler.hpp"
+#include "shared.hpp"
 
 std::string readable_host_str = "0.0.0.0";
 const char *host = "0.0.0.0";
@@ -23,7 +24,6 @@ std::string local_service_str = "0.0.0.0";
 const char *local_service = "0.0.0.0";
 int local_service_port = -1;
 
-int timeout_session_millisec = 1000;
 int timeout_proxy_millisec = 1;
 char hostname[NI_MAXHOST];
 std::regex reg_ipv4(R"((\d{1,3}(\.\d{1,3}){3}))");
@@ -44,13 +44,14 @@ void opt_handler(int argc, char * const argv[]) {
 
   app.add_option("-v,--verbose", verbose_level, "Output information detail level (inclusive). 10 for Debug or above, 50 for Critical only. Daemon logs have mask of max(30, verbose_level)")->capture_default_str();
   app.add_option("-t,--token", token, "Token for accessing server. Only use this option on trusted machine");
+  app.add_flag("-D, --daemon-mode", config::daemon_mode, "Disables stdout and use syslog or os_log instead")->capture_default_str();
 
   app.add_option("-H,--host-addr", readable_host_str, "The host to stream to. Accepts ipv4 or domain")->capture_default_str();
   app.add_option("-P,--host-port", host_main_port, "The control port of host")->capture_default_str();
   app.add_option("-s,--service-addr", local_service_str, "The address of the service to be tunneled")->capture_default_str();
   app.add_option("-p,--service-port", local_service_port, "The port of the service to be tunneled")->required();
 
-  app.add_option("--proxy-timeout", timeout_proxy_millisec, "The time(ms) poll() waits each call during proxying. See `man poll` for more information")->capture_default_str();
+  app.add_option("--proxy-timeout", timeout_proxy_millisec, "The time(ms) poll() waits each call during proxying")->capture_default_str();
   
   try {
     app.parse(argc, argv);
@@ -107,6 +108,6 @@ void opt_handler(int argc, char * const argv[]) {
     signal_handler(EXIT_FAILURE);
   }
 
-  console(INFO, INFO_HOST, (std::string(readable_host) + '(' + std::string(host) + ')' + ':' + std::to_string(host_main_port)).c_str(), "option");
-  console(INFO, INFO_SERVICE, (std::string(local_service) + ':' + std::to_string(local_service_port)).c_str(), "option");
+  console(NOTICE, INFO_HOST, (std::string(readable_host) + '(' + std::string(host) + ')' + ':' + std::to_string(host_main_port)).c_str(), "option");
+  console(NOTICE, INFO_SERVICE, (std::string(local_service) + ':' + std::to_string(local_service_port)).c_str(), "option");
 }
