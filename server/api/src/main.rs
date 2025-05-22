@@ -55,7 +55,7 @@ async fn main() {
         oslog::OsLogger::new("cloud.drizzling.aqueduct")
           .level_filter(log::LevelFilter::Info)
           .init()
-          .expect("unable to set oslog");
+          .expect("Unable to initialise oslog");
       }
     } else {
       #[cfg(target_os = "linux")]
@@ -66,10 +66,10 @@ async fn main() {
           process: "aqueduct-server".into(),
           pid: 0,
         };
-        let logger = syslog::unix(formatter).expect("unable to connect to syslog");
+        let logger = syslog::unix(formatter).expect("Unable to connect to syslog");
         log::set_boxed_logger(Box::new(syslog::BasicLogger::new(logger)))
           .map(|()| log::set_max_level(log::LevelFilter::Info))
-          .expect("could not register logger");
+          .expect("Unable to register logger");
       }
     }
   }
@@ -139,6 +139,7 @@ async fn main() {
     console(Level::Critical, Code::SockBindFailed, e.to_string().as_str(), "main");
     panic!();
   });
+  console(Level::Notice, Code::WebuiStarted, "0.0.0.0:30331", "main");
   axum::serve(listener, app).await.unwrap_or_else(|e| {
     console(Level::Critical, Code::SockServeFailed, e.to_string().as_str(), "main");
     panic!();

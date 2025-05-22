@@ -687,9 +687,10 @@ interface NewUserProp {
 
 function NewUser({ onExitComplete }: NewUserProp) {
   const [open, setOpen] = useState<boolean>(false);
-  const [username, setUsername] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
+  const [username, setUsername] = useState<string | null>("");
+  const [password, setPassword] = useState<string | null>("");
   const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const handleExitComplete = () => {
     setOpen(false);
@@ -724,13 +725,18 @@ function NewUser({ onExitComplete }: NewUserProp) {
                     onChange={ async (event) => {
                       if (event.target.value === "") {
                         setUsernameError("required");
-                        setUsername("");
+                        setUsername(null);
+                        return;
+                      }
+                      if (event.target.value.match(RegExp(/^[a-zA-Z][a-zA-Z0-9]{0,31}$/)) === null) {
+                        setUsernameError("invalid_username");
+                        setUsername(null);
                         return;
                       }
                       const res = await checkUser({username: event.target.value});
                       if (typeof res === "number" || !res.available) {
                         setUsernameError("unavailable");
-                        setUsername("");
+                        setUsername(null);
                         return;
                       }
                       setUsername(event.target.value);
@@ -745,16 +751,32 @@ function NewUser({ onExitComplete }: NewUserProp) {
                       Another user with the same name exists
                     </Field.ErrorText>
                   )}
+                  {usernameError === "invalid_username" && (
+                    <Field.ErrorText>
+                      Invalid username
+                    </Field.ErrorText>
+                  )}
                 </Field.Root>
 
 
-                <Field.Root>
+                <Field.Root invalid={passwordError !== null}>
                   <Field.Label>Password</Field.Label>
                   <PasswordInput
                     onChange={ (event) => {
+                      if (event.target.value.match(RegExp(/^[!-~]{1,32}$/)) === null) {
+                        setPasswordError("invalid_password");
+                        setPassword(null);
+                        return;
+                      }
                       setPassword(event.target.value);
+                      setPasswordError(null);
                     }}
                   />
+                  {passwordError === "invalid_password" && (
+                    <Field.ErrorText>
+                      Invalid password
+                    </Field.ErrorText>
+                  )}
                 </Field.Root>
               </Fieldset.Content>
             </Fieldset.Root>
@@ -766,8 +788,19 @@ function NewUser({ onExitComplete }: NewUserProp) {
             </Dialog.ActionTrigger>
 
             <Button onClick={async () => {
+              if (username === null || password === null) {
+                return;
+              }
               if (username === "") {
                 setUsernameError("required");
+                return;
+              }
+              if (username.match(RegExp(/^[a-zA-Z][a-zA-Z0-9]{0,31}$/)) === null) {
+                setUsernameError("invalid_username");
+                return;
+              }
+              if (password.match(RegExp(/^[!-~]{1,32}$/)) === null) {
+                setPasswordError("invalid_password");
                 return;
               }
               const check_res = await checkUser({username});
@@ -807,7 +840,8 @@ interface EditUserProp {
 }
 
 function EditUser({ username, clearUsername, onExitComplete }: EditUserProp) {
-  const [password, setPassword] = useState<string>("");
+  const [password, setPassword] = useState<string | null>("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const handleExitComplete = () => {
     setPassword("");
@@ -832,13 +866,24 @@ function EditUser({ username, clearUsername, onExitComplete }: EditUserProp) {
                   <Input disabled value={username || ""} />
                 </Field.Root>
 
-                <Field.Root>
+                <Field.Root invalid={passwordError !== null}>
                   <Field.Label>Password</Field.Label>
                   <PasswordInput
                     onChange={ (event) => {
+                      if (event.target.value.match(RegExp(/^[!-~]{1,32}$/)) === null) {
+                        setPasswordError("invalid_password");
+                        setPassword(null);
+                        return;
+                      }
+                      setPasswordError(null);
                       setPassword(event.target.value);
                     }}
                   />
+                  {passwordError === "invalid_password" && (
+                    <Field.ErrorText>
+                      Invalid password
+                    </Field.ErrorText>
+                  )}
                 </Field.Root>
               </Fieldset.Content>
             </Fieldset.Root>
@@ -848,7 +893,13 @@ function EditUser({ username, clearUsername, onExitComplete }: EditUserProp) {
             <Button variant="outline" onClick={clearUsername}>Cancel</Button>
 
             <Button onClick={async () => {
-              if (username === null) return;
+              if (username === null || password === null) {
+                return;
+              }
+              if (password.match(RegExp(/^[!-~]{1,32}$/)) === null) {
+                setPasswordError("invalid_password");
+                return;
+              }
               const res = await modifyUser({ username, password });
               if (res == 200) {
                 toaster.create({

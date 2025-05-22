@@ -1,11 +1,11 @@
 //
 // Created by Jhean Lee on 2025/2/6.
 //
-
-#include <sqlite3.h>
 #include <iostream>
 #include <mutex>
 #include <chrono>
+
+#include <sqlite3.h>
 
 #include "authentication.hpp"
 #include "../common/shared.hpp"

@@ -155,7 +155,7 @@ void console(Level level, Code code, const char *detail, const std::string &func
       msg_buffer << "Server has returned an error";
       break;
     case HOST_RESPONSE_TIMEOUT:
-      msg_buffer << "Host is not resposive. Timed out";
+      msg_buffer << "Host is not responsive. Timed out";
       break;
     case ENTER_TOKEN_INSTRUCTION:
       msg_buffer << "Please enter your token:";

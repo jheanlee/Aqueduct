@@ -50,6 +50,9 @@ pub enum Code {
   
   MessageInvalid,
   ApiDumpFailed,
+
+  WebuiStarted,
+  
   ApiError,
   
   #[allow(dead_code)]
@@ -127,6 +130,9 @@ pub fn console(level: Level, code: Code, detail: &str, function: &str) {
     }
     Code::ApiDumpFailed => {
       msg += "Failed to resolve api message";
+    }
+    Code::WebuiStarted => {
+      msg += "Webui running on"
     }
     Code::ApiError => {
       msg += "Error";

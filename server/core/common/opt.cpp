@@ -15,6 +15,7 @@
 #include "../database/database.hpp"
 #include "signal_handler.hpp"
 #include "../key/generation.hpp"
+#include "../database/web_user.hpp"
 
 int ssl_control_port = 30330;
 int proxy_port_start = 51000;
@@ -73,6 +74,13 @@ void opt_handler(int argc, char * const argv[]) {
 
   CLI::App *token_list = token->add_subcommand("list", "List all tokens")->fallthrough();
 
+  //  web-user
+  CLI::App *web_user = app.add_subcommand("web-user", "User management for webui")->require_subcommand(1, 1)->fallthrough();
+
+  CLI::App *web_user_new = web_user->add_subcommand("new", "Create a new user")->fallthrough();
+  CLI::App *web_user_modify = web_user->add_subcommand("modify", "Modify a user")->fallthrough();
+  CLI::App *web_user_remove = web_user->add_subcommand("remove", "Remove a user")->fallthrough();
+
   try {
     app.parse(argc, argv);
   } catch (const CLI::ParseError &e) {
@@ -80,6 +88,37 @@ void opt_handler(int argc, char * const argv[]) {
   }
 
   db_path = db_path_str.c_str();
+
+  //  token actions
+  if (*token) {
+    open_db(&shared_resources::db);
+    create_sqlite_functions(shared_resources::db);
+    check_tables(shared_resources::db);
+    if (*token_new) {
+      int status = new_token(name, notes, expiry_days);
+      signal_handler(status);
+    } else if (*token_remove) {
+      int status = remove_token(name);
+      signal_handler(status);
+    } else if (*token_list) {
+      int status = list_token();
+      signal_handler(status);
+    }
+  }
+
+  //  web-user actions
+  if (*web_user) {
+    open_db(&shared_resources::db);
+    create_sqlite_functions(shared_resources::db);
+    check_tables(shared_resources::db);
+    if (*web_user_new) {
+      signal_handler(new_user());
+    } else if (*web_user_modify) {
+      signal_handler(modify_user());
+    } else if (*web_user_remove) {
+      signal_handler(remove_user());
+    }
+  }
 
   //  key/cert generation
   struct stat st;
@@ -117,23 +156,6 @@ void opt_handler(int argc, char * const argv[]) {
   config::ssl_private_key_path = config::ssl_private_key_path_str.c_str();
   config::jwt_public_key_path = config::jwt_public_key_path_str.c_str();
   config::jwt_private_key_path = config::jwt_private_key_path_str.c_str();
-
-  //  token actions
-  if (*token) {
-    open_db(&shared_resources::db);
-    create_sqlite_functions(shared_resources::db);
-    check_tables(shared_resources::db);
-    if (*token_new) {
-      int status = new_token(name, notes, expiry_days);
-      signal_handler(status);
-    } else if (*token_remove) {
-      int status = remove_token(name);
-      signal_handler(status);
-    } else if (*token_list) {
-      int status = list_token();
-      signal_handler(status);
-    }
-  }
 
   //  port validation
   if (proxy_port_start <= 0 || proxy_port_start > 65535) {

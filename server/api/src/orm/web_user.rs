@@ -1,11 +1,11 @@
 use crate::error::ApiError;
 use crate::SHARED_CELL;
-use data_encoding::{BASE32, BASE64};
+use data_encoding::BASE32;
 use entity::entities::prelude::WebAuth;
 use entity::entities::web_auth;
 use openssl::rand::rand_bytes;
 use openssl::sha::Sha256;
-use sea_orm::{EntityTrait, QuerySelect, SelectColumns, Set};
+use sea_orm::{EntityTrait, Set};
 
 pub async fn if_user_exists(username: String) -> Result<bool, ApiError> {
   let cell = SHARED_CELL.get().unwrap();
@@ -19,7 +19,7 @@ pub async fn user_update(username: String, password: String) -> Result<(), ApiEr
 
   let mut salt : [u8; 8] = [0; 8];
   rand_bytes(&mut salt)?;
-  let encoded_salt = BASE64.encode(&salt);
+  let encoded_salt = BASE32.encode(&salt);
 
   let mut hasher = Sha256::new();
   hasher.update(&encoded_salt.as_bytes());

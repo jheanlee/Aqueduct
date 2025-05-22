@@ -35,8 +35,15 @@ pub struct UserModification {
   password: String
 }
 pub async fn modify_web_user(Json(modification): Json<UserModification>) -> Result<impl IntoResponse, ApiError> {
-  user_update(modification.username, modification.password).await?;
-  Ok(())
+  let username_regex = regex::Regex::new(r"^[a-zA-Z][a-zA-Z0-9]{0,31}$")?;
+  let password_regex = regex::Regex::new(r"^[!-~]{1,32}$")?;
+  
+  if username_regex.is_match(modification.username.as_str()) && password_regex.is_match(modification.password.as_str()) {
+    user_update(modification.username, modification.password).await?;
+    Ok(StatusCode::OK)
+  } else {
+    Ok(StatusCode::BAD_REQUEST)
+  }
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

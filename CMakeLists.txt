@@ -33,6 +33,8 @@ add_executable(aqueduct-server
         server/core/children/token.hpp
         server/core/key/generation.cpp
         server/core/key/generation.hpp
+        server/core/database/web_user.cpp
+        server/core/database/web_user.hpp
 )
 
 #   client core

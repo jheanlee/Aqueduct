@@ -36,12 +36,14 @@ static int to_int(Level level) {
       return 20;
     case DEBUG:
       return 10;
+    case INSTRUCTION:
+      return -1;
   }
   return -1;
 }
 
 void console(Level level, Code code, const char *detail, const std::string &function) {
-  if (to_int(level) < verbose_level) return;
+  if (to_int(level) < verbose_level && level != INSTRUCTION) return;
 
   std::ostringstream cout_buffer, msg_buffer;
 
@@ -71,6 +73,8 @@ void console(Level level, Code code, const char *detail, const std::string &func
       break;
     case DEBUG:
       cout_buffer << "[DEBUG] ";
+      break;
+    case INSTRUCTION:
       break;
   }
   cout_buffer << RESET;
@@ -314,6 +318,45 @@ void console(Level level, Code code, const char *detail, const std::string &func
     case CREATE_DIR_FAILED:
       msg_buffer << "Unable to create directory";
       break;
+    case USER_CREATED:
+      msg_buffer << "User created:";
+      break;
+    case USER_MODIFIED:
+      msg_buffer << "User modified:";
+      break;
+    case USER_REMOVED:
+      msg_buffer << "User removed:";
+      break;
+    case USERNAME_INVALID:
+      msg_buffer << "Invalid username. Aborting";
+      break;
+    case PASSWORD_INVALID:
+      msg_buffer << "Invalid password. Aborting";
+      break;
+    case USERNAME_USED:
+      msg_buffer << "Username already exists";
+      break;
+    case USERNAME_NOT_FOUND:
+      msg_buffer << "Username not found";
+      break;
+    case UNKNOWN_OPTION:
+      msg_buffer << "Unknown option. Aborting";
+      break;
+    case USERNAME_NEW_INSTRUCTION:
+      msg_buffer << "Please enter the username of the new user:";
+      break;
+    case USERNAME_MODIFY_INSTRUCTION:
+      msg_buffer << "Please enter the username of the user to modify:";
+      break;
+    case USERNAME_REMOVE_INSTRUCTION:
+      msg_buffer << "Please enter the username of the user to REMOVE:";
+      break;
+    case PASSWORD_NEW_INSTRUCTION:
+      msg_buffer << "Please set a password for this user:";
+      break;
+    case REMOVE_DOUBLE_CHECK_INSTRUCTION:
+      msg_buffer << "Enter the username again to confirm:";
+      break;
     case SIGNAL:
       msg_buffer << "Closing with signal";
       break;
@@ -358,6 +401,8 @@ void console(Level level, Code code, const char *detail, const std::string &func
         case DEBUG:
           os_log_with_type(shared_resources::os_log_aqueduct, OS_LOG_TYPE_DEBUG, "%{public}s", msg_buffer.str().c_str());
           break;
+        case INSTRUCTION:
+          break;
       }
     #else
       switch (level) {
@@ -378,10 +423,13 @@ void console(Level level, Code code, const char *detail, const std::string &func
         case DEBUG:
           syslog(LOG_DEBUG, "%s", msg_buffer.str().c_str());
           break;
+        case INSTRUCTIOn:
+          break;
       }
     #endif
   } else if (!shared_resources::daemon_mode) {
     std::lock_guard<std::mutex> cout_lock(shared_resources::cout_mutex);
     std::cout << cout_buffer.str();
+
   }
 }
