@@ -105,7 +105,7 @@ async fn main() {
     clients: Arc::new(Mutex::new((false, vec![]))),
   };
 
-  let frontend_server_dir = tower_http::services::ServeDir::new("frontend");
+  let frontend_server_dir = tower_http::services::ServeDir::new("dist");
 
   let arc_state = Arc::new(state);
   let _status_thread = tokio::spawn(status_thread_func(Arc::clone(&arc_state.socket_core)));

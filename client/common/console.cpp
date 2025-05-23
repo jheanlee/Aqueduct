@@ -4,6 +4,12 @@
 #include <iostream>
 #include <sstream>
 
+#if defined(__clang__) && defined(__APPLE__)
+  #include <os/log.h>
+#else
+  #include <sys/syslog.h>
+#endif
+
 #include "console.hpp"
 #include "shared.hpp"
 
@@ -233,27 +239,27 @@ void console(Level level, Code code, const char *detail, const std::string &func
       }
     #else
     switch (level) {
-        case CRITICAL:
-          syslog(LOG_CRIT, "%s", msg_buffer.str().c_str());
-          break;
-        case ERROR:
-          syslog(LOG_ERR, "%s", msg_buffer.str().c_str());
-          break;
-        case WARNING:
-          syslog(LOG_WARNING, "%s", msg_buffer.str().c_str());
-          break;
-        case NOTICE:
-          syslog(LOG_NOTICE, "%s", msg_buffer.str().c_str());
-          break;
-        case INFO:
-          syslog(LOG_INFO, "%s", msg_buffer.str().c_str());
-          break;
-        case DEBUG:
-          syslog(LOG_DEBUG, "%s", msg_buffer.str().c_str());
-          break;
-        case INSTRUCTION:
-          break;
-      }
+      case CRITICAL:
+      syslog(LOG_CRIT, "%s", msg_buffer.str().c_str());
+        break;
+      case ERROR:
+        syslog(LOG_ERR, "%s", msg_buffer.str().c_str());
+        break;
+      case WARNING:
+        syslog(LOG_WARNING, "%s", msg_buffer.str().c_str());
+        break;
+      case NOTICE:
+        syslog(LOG_NOTICE, "%s", msg_buffer.str().c_str());
+        break;
+      case INFO:
+        syslog(LOG_INFO, "%s", msg_buffer.str().c_str());
+        break;
+      case DEBUG:
+        syslog(LOG_DEBUG, "%s", msg_buffer.str().c_str());
+        break;
+      case INSTRUCTION:
+        break;
+    }
   #endif
   } else if (!config::daemon_mode) {
     std::lock_guard<std::mutex> cout_lock(shared_resources::cout_mutex);
