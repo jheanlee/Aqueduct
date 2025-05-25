@@ -16,7 +16,9 @@ import {
   Input,
   NumberInput,
   Spacer,
-  Table, Tabs, useClipboard,
+  Table,
+  Tabs,
+  useClipboard,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import {
@@ -28,8 +30,13 @@ import {
 import { MdDelete, MdEdit } from "react-icons/md";
 import { RxPlus } from "react-icons/rx";
 import { toaster } from "../components/ui/toaster.tsx";
-import {PasswordInput} from "../components/ui/password-input.tsx";
-import {checkUser, deleteUser, listUsers, modifyUser} from "../services/auth.ts";
+import { PasswordInput } from "../components/ui/password-input.tsx";
+import {
+  checkUser,
+  deleteUser,
+  listUsers,
+  modifyUser,
+} from "../services/auth.ts";
 
 function Access() {
   return (
@@ -48,7 +55,6 @@ function Access() {
           <WebManagement />
         </Tabs.Content>
       </Tabs.Root>
-
     </Container>
   );
 }
@@ -63,6 +69,11 @@ function Tokens() {
       expiry: number | null;
     }[]
   >([]);
+  const [editToken, setEditToken] = useState<{
+    name: string;
+    notes: string | null;
+  } | null>(null);
+  const [deleteTokenName, setDeleteTokenName] = useState<string | null>(null);
 
   useEffect(() => {
     void fetchData();
@@ -82,7 +93,7 @@ function Tokens() {
     <>
       {tokensError && (
         <Alert.Root status="error" m={3}>
-          <Alert.Indicator/>
+          <Alert.Indicator />
           <Alert.Content>
             <Alert.Title>Connection Lost</Alert.Title>
             <Alert.Description>
@@ -115,7 +126,8 @@ function Tokens() {
                 <Table.Cell>{item.name}</Table.Cell>
                 <Table.Cell>{item.notes}</Table.Cell>
                 <Table.Cell>
-                  {(item.expiry !== null) ? new Date(item.expiry * 1000)
+                  {item.expiry !== null
+                    ? new Date(item.expiry * 1000)
                         .toISOString()
                         .replace("T", " ")
                         .replace(".000Z", " UTC")
@@ -123,12 +135,22 @@ function Tokens() {
                 </Table.Cell>
                 <Table.Cell>
                   <Group>
-                    <EditToken
-                      name={item.name}
-                      notes={item.notes}
-                      onExitComplete={fetchData}
-                    />
-                    <DeleteToken name={item.name} onExitComplete={fetchData} />
+                    <IconButton
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setEditToken({ name: item.name, notes: item.notes })
+                      }
+                    >
+                      <MdEdit />
+                    </IconButton>
+                    <IconButton
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDeleteTokenName(item.name)}
+                    >
+                      <MdDelete />
+                    </IconButton>
                   </Group>
                 </Table.Cell>
               </Table.Row>
@@ -136,6 +158,22 @@ function Tokens() {
           </For>
         </Table.Body>
       </Table.Root>
+
+      <EditToken
+        name={editToken?.name ?? null}
+        notes={editToken?.notes ?? null}
+        onExitComplete={async () => {
+          await fetchData();
+          setEditToken(null);
+        }}
+      />
+      <DeleteToken
+        name={deleteTokenName}
+        onExitComplete={async () => {
+          await fetchData();
+          setDeleteTokenName(null);
+        }}
+      />
     </>
   );
 }
@@ -153,7 +191,7 @@ function NewToken({ onExitComplete }: NewTokenProps) {
   const [tokenGenerated, setTokenGenerated] = useState<boolean>(false);
   const [newToken, setNewToken] = useState<string | null>(null);
 
-  const clipboard = useClipboard({value: newToken || ""});
+  const clipboard = useClipboard({ value: newToken || "" });
 
   const handleExitComplete = () => {
     setNameError(null);
@@ -220,7 +258,7 @@ function NewToken({ onExitComplete }: NewTokenProps) {
                     <Input
                       onChange={(event) => {
                         setNewNotes(
-                          (event.target.value !== "") ? event.target.value : null,
+                          event.target.value !== "" ? event.target.value : null,
                         );
                       }}
                     />
@@ -253,14 +291,19 @@ function NewToken({ onExitComplete }: NewTokenProps) {
                   <Alert.Indicator />
                   <Alert.Title>New token:</Alert.Title>
                   <Alert.Description>
-                    <Code h="100%" size="lg" onClick={ () => {
+                    <Code
+                      h="100%"
+                      size="lg"
+                      onClick={() => {
                         clipboard.copy();
                         toaster.create({
                           description: "Token has been copied to clipboard",
                           type: "info",
                         });
-                      }
-                    }>{newToken}</Code>
+                      }}
+                    >
+                      {newToken}
+                    </Code>
                   </Alert.Description>
                 </Alert.Root>
               </Flex>
@@ -301,8 +344,8 @@ function NewToken({ onExitComplete }: NewTokenProps) {
                   const res = await modifyToken({
                     name: newName,
                     token_update: true,
-                    notes: (newNotes != "") ? newNotes : null,
-                    expiry_days: (newExpiry != 0) ? newExpiry : null,
+                    notes: newNotes != "" ? newNotes : null,
+                    expiry_days: newExpiry != 0 ? newExpiry : null,
                   });
 
                   setTokenGenerated(true);
@@ -330,7 +373,7 @@ function NewToken({ onExitComplete }: NewTokenProps) {
 }
 
 interface EditTokenProp {
-  name: string;
+  name: string | null;
   notes: string | null;
   onExitComplete: () => void;
 }
@@ -343,7 +386,7 @@ function EditToken({ name, notes, onExitComplete }: EditTokenProp) {
   const [tokenGenerated, setTokenGenerated] = useState<boolean>(false);
   const [newToken, setNewToken] = useState<string | null>(null);
 
-  const clipboard = useClipboard({value: newToken || ""});
+  const clipboard = useClipboard({ value: newToken || "" });
 
   const handleExitComplete = () => {
     setNewNotes(notes);
@@ -356,13 +399,11 @@ function EditToken({ name, notes, onExitComplete }: EditTokenProp) {
   };
 
   return (
-    <Dialog.Root placement="center" onExitComplete={handleExitComplete}>
-      <Dialog.Trigger>
-        <IconButton variant="outline" size="sm">
-          <MdEdit />
-        </IconButton>
-      </Dialog.Trigger>
-
+    <Dialog.Root
+      placement="center"
+      open={name !== null}
+      onExitComplete={handleExitComplete}
+    >
       <Dialog.Backdrop />
 
       <Dialog.Positioner>
@@ -377,16 +418,16 @@ function EditToken({ name, notes, onExitComplete }: EditTokenProp) {
                 <Fieldset.Content>
                   <Field.Root>
                     <Field.Label>Name</Field.Label>
-                    <Input disabled value={name} />
+                    <Input disabled value={name ?? ""} />
                   </Field.Root>
 
                   <Field.Root>
                     <Field.Label>Notes</Field.Label>
                     <Input
-                      value={(newNotes !== null) ? newNotes : ""}
+                      value={newNotes !== null ? newNotes : ""}
                       onChange={(event) => {
                         setNewNotes(
-                          (event.target.value != "") ? event.target.value : null,
+                          event.target.value != "" ? event.target.value : null,
                         );
                       }}
                     />
@@ -434,14 +475,19 @@ function EditToken({ name, notes, onExitComplete }: EditTokenProp) {
                 <Alert.Indicator />
                 <Alert.Title>New token:</Alert.Title>
                 <Alert.Description>
-                  <Code h="100%" size="lg" onClick={ () => {
+                  <Code
+                    h="100%"
+                    size="lg"
+                    onClick={() => {
                       clipboard.copy();
                       toaster.create({
                         description: "Token has been copied to clipboard",
                         type: "info",
                       });
-                    }
-                  }>{newToken}</Code>
+                    }}
+                  >
+                    {newToken}
+                  </Code>
                 </Alert.Description>
               </Alert.Root>
             )}
@@ -467,18 +513,22 @@ function EditToken({ name, notes, onExitComplete }: EditTokenProp) {
 
           <Dialog.Footer>
             {!tokenGenerated && (
-              <Dialog.ActionTrigger>
-                <Button variant="outline">Cancel</Button>
-              </Dialog.ActionTrigger>
+              <Button variant="outline" onClick={onExitComplete}>
+                Cancel
+              </Button>
             )}
             {!tokenGenerated && (
               <Button
                 onClick={async () => {
+                  if (name === null) {
+                    return;
+                  }
+
                   const res = await modifyToken({
                     name: name,
                     token_update: update,
-                    notes: (newNotes != "") ? newNotes : null,
-                    expiry_days: (newExpiry != 0) ? newExpiry : null,
+                    notes: newNotes != "" ? newNotes : null,
+                    expiry_days: newExpiry != 0 ? newExpiry : null,
                   });
 
                   setTokenGenerated(true);
@@ -495,9 +545,9 @@ function EditToken({ name, notes, onExitComplete }: EditTokenProp) {
             )}
 
             {tokenGenerated && (
-              <Dialog.ActionTrigger>
-                <Button variant="outline">Close</Button>
-              </Dialog.ActionTrigger>
+              <Button variant="outline" onClick={onExitComplete}>
+                Close
+              </Button>
             )}
           </Dialog.Footer>
         </Dialog.Content>
@@ -507,7 +557,7 @@ function EditToken({ name, notes, onExitComplete }: EditTokenProp) {
 }
 
 interface DeleteTokenProp {
-  name: string;
+  name: string | null;
   onExitComplete: () => void;
 }
 
@@ -518,14 +568,9 @@ function DeleteToken({ name, onExitComplete }: DeleteTokenProp) {
     <Dialog.Root
       placement="center"
       role="alertdialog"
+      open={name !== null}
       onExitComplete={onExitComplete}
     >
-      <Dialog.Trigger>
-        <IconButton variant="outline" size="sm">
-          <MdDelete />
-        </IconButton>
-      </Dialog.Trigger>
-
       <Dialog.Backdrop />
 
       <Dialog.Positioner>
@@ -535,42 +580,48 @@ function DeleteToken({ name, onExitComplete }: DeleteTokenProp) {
           </Dialog.Header>
 
           <Dialog.Footer>
-            <Dialog.ActionTrigger>
-              <Button variant="outline">Cancel</Button>
-            </Dialog.ActionTrigger>
-            <Dialog.ActionTrigger>
-              <Button
-                colorPalette="red"
-                loading={flagLoading}
-                onClick={async () => {
-                  setFlagLoading(true);
-                  const res = await deleteToken(name);
-                  if (typeof res !== "number" && res.rows_affected == 1) {
-                    toaster.create({
-                      description: "Successfully removed token '" + name + "'",
-                      type: "success",
-                    });
-                  } else if (typeof res !== "number" && res.rows_affected == 0) {
-                    toaster.create({
-                      description:
-                        "Couldn't find any token with the name '" + name + "'",
-                      type: "info",
-                    });
-                  } else {
-                    toaster.create({
-                      description:
-                        "An error has occurred while deleting token '" +
-                        name +
-                        "'",
-                      type: "error",
-                    });
-                  }
-                  setFlagLoading(false);
-                }}
-              >
-                Delete
-              </Button>
-            </Dialog.ActionTrigger>
+            <Button variant="outline" onClick={onExitComplete}>
+              Cancel
+            </Button>
+            <Button
+              colorPalette="red"
+              loading={flagLoading}
+              onClick={async () => {
+                if (name === null) {
+                  return;
+                }
+
+                setFlagLoading(true);
+
+                const res = await deleteToken(name);
+                if (typeof res !== "number" && res.rows_affected == 1) {
+                  toaster.create({
+                    description: "Successfully removed token '" + name + "'",
+                    type: "success",
+                  });
+                } else if (typeof res !== "number" && res.rows_affected == 0) {
+                  toaster.create({
+                    description:
+                      "Couldn't find any token with the name '" + name + "'",
+                    type: "info",
+                  });
+                } else {
+                  toaster.create({
+                    description:
+                      "An error has occurred while deleting token '" +
+                      name +
+                      "'",
+                    type: "error",
+                  });
+                }
+
+                setFlagLoading(false);
+
+                onExitComplete();
+              }}
+            >
+              Delete
+            </Button>
           </Dialog.Footer>
         </Dialog.Content>
       </Dialog.Positioner>
@@ -581,14 +632,13 @@ function DeleteToken({ name, onExitComplete }: DeleteTokenProp) {
 function WebManagement() {
   const [users, setUsers] = useState<
     {
-      "username": string
+      username: string;
     }[]
   >([]);
   const [usersError, setUsersError] = useState<boolean>(false);
-  
+
   const [editUsername, setEditUsername] = useState<string | null>(null);
   const [deleteUsername, setDeleteUsername] = useState<string | null>(null);
-  
 
   useEffect(() => {
     void fetchData();
@@ -667,16 +717,18 @@ function WebManagement() {
 
       <EditUser
         username={editUsername}
-        clearUsername={() => setEditUsername(null)}
-        onExitComplete={ async () => {
+        onExitComplete={async () => {
           await fetchData();
           setEditUsername(null);
         }}
       />
-      <DeleteUser username={deleteUsername} onExitComplete={async () => {
-        await fetchData();
-        setDeleteUsername(null);
-      }} />
+      <DeleteUser
+        username={deleteUsername}
+        onExitComplete={async () => {
+          await fetchData();
+          setDeleteUsername(null);
+        }}
+      />
     </>
   );
 }
@@ -701,7 +753,12 @@ function NewUser({ onExitComplete }: NewUserProp) {
   };
 
   return (
-    <Dialog.Root placement="center" open={open} onOpenChange={(event) => setOpen(event.open)} onExitComplete={handleExitComplete}>
+    <Dialog.Root
+      placement="center"
+      open={open}
+      onOpenChange={(event) => setOpen(event.open)}
+      onExitComplete={handleExitComplete}
+    >
       <Dialog.Trigger>
         <IconButton variant="outline" size="sm">
           <RxPlus />
@@ -722,18 +779,24 @@ function NewUser({ onExitComplete }: NewUserProp) {
                 <Field.Root invalid={usernameError !== null}>
                   <Field.Label>Username</Field.Label>
                   <Input
-                    onChange={ async (event) => {
+                    onChange={async (event) => {
                       if (event.target.value === "") {
                         setUsernameError("required");
                         setUsername(null);
                         return;
                       }
-                      if (event.target.value.match(RegExp(/^[a-zA-Z][a-zA-Z0-9]{0,31}$/)) === null) {
+                      if (
+                        event.target.value.match(
+                          RegExp(/^[a-zA-Z][a-zA-Z0-9]{0,31}$/),
+                        ) === null
+                      ) {
                         setUsernameError("invalid_username");
                         setUsername(null);
                         return;
                       }
-                      const res = await checkUser({username: event.target.value});
+                      const res = await checkUser({
+                        username: event.target.value,
+                      });
                       if (typeof res === "number" || !res.available) {
                         setUsernameError("unavailable");
                         setUsername(null);
@@ -752,18 +815,18 @@ function NewUser({ onExitComplete }: NewUserProp) {
                     </Field.ErrorText>
                   )}
                   {usernameError === "invalid_username" && (
-                    <Field.ErrorText>
-                      Invalid username
-                    </Field.ErrorText>
+                    <Field.ErrorText>Invalid username</Field.ErrorText>
                   )}
                 </Field.Root>
-
 
                 <Field.Root invalid={passwordError !== null}>
                   <Field.Label>Password</Field.Label>
                   <PasswordInput
-                    onChange={ (event) => {
-                      if (event.target.value.match(RegExp(/^[!-~]{1,32}$/)) === null) {
+                    onChange={(event) => {
+                      if (
+                        event.target.value.match(RegExp(/^[!-~]{1,32}$/)) ===
+                        null
+                      ) {
                         setPasswordError("invalid_password");
                         setPassword(null);
                         return;
@@ -773,9 +836,7 @@ function NewUser({ onExitComplete }: NewUserProp) {
                     }}
                   />
                   {passwordError === "invalid_password" && (
-                    <Field.ErrorText>
-                      Invalid password
-                    </Field.ErrorText>
+                    <Field.ErrorText>Invalid password</Field.ErrorText>
                   )}
                 </Field.Root>
               </Fieldset.Content>
@@ -787,43 +848,47 @@ function NewUser({ onExitComplete }: NewUserProp) {
               <Button variant="outline">Cancel</Button>
             </Dialog.ActionTrigger>
 
-            <Button onClick={async () => {
-              if (username === null || password === null) {
-                return;
-              }
-              if (username === "") {
-                setUsernameError("required");
-                return;
-              }
-              if (username.match(RegExp(/^[a-zA-Z][a-zA-Z0-9]{0,31}$/)) === null) {
-                setUsernameError("invalid_username");
-                return;
-              }
-              if (password.match(RegExp(/^[!-~]{1,32}$/)) === null) {
-                setPasswordError("invalid_password");
-                return;
-              }
-              const check_res = await checkUser({username});
-              if (typeof check_res === "number" || !check_res.available) {
-                setUsernameError("unavailable");
-                setUsername("");
-                return;
-              }
+            <Button
+              onClick={async () => {
+                if (username === null || password === null) {
+                  return;
+                }
+                if (username === "") {
+                  setUsernameError("required");
+                  return;
+                }
+                if (
+                  username.match(RegExp(/^[a-zA-Z][a-zA-Z0-9]{0,31}$/)) === null
+                ) {
+                  setUsernameError("invalid_username");
+                  return;
+                }
+                if (password.match(RegExp(/^[!-~]{1,32}$/)) === null) {
+                  setPasswordError("invalid_password");
+                  return;
+                }
+                const check_res = await checkUser({ username });
+                if (typeof check_res === "number" || !check_res.available) {
+                  setUsernameError("unavailable");
+                  setUsername("");
+                  return;
+                }
 
-              const res = await modifyUser({ username, password });
-              if (res == 200) {
-                toaster.create({
-                  description: "Successfully created user",
-                  type: "success",
-                });
-              } else {
-                toaster.create({
-                  description: "An error has occurred while creating user",
-                  type: "error",
-                });
-              }
-              setOpen(false);
-            }}>
+                const res = await modifyUser({ username, password });
+                if (res == 200) {
+                  toaster.create({
+                    description: "Successfully created user",
+                    type: "success",
+                  });
+                } else {
+                  toaster.create({
+                    description: "An error has occurred while creating user",
+                    type: "error",
+                  });
+                }
+                setOpen(false);
+              }}
+            >
               Create
             </Button>
           </Dialog.Footer>
@@ -835,11 +900,10 @@ function NewUser({ onExitComplete }: NewUserProp) {
 
 interface EditUserProp {
   username: string | null;
-  clearUsername: () => void;
   onExitComplete: () => void;
 }
 
-function EditUser({ username, clearUsername, onExitComplete }: EditUserProp) {
+function EditUser({ username, onExitComplete }: EditUserProp) {
   const [password, setPassword] = useState<string | null>("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
@@ -847,9 +911,13 @@ function EditUser({ username, clearUsername, onExitComplete }: EditUserProp) {
     setPassword("");
     onExitComplete();
   };
-  
+
   return (
-    <Dialog.Root placement="center" open={username !== null} onExitComplete={handleExitComplete}>
+    <Dialog.Root
+      placement="center"
+      open={username !== null}
+      onExitComplete={handleExitComplete}
+    >
       <Dialog.Backdrop />
 
       <Dialog.Positioner>
@@ -869,8 +937,11 @@ function EditUser({ username, clearUsername, onExitComplete }: EditUserProp) {
                 <Field.Root invalid={passwordError !== null}>
                   <Field.Label>Password</Field.Label>
                   <PasswordInput
-                    onChange={ (event) => {
-                      if (event.target.value.match(RegExp(/^[!-~]{1,32}$/)) === null) {
+                    onChange={(event) => {
+                      if (
+                        event.target.value.match(RegExp(/^[!-~]{1,32}$/)) ===
+                        null
+                      ) {
                         setPasswordError("invalid_password");
                         setPassword(null);
                         return;
@@ -880,9 +951,7 @@ function EditUser({ username, clearUsername, onExitComplete }: EditUserProp) {
                     }}
                   />
                   {passwordError === "invalid_password" && (
-                    <Field.ErrorText>
-                      Invalid password
-                    </Field.ErrorText>
+                    <Field.ErrorText>Invalid password</Field.ErrorText>
                   )}
                 </Field.Root>
               </Fieldset.Content>
@@ -890,30 +959,34 @@ function EditUser({ username, clearUsername, onExitComplete }: EditUserProp) {
           </Dialog.Body>
 
           <Dialog.Footer>
-            <Button variant="outline" onClick={clearUsername}>Cancel</Button>
+            <Button variant="outline" onClick={onExitComplete}>
+              Cancel
+            </Button>
 
-            <Button onClick={async () => {
-              if (username === null || password === null) {
-                return;
-              }
-              if (password.match(RegExp(/^[!-~]{1,32}$/)) === null) {
-                setPasswordError("invalid_password");
-                return;
-              }
-              const res = await modifyUser({ username, password });
-              if (res == 200) {
-                toaster.create({
-                  description: "Successfully modified user",
-                  type: "success",
-                });
-              } else {
-                toaster.create({
-                  description: "An error has occurred while modifying user",
-                  type: "error",
-                });
-              }
-              clearUsername();
-            }}>
+            <Button
+              onClick={async () => {
+                if (username === null || password === null) {
+                  return;
+                }
+                if (password.match(RegExp(/^[!-~]{1,32}$/)) === null) {
+                  setPasswordError("invalid_password");
+                  return;
+                }
+                const res = await modifyUser({ username, password });
+                if (res == 200) {
+                  toaster.create({
+                    description: "Successfully modified user",
+                    type: "success",
+                  });
+                } else {
+                  toaster.create({
+                    description: "An error has occurred while modifying user",
+                    type: "error",
+                  });
+                }
+                onExitComplete();
+              }}
+            >
               Update
             </Button>
           </Dialog.Footer>
@@ -935,6 +1008,7 @@ function DeleteUser({ username, onExitComplete }: DeleteUserProp) {
     <Dialog.Root
       placement="center"
       role="alertdialog"
+      open={username !== null}
       onExitComplete={onExitComplete}
     >
       <Dialog.Backdrop />
@@ -946,9 +1020,9 @@ function DeleteUser({ username, onExitComplete }: DeleteUserProp) {
           </Dialog.Header>
 
           <Dialog.Footer>
-            <Dialog.ActionTrigger>
-              <Button variant="outline">Cancel</Button>
-            </Dialog.ActionTrigger>
+            <Button variant="outline" onClick={onExitComplete}>
+              Cancel
+            </Button>
             <Dialog.ActionTrigger>
               <Button
                 colorPalette="red"
@@ -956,26 +1030,35 @@ function DeleteUser({ username, onExitComplete }: DeleteUserProp) {
                 onClick={async () => {
                   if (username === null) return;
                   setFlagLoading(true);
-                  const res = await deleteUser({username});
+                  const res = await deleteUser({ username });
                   if (typeof res !== "number" && res.rows_affected == 1) {
                     toaster.create({
-                      description: "Successfully removed user '" + username + "'",
+                      description:
+                        "Successfully removed user '" + username + "'",
                       type: "success",
                     });
-                  } else if (typeof res !== "number" && res.rows_affected == 0) {
+                  } else if (
+                    typeof res !== "number" &&
+                    res.rows_affected == 0
+                  ) {
                     toaster.create({
                       description:
-                        "Couldn't find any token with the name '" + username + "'",
+                        "Couldn't find any token with the name '" +
+                        username +
+                        "'",
                       type: "info",
                     });
                   } else {
                     toaster.create({
                       description:
-                        "An error has occurred while deleting token '" + username + "'",
+                        "An error has occurred while deleting token '" +
+                        username +
+                        "'",
                       type: "error",
                     });
                   }
                   setFlagLoading(false);
+                  onExitComplete();
                 }}
               >
                 Delete
