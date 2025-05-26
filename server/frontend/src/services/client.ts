@@ -1,10 +1,9 @@
-import { fetcher } from "../core/fetcher";
+import {cronFetcher, fetcher} from "../core/fetcher";
 import {isAxiosError} from "axios";
-import {toaster} from "../components/ui/toaster.tsx";
 
 export const getStatus = async () => {
   try {
-    const res = await fetcher
+    const res = await cronFetcher
       .get<{
         api_service_up: boolean;
         connected_clients: number;
@@ -14,12 +13,6 @@ export const getStatus = async () => {
     return res.data;
   } catch (error) {
     if (isAxiosError(error)) {
-      if (error.status === 401) {
-        toaster.create({
-          description: "Session expired",
-          type: "error",
-        });
-      }
       return error.status || 500;
     }
     return 500;
@@ -28,7 +21,7 @@ export const getStatus = async () => {
 
 export const listConnectedClients = async () => {
   try {
-    const res = await fetcher
+    const res = await cronFetcher
       .get<
         {
           key: number;
@@ -45,12 +38,6 @@ export const listConnectedClients = async () => {
     return res.data;
   } catch (error) {
     if (isAxiosError(error)) {
-      if (error.status === 401) {
-        toaster.create({
-          description: "Session expired",
-          type: "error",
-        });
-      }
       return error.status || 500;
     }
     return 500;
@@ -63,12 +50,6 @@ export const updateConnectedClients = async () => {
     return 200;
   } catch (error) {
     if (isAxiosError(error)) {
-      if (error.status === 401) {
-        toaster.create({
-          description: "Session expired",
-          type: "error",
-        });
-      }
       return error.status || 500;
     }
     return 500;
@@ -88,12 +69,6 @@ export const listClientsDb = async () => {
     return res.data;
   } catch (error) {
     if (isAxiosError(error)) {
-      if (error.status === 401) {
-        toaster.create({
-          description: "Session expired",
-          type: "error",
-        });
-      }
       return error.status || 500;
     }
     return 500;

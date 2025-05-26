@@ -33,7 +33,7 @@ function Dashboard() {
       }
     }
 
-    (async () => await updateStatus()) ();
+    (async () => await updateStatus())();
 
     const interval = setInterval(async () => await updateStatus(), 5000);
 

@@ -8,7 +8,11 @@ pub struct Args {
   #[arg(short = 'd', long, required = true)]
   pub database: String,
   #[arg(long, required = true)]
-  pub private_key: String,
+  pub refresh_private_key: String,
   #[arg(long, required = true)]
-  pub public_key: String,
+  pub refresh_public_key: String,
+  #[arg(long, required = true)]
+  pub access_private_key: String,
+  #[arg(long, required = true)]
+  pub access_public_key: String,
 }

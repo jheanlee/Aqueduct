@@ -246,11 +246,17 @@ void console(Level level, Code code, const char *detail, const std::string &func
     case INFO_SSL_CERT_PATH:
       msg_buffer << "SSL certificate:";
       break;
-    case INFO_JWT_PRIVKEY_PATH:
-      msg_buffer << "JWT private key:";
+    case INFO_JWT_ACCESS_PRIVKEY_PATH:
+      msg_buffer << "JWT private key (access):";
       break;
-    case INFO_JWT_PUBKEY_PATH:
-      msg_buffer << "JWT public key:";
+    case INFO_JWT_ACCESS_PUBKEY_PATH:
+      msg_buffer << "JWT public key (access):";
+      break;
+    case INFO_JWT_REFRESH_PRIVKEY_PATH:
+      msg_buffer << "JWT private key (refresh):";
+      break;
+    case INFO_JWT_REFRESH_PUBKEY_PATH:
+      msg_buffer << "JWT public key (refresh):";
       break;
     case INFO_DB_PATH:
       msg_buffer << "Database file:";

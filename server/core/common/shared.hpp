@@ -51,12 +51,16 @@
   namespace config {
     extern std::string ssl_cert_path_str;
     extern std::string ssl_private_key_path_str;
-    extern std::string jwt_public_key_path_str;
-    extern std::string jwt_private_key_path_str;
+    extern std::string jwt_access_public_key_path_str;
+    extern std::string jwt_access_private_key_path_str;
+    extern std::string jwt_refresh_public_key_path_str;
+    extern std::string jwt_refresh_private_key_path_str;
     extern const char *ssl_cert_path;
     extern const char *ssl_private_key_path;
-    extern const char *jwt_public_key_path;
-    extern const char *jwt_private_key_path;
+    extern const char *jwt_access_public_key_path;
+    extern const char *jwt_access_private_key_path;
+    extern const char *jwt_refresh_public_key_path;
+    extern const char *jwt_refresh_private_key_path;
   }
 
   namespace shared_resources {

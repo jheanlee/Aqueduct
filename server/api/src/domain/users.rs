@@ -1,6 +1,5 @@
-use crate::auth::jwt_tokens::generate_jwt;
 use crate::error::ApiError;
-use crate::orm::web_user::{if_user_exists, list_web_users, user_authenticate, user_remove, user_update};
+use crate::orm::web_user::{if_user_exists, list_web_users, user_remove, user_update};
 use axum::body::Body;
 use axum::extract::Query;
 use axum::http::StatusCode;
@@ -57,24 +56,4 @@ pub struct UserDeletionBody {
 pub async fn delete_web_user(Json(deletion): Json<UserDeletion>) -> Result<impl IntoResponse, ApiError> {
   let rows_affected = user_remove(deletion.username).await?;
   Ok(Json(UserDeletionBody{ rows_affected }))
-}
-
-
-#[derive(serde::Serialize, serde::Deserialize)]
-pub struct UserAuthentication {
-  username: String,
-  password: String
-}
-pub async fn login(Json(authentication): Json<UserAuthentication>) -> Result<Response, ApiError> {
-  let res = user_authenticate(authentication.username.clone(), authentication.password).await?;
-  if res.is_none() || !res.unwrap() {
-    Ok(StatusCode::UNAUTHORIZED.into_response())
-  } else {
-    let response_builder = Response::builder().header(http::header::CONTENT_TYPE, "application/json");
-    let response_body = Body::from(serde_json::json!({
-    "token": generate_jwt(authentication.username).await?
-  }).to_string());
-    let response = response_builder.body(response_body)?;
-    Ok(response)
-  }
 }

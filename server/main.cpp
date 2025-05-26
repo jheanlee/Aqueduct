@@ -53,18 +53,22 @@ int main(int argc, char *argv[]) {
   } else if (pid_api == 0) {
     //  api child
 
-    const char *args[11];
+    const char *args[15];
     args[0] = "./aqueduct-server-api";
     args[1] = "--database";
     args[2] = db_path;
-    args[3] = "--private-key";
-    args[4] = config::jwt_private_key_path;
-    args[5] = "--public-key";
-    args[6] = config::jwt_public_key_path;
-    args[7] = "--verbose";
-    args[8] = std::to_string(verbose_level).c_str();
-    args[9] = (shared_resources::daemon_mode) ? "--daemon-mode" : nullptr;
-    args[10] = nullptr;
+    args[3] = "--access-private-key";
+    args[4] = config::jwt_access_private_key_path;
+    args[5] = "--access-public-key";
+    args[6] = config::jwt_access_public_key_path;
+    args[7] = "--refresh-private-key";
+    args[8] = config::jwt_refresh_private_key_path;
+    args[9] = "--refresh-public-key";
+    args[10] = config::jwt_refresh_public_key_path;
+    args[11] = "--verbose";
+    args[12] = std::to_string(verbose_level).c_str();
+    args[13] = (shared_resources::daemon_mode) ? "--daemon-mode" : nullptr;
+    args[14] = nullptr;
 
     execvp("./aqueduct-server-api", const_cast<char *const *> (args));
 

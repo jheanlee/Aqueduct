@@ -62,7 +62,7 @@ function Connected() {
   >([]);
 
   useEffect(() => {
-    (async () => {
+    const listClient = async () => {
       const res = await listConnectedClients();
       if (typeof res == "number") {
         setClientsError(true);
@@ -70,7 +70,13 @@ function Connected() {
         setClientsError(false);
         setClients(res);
       }
-    })();
+    }
+
+    (async () => await listClient())();
+
+    const interval = setInterval(async () => await listClient(), 60000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const [filterClient, setFilterClient] = useState<RegExp>(/./);

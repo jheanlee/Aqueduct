@@ -44,12 +44,16 @@ void opt_handler(int argc, char * const argv[]) {
 
   CLI::Option *ssl_private_key = run->add_option("--ssl-private-key", config::ssl_private_key_path_str, "The path to a private key file used for TLS encryption");
   CLI::Option *ssl_cert = run->add_option("--ssl-cert", config::ssl_cert_path_str, "The path to a certification file used for TLS encryption");
-  CLI::Option *jwt_private_key = run->add_option("--jwt-private-key", config::jwt_private_key_path_str, "The path to a private key file used for JWT encoding");
-  CLI::Option *jwt_public_key = run->add_option("--jwt-public-key", config::jwt_public_key_path_str, "The path to a public key file used for JWT decoding");
+  CLI::Option *jwt_access_private_key = run->add_option("--jwt-access-private-key", config::jwt_access_private_key_path_str, "The path to a private key file used for JWT encoding (access token)");
+  CLI::Option *jwt_access_public_key = run->add_option("--jwt-access-public-key", config::jwt_access_public_key_path_str, "The path to a public key file used for JWT decoding (access token)");
+  CLI::Option *jwt_refresh_private_key = run->add_option("--jwt-refresh-private-key", config::jwt_refresh_private_key_path_str, "The path to a private key file used for JWT encoding (refresh token)");
+  CLI::Option *jwt_refresh_public_key = run->add_option("--jwt-refresh-public-key", config::jwt_refresh_public_key_path_str, "The path to a public key file used for JWT decoding (refresh token)");
   ssl_private_key->needs(ssl_cert);
   ssl_cert->needs(ssl_private_key);
-  jwt_private_key->needs(jwt_public_key);
-  jwt_public_key->needs(jwt_private_key);
+  jwt_access_private_key->needs(jwt_access_public_key);
+  jwt_access_public_key->needs(jwt_access_private_key);
+  jwt_refresh_private_key->needs(jwt_refresh_public_key);
+  jwt_refresh_public_key->needs(jwt_refresh_private_key);
 
   run->add_option("-p,--control", ssl_control_port, "Client will connect via 0.0.0.0:<port>")->capture_default_str();
   run->add_option("-s,--port-start", proxy_port_start, "The proxy port of the first client will be <port>, the last being (<port> + port-limit - 1)")->capture_default_str();
@@ -135,16 +139,31 @@ void opt_handler(int argc, char * const argv[]) {
     }
   }
 
-  if (config::jwt_private_key_path_str.empty()) {
-    config::jwt_private_key_path_str = "./credentials/aqueduct-jwt-private.pem";
-    config::jwt_public_key_path_str = "./credentials/aqueduct-jwt-public.pem";
+  if (config::jwt_access_private_key_path_str.empty()) {
+    config::jwt_access_private_key_path_str = "./credentials/aqueduct-jwt-access-private.pem";
+    config::jwt_access_public_key_path_str = "./credentials/aqueduct-jwt-access-public.pem";
 
-    if (stat("./credentials/aqueduct-jwt-private.pem", &st) != 0 || stat("./credentials/aqueduct-jwt-public.pem", &st) != 0) {
+    if (stat("./credentials/aqueduct-jwt-access-private.pem", &st) != 0 || stat("./credentials/aqueduct-jwt-access-public.pem", &st) != 0) {
       if (mkdir("./credentials", 0700) != 0 && errno != EEXIST) {
         console(CRITICAL, CREATE_DIR_FAILED, std::to_string(errno).c_str(), "opt::opt_handler");
         signal_handler(EXIT_FAILURE);
       }
-      if (generate_jwt_key_pair("./credentials") != 0) {
+      if (generate_jwt_key_pair("./credentials", "aqueduct-jwt-access") != 0) {
+        signal_handler(EXIT_FAILURE);
+      }
+    }
+  }
+
+  if (config::jwt_refresh_private_key_path_str.empty()) {
+    config::jwt_refresh_private_key_path_str = "./credentials/aqueduct-jwt-refresh-private.pem";
+    config::jwt_refresh_public_key_path_str = "./credentials/aqueduct-jwt-refresh-public.pem";
+
+    if (stat("./credentials/aqueduct-jwt-refresh-private.pem", &st) != 0 || stat("./credentials/aqueduct-jwt-refresh-public.pem", &st) != 0) {
+      if (mkdir("./credentials", 0700) != 0 && errno != EEXIST) {
+        console(CRITICAL, CREATE_DIR_FAILED, std::to_string(errno).c_str(), "opt::opt_handler");
+        signal_handler(EXIT_FAILURE);
+      }
+      if (generate_jwt_key_pair("./credentials", "aqueduct-jwt-refresh") != 0) {
         signal_handler(EXIT_FAILURE);
       }
     }
@@ -152,8 +171,10 @@ void opt_handler(int argc, char * const argv[]) {
 
   config::ssl_cert_path = config::ssl_cert_path_str.c_str();
   config::ssl_private_key_path = config::ssl_private_key_path_str.c_str();
-  config::jwt_public_key_path = config::jwt_public_key_path_str.c_str();
-  config::jwt_private_key_path = config::jwt_private_key_path_str.c_str();
+  config::jwt_access_public_key_path = config::jwt_access_public_key_path_str.c_str();
+  config::jwt_access_private_key_path = config::jwt_access_private_key_path_str.c_str();
+  config::jwt_refresh_public_key_path = config::jwt_refresh_public_key_path_str.c_str();
+  config::jwt_refresh_private_key_path = config::jwt_refresh_private_key_path_str.c_str();
 
   //  port validation
   if (proxy_port_start <= 0 || proxy_port_start > 65535) {
@@ -182,8 +203,10 @@ void opt_handler(int argc, char * const argv[]) {
 
   console(NOTICE, INFO_HOST, (std::string(host) + ':' + std::to_string(ssl_control_port)).c_str(), "opt::opt_handler");
   console(NOTICE, INFO_DB_PATH, db_path, "opt::opt_handler");
-  console(NOTICE, INFO_JWT_PUBKEY_PATH, config::jwt_public_key_path, "opt::opt_handler");
-  console(NOTICE, INFO_JWT_PRIVKEY_PATH, config::jwt_private_key_path, "opt::opt_handler");
+  console(NOTICE, INFO_JWT_ACCESS_PUBKEY_PATH, config::jwt_access_public_key_path, "opt::opt_handler");
+  console(NOTICE, INFO_JWT_ACCESS_PRIVKEY_PATH, config::jwt_access_private_key_path, "opt::opt_handler");
+  console(NOTICE, INFO_JWT_REFRESH_PUBKEY_PATH, config::jwt_refresh_public_key_path, "opt::opt_handler");
+  console(NOTICE, INFO_JWT_REFRESH_PRIVKEY_PATH, config::jwt_refresh_private_key_path, "opt::opt_handler");
   console(NOTICE, INFO_SSL_KEY_PATH, config::ssl_private_key_path, "opt::opt_handler");
   console(NOTICE, INFO_SSL_CERT_PATH, config::ssl_cert_path, "opt::opt_handler");
 }

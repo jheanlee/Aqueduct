@@ -152,7 +152,7 @@ pub fn console(level: Level, code: Code, detail: &str, function: &str) {
   
   output += msg.as_str();
   
-  if SHARED_CELL.get().unwrap().verbose_level <= Level::Debug.as_u8() {
+  if SHARED_CELL.get().map(|cell| cell.verbose_level).unwrap_or(30) <= Level::Debug.as_u8() {
     output += FAINT_GRAY;
     output += format!(" (API::{})", function).as_str();
     output += RESET;

@@ -1,6 +1,5 @@
 import { fetcher } from "../core/fetcher";
-import {isAxiosError} from "axios";
-import {toaster} from "../components/ui/toaster.tsx";
+import { isAxiosError } from "axios";
 
 export const listTokens = async () => {
   try {
@@ -16,12 +15,6 @@ export const listTokens = async () => {
     return res.data;
   } catch (error) {
     if (isAxiosError(error)) {
-      if (error.status === 401) {
-        toaster.create({
-          description: "Session expired",
-          type: "error",
-        });
-      }
       return error.status || 500;
     }
     return 500;
@@ -41,12 +34,6 @@ export const checkToken = async (name: string) => {
     return res.data;
   } catch (error) {
     if (isAxiosError(error)) {
-      if (error.status === 401) {
-        toaster.create({
-          description: "Session expired",
-          type: "error",
-        });
-      }
       return error.status || 500;
     }
     return 500;
@@ -67,12 +54,6 @@ export const modifyToken = async (data: {
     return res.data;
   } catch (error) {
     if (isAxiosError(error)) {
-      if (error.status === 401) {
-        toaster.create({
-          description: "Session expired",
-          type: "error",
-        });
-      }
       return error.status || 500;
     }
     return 500;
@@ -89,12 +70,6 @@ export const deleteToken = async (name: string) => {
     return res.data;
   } catch (error) {
     if (isAxiosError(error)) {
-      if (error.status === 401) {
-        toaster.create({
-          description: "Session expired",
-          type: "error",
-        });
-      }
       return error.status || 500;
     }
     return 500;

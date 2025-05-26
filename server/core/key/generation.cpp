@@ -62,7 +62,7 @@ int generate_ssl_key_cert(const std::string &root_path) {
   return 0;
 }
 
-int generate_jwt_key_pair(const std::string &root_path) {
+int generate_jwt_key_pair(const std::string &root_path, const std::string &prefix) {
   BIGNUM *bn = BN_new();
   if (BN_set_word(bn, RSA_F4) != 1) {
     console(CRITICAL, SSL_INIT_FAILED, nullptr, "key::generation::jwt");
@@ -70,8 +70,8 @@ int generate_jwt_key_pair(const std::string &root_path) {
   }
 
   //  path
-  BIO *jwt_private_key_io = BIO_new_file((root_path + "/aqueduct-jwt-private.pem").c_str(), "w");
-  BIO *jwt_public_key_io = BIO_new_file((root_path + "/aqueduct-jwt-public.pem").c_str(), "w");
+  BIO *jwt_private_key_io = BIO_new_file((root_path + '/' + prefix + "-private.pem").c_str(), "w");
+  BIO *jwt_public_key_io = BIO_new_file((root_path + '/' + prefix + "-public.pem").c_str(), "w");
   if (jwt_private_key_io  == nullptr || jwt_public_key_io == nullptr) {
     console(CRITICAL, SSL_BIO_FAILED, nullptr, "key::generation::jwt");
     return 1;

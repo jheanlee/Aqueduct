@@ -7,12 +7,16 @@
 namespace config {
   std::string ssl_cert_path_str;
   std::string ssl_private_key_path_str;
-  std::string jwt_public_key_path_str;
-  std::string jwt_private_key_path_str;
+  std::string jwt_access_public_key_path_str;
+  std::string jwt_access_private_key_path_str;
+  std::string jwt_refresh_public_key_path_str;
+  std::string jwt_refresh_private_key_path_str;
   const char *ssl_cert_path = "\0";
   const char *ssl_private_key_path = "\0";
-  const char *jwt_public_key_path = "\0";
-  const char *jwt_private_key_path = "\0";
+  const char *jwt_access_public_key_path = "\0";
+  const char *jwt_access_private_key_path = "\0";
+  const char *jwt_refresh_public_key_path = "\0";
+  const char *jwt_refresh_private_key_path = "\0";
 }
 
 namespace shared_resources {
