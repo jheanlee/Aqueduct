@@ -24,6 +24,8 @@ namespace shared_resources {
   os_log_t os_log_aqueduct;
   #endif
 
+  struct termios oldt;
+
   std::atomic<bool> global_flag_kill(false);
   std::atomic<bool> flag_handling_signal(false);
   std::atomic<bool> flag_tunneling_service_running(false);

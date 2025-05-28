@@ -23,7 +23,7 @@ function Navbar() {
       <Spacer />
 
       <Button m={2}>
-        <Link to="/login">login</Link>
+        <Link to="/login">Login</Link>
       </Button>
     </Flex>
   );

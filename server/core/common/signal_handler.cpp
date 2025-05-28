@@ -56,7 +56,7 @@ void signal_handler(int signal) {
     }
 
     if (sqlite3_close(shared_resources::db) == SQLITE_OK) {
-      console(INFO, SQLITE_CLOSE_SUCCESS, nullptr, "signal_handler");
+      console(DEBUG, SQLITE_CLOSE_SUCCESS, nullptr, "signal_handler");
     } else {
       console(ERROR, SQLITE_CLOSE_FAILED, sqlite3_errmsg(shared_resources::db), "signal_handler");
     }
@@ -66,5 +66,8 @@ void signal_handler(int signal) {
   #if !(defined(__clang__) && defined(__APPLE__))
     closelog();
   #endif
+
+  tcsetattr(0, TCSANOW, &shared_resources::oldt);
+  
   exit(signal);
 }

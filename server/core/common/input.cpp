@@ -57,9 +57,8 @@ static void print_uptime() {
 
 void input_thread_func() {
   //  configure stdin
-  struct termios oldt, newt;
-  tcgetattr(0, &oldt);
-  newt = oldt;
+  struct termios newt;
+  newt = shared_resources::oldt;
   newt.c_lflag &= ~(ICANON | ECHO);
   newt.c_cc[VMIN] = 1;
   newt.c_cc[VTIME] = 0;

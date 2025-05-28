@@ -54,6 +54,7 @@ int send_message(int &fd, char *buffer, size_t buffer_size, Message &message, st
     return -1;
   }
 
+
   return send(fd, buffer, buffer_size, 0);
 }
 

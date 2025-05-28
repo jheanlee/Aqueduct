@@ -357,7 +357,7 @@ function NewToken({ onExitComplete }: NewTokenProps) {
                   }
                 }}
               >
-                Update
+                Create
               </Button>
             )}
             {tokenGenerated && (
@@ -760,7 +760,7 @@ function NewUser({ onExitComplete }: NewUserProp) {
       onExitComplete={handleExitComplete}
     >
       <Dialog.Trigger>
-        <IconButton variant="outline" size="sm">
+        <IconButton variant="ghost" size="sm">
           <RxPlus />
         </IconButton>
       </Dialog.Trigger>

@@ -32,7 +32,6 @@ SSL_CTX *create_context() {
 void config_context(SSL_CTX *ctx) {
   if (SSL_CTX_use_certificate_file(ctx, config::ssl_cert_path, SSL_FILETYPE_PEM) <= 0 || SSL_CTX_use_PrivateKey_file(ctx, config::ssl_private_key_path, SSL_FILETYPE_PEM) <= 0) {
     console(CRITICAL, SSL_LOAD_CERT_KEY_FAILED, nullptr, "socket_management::config_context");
-    console(DEBUG, DEBUG_MSG, config::ssl_cert_path, "");
     signal_handler(EXIT_FAILURE);
   }
 }

@@ -11,6 +11,8 @@
 #include "../common/shared.hpp"
 
 int generate_ssl_key_cert(const std::string &root_path) {
+  console(NOTICE, SSL_GENERATING_SSL_CREDENTIALS, nullptr, "key::generation::ssl");
+
   BIGNUM *bn = BN_new();
   if (BN_set_word(bn, RSA_F4) != 1) {
     console(CRITICAL, SSL_INIT_FAILED, nullptr, "key::generation::ssl");
@@ -63,6 +65,8 @@ int generate_ssl_key_cert(const std::string &root_path) {
 }
 
 int generate_jwt_key_pair(const std::string &root_path, const std::string &prefix) {
+  console(NOTICE, SSL_GENERATING_RSA_PAIR, nullptr, "key::generation::jwt");
+
   BIGNUM *bn = BN_new();
   if (BN_set_word(bn, RSA_F4) != 1) {
     console(CRITICAL, SSL_INIT_FAILED, nullptr, "key::generation::jwt");

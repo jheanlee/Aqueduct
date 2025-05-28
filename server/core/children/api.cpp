@@ -89,7 +89,7 @@ void api_session_thread_func(int api_fd, sockaddr_un api_addr) {
   char inbuffer[256] = {0}, outbuffer[256] = {0}, client_buffer[32768];
   int recv_status;
   std::mutex send_mutex;
-  std::thread heartbeat_thread(api_heartbeat_thread_func, std::ref(flag_kill), std::ref(api_fd), std::ref(send_mutex), std::ref(flag_heartbeat_received));
+//  std::thread heartbeat_thread(api_heartbeat_thread_func, std::ref(flag_kill), std::ref(api_fd), std::ref(send_mutex), std::ref(flag_heartbeat_received));
 
   Message message = {.type = '\0', .string = ""};
 
@@ -165,7 +165,7 @@ void api_session_thread_func(int api_fd, sockaddr_un api_addr) {
   close(api_fd);
   flag_kill = true;
   console(NOTICE, API_CONNECTION_CLOSED, nullptr, "api::api_session");
-  heartbeat_thread.join();
+//  heartbeat_thread.join();
 }
 
 void api_heartbeat_thread_func(std::atomic<bool> &flag_kill, int &api_fd, std::mutex &send_mutex, std::atomic<bool> &flag_heartbeat_received) {

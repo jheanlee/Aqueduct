@@ -13,9 +13,11 @@
   #include <chrono>
   #include <cstdio>
 
+#include <termios.h>
   #include <sqlite3.h>
   #include <netinet/in.h>
-  #if defined(__clang__) && defined(__APPLE__)
+
+#if defined(__clang__) && defined(__APPLE__)
     #include <os/log.h>
   #endif
 
@@ -67,6 +69,8 @@
     #if defined(__OS_LOG_H__)
       extern os_log_t os_log_aqueduct;
     #endif
+
+    extern struct termios oldt;
 
     extern std::atomic<bool> global_flag_kill;
     extern std::atomic<bool> flag_handling_signal;
