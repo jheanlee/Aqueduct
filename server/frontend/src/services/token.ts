@@ -1,67 +1,76 @@
 import { fetcher } from "../core/fetcher";
+import { isAxiosError } from "axios";
 
 export const listTokens = async () => {
-  return await fetcher
-    .get<
-      {
-        name: string;
-        token: string;
-        notes: string | null;
-        expiry: number | null;
-      }[]
-    >("/api/tokens/list")
-    .then((res) => {
-      return res.data;
-    })
-    .catch(() => {
-      return null;
-    });
+  try {
+    const res = await fetcher
+      .get<
+        {
+          name: string;
+          notes: string | null;
+          expiry: number | null;
+        }[]
+      >("/api/tokens/list");
+    return res.data;
+  } catch (error) {
+    if (isAxiosError(error)) {
+      return error.status || 500;
+    }
+    return 500;
+  }
 };
 
 export const checkToken = async (name: string) => {
-  return await fetcher
-    .get<{
-      available: boolean;
-    }>("/api/tokens/check", {
-      params: {
-        name: name,
-      },
-    })
-    .then((res) => {
-      return res.data.available;
-    })
-    .catch(() => {
-      return null;
-    });
+  try {
+    const res = await fetcher
+      .get<{
+        available: boolean;
+      }>("/api/tokens/check", {
+        params: {
+          name: name,
+        },
+      });
+    return res.data;
+  } catch (error) {
+    if (isAxiosError(error)) {
+      return error.status || 500;
+    }
+    return 500;
+  }
 };
 
-export const modifyTokens = async (data: {
+export const modifyToken = async (data: {
   name: string;
   token_update: boolean;
   notes: string | null;
   expiry_days: number | null;
 }) => {
-  return await fetcher
-    .post<{
-      token: string;
-    }>("/api/tokens/modify", data)
-    .then((res) => {
-      return res.data;
-    })
-    .catch(() => {
-      return null;
-    });
+  try {
+    const res = await fetcher
+      .post<{
+        token: string;
+      }>("/api/tokens/modify", data);
+    return res.data;
+  } catch (error) {
+    if (isAxiosError(error)) {
+      return error.status || 500;
+    }
+    return 500;
+  }
+
 };
 
 export const deleteToken = async (name: string) => {
-  return await fetcher
-    .post<{
-      rows_affected: number;
-    }>("/api/tokens/delete", { name: name })
-    .then((res) => {
-      return res.data;
-    })
-    .catch(() => {
-      return null;
-    });
+  try {
+    const res = await fetcher
+      .post<{
+        rows_affected: number;
+      }>("/api/tokens/delete", { name: name });
+    return res.data;
+  } catch (error) {
+    if (isAxiosError(error)) {
+      return error.status || 500;
+    }
+    return 500;
+  }
 };

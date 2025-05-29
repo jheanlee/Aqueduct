@@ -66,6 +66,7 @@ pub async fn core_io_read_thread_func(state: Arc<AppState>) -> Result<(), ()> {
     }
     
     let state_clone = Arc::clone(&state);
+    
     match message.message_type {
       api_message_type::API_HEARTBEAT => {
         send_heartbeat_message(Arc::clone(&state_clone.socket_core)).await.unwrap_or_else(|_| {

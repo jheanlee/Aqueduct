@@ -22,18 +22,18 @@ function Dashboard() {
   useEffect(() => {
     const updateStatus = async () => {
       const res = await getStatus();
-      if (res !== null) {
+      if (typeof res === "number") {
+        setFlagStatusError(true);
+      } else {
         setFlagStatusError(false);
         setUptime(res["uptime"]);
         setTunnelService(res["tunnel_service_up"]);
         setApiService(res["api_service_up"]);
         setConnectedClients(res["connected_clients"]);
-      } else {
-        setFlagStatusError(true);
       }
     }
 
-    (async () => await updateStatus()) ();
+    (async () => await updateStatus())();
 
     const interval = setInterval(async () => await updateStatus(), 5000);
 

@@ -1,10 +1,11 @@
-use data_encoding::{BASE32, BASE64};
+use crate::error::ApiError;
+use crate::SHARED_CELL;
+use data_encoding::BASE32;
+use entity::entities::prelude::WebAuth;
+use entity::entities::web_auth;
 use openssl::rand::rand_bytes;
 use openssl::sha::Sha256;
 use sea_orm::{EntityTrait, Set};
-use entity::entities::web_auth;
-use crate::error::ApiError;
-use crate::SHARED_CELL;
 
 pub async fn if_user_exists(username: String) -> Result<bool, ApiError> {
   let cell = SHARED_CELL.get().unwrap();
@@ -18,7 +19,7 @@ pub async fn user_update(username: String, password: String) -> Result<(), ApiEr
 
   let mut salt : [u8; 8] = [0; 8];
   rand_bytes(&mut salt)?;
-  let encoded_salt = BASE64.encode(&salt);
+  let encoded_salt = BASE32.encode(&salt);
 
   let mut hasher = Sha256::new();
   hasher.update(&encoded_salt.as_bytes());
@@ -42,6 +43,11 @@ pub async fn user_update(username: String, password: String) -> Result<(), ApiEr
   Ok(())
 }
 
+pub async fn user_remove(username: String) -> Result<u64, ApiError> {
+  let res = WebAuth::delete_by_id(username).exec(&SHARED_CELL.get().unwrap().database_connection.clone().unwrap()).await?;
+  Ok(res.rows_affected)
+}
+
 pub async fn user_authenticate(username: String, password: String) -> Result<Option<bool>, ApiError> {
   let cell = SHARED_CELL.get().unwrap();
   let db = cell.database_connection.clone().unwrap();
@@ -58,4 +64,10 @@ pub async fn user_authenticate(username: String, password: String) -> Result<Opt
   } else {
     Ok(None)
   }
+}
+
+pub async fn list_web_users() -> Result<Vec<web_auth::PartialModel>, ApiError> {
+  let cell = SHARED_CELL.get().unwrap();
+  let db = cell.database_connection.clone().unwrap();
+  Ok(web_auth::Entity::find().into_partial_model::<web_auth::PartialModel>().all(&db).await?)
 }

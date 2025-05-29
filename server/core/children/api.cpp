@@ -89,7 +89,7 @@ void api_session_thread_func(int api_fd, sockaddr_un api_addr) {
   char inbuffer[256] = {0}, outbuffer[256] = {0}, client_buffer[32768];
   int recv_status;
   std::mutex send_mutex;
-  std::thread heartbeat_thread(api_heartbeat_thread_func, std::ref(flag_kill), std::ref(api_fd), std::ref(send_mutex), std::ref(flag_heartbeat_received));
+//  std::thread heartbeat_thread(api_heartbeat_thread_func, std::ref(flag_kill), std::ref(api_fd), std::ref(send_mutex), std::ref(flag_heartbeat_received));
 
   Message message = {.type = '\0', .string = ""};
 
@@ -116,7 +116,7 @@ void api_session_thread_func(int api_fd, sockaddr_un api_addr) {
           service_info_json["api_service_up"] = shared_resources::flag_api_service_running.load();
           service_info_json["connected_clients"] = shared_resources::map_client.size();
           message.type = API_GET_SERVICE_INFO;
-          message.string = to_string(service_info_json);
+          message.string = service_info_json.dump();
           send_message(api_fd, outbuffer, sizeof(outbuffer), message, send_mutex);
           break;
         }
@@ -140,8 +140,8 @@ void api_session_thread_func(int api_fd, sockaddr_un api_addr) {
             clients_json["clients"].push_back(client_json);
           }
           message.type = API_GET_CURRENT_CLIENTS;
-          message.string = to_string(clients_json);
-          send_large_message(api_fd, client_buffer, sizeof(client_buffer), message, send_mutex);  //  TODO: split if too many clients
+          message.string = clients_json.dump();
+          send_large_message(api_fd, client_buffer, sizeof(client_buffer), message, send_mutex);
           break;
         }
         case API_GENERATE_NEW_TOKEN: {
@@ -151,7 +151,7 @@ void api_session_thread_func(int api_fd, sockaddr_un api_addr) {
           token_json["token"] = new_token.first;
           token_json["hashed"] = new_token.second;
           message.type = API_GENERATE_NEW_TOKEN;
-          message.string = to_string(token_json);
+          message.string = token_json.dump();
           send_message(api_fd, outbuffer, sizeof(outbuffer), message, send_mutex);
           break;
         }
@@ -165,7 +165,7 @@ void api_session_thread_func(int api_fd, sockaddr_un api_addr) {
   close(api_fd);
   flag_kill = true;
   console(NOTICE, API_CONNECTION_CLOSED, nullptr, "api::api_session");
-  heartbeat_thread.join();
+//  heartbeat_thread.join();
 }
 
 void api_heartbeat_thread_func(std::atomic<bool> &flag_kill, int &api_fd, std::mutex &send_mutex, std::atomic<bool> &flag_heartbeat_received) {

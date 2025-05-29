@@ -85,22 +85,20 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
   inet_pton(AF_INET, local_service, &service_addr.sin_addr);
 
   while (!flag_kill) {
-    while (!flag_kill && user_id.empty()) std::this_thread::yield();
+    while (!flag_kill && user_id.empty()) std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     //  create socket (service)
     service_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (service_fd == -1) {
-      console(CRITICAL, SOCK_CREATE_FAILED, "for service ", "connnection::service");
-      signal_handler(EXIT_FAILURE);
+      console(ERROR, SOCK_CREATE_FAILED, "for service", "connection::service");
     }
     
     //  connect (service)
     if (connect(service_fd, (struct sockaddr *) &service_addr, sizeof(service_addr))) {
-      console(CRITICAL, SOCK_CONNECT_FAILED, "to service ", "connection::service");
-      signal_handler(EXIT_FAILURE);
+      console(ERROR, SOCK_CONNECT_FAILED, "to service", "connection::service");
     }
 
-    console(INFO, CONNECTED_TO_SERVICE, (std::string(local_service) + ':' + std::to_string(local_service_port)).c_str(), "connection::service");
+    console(DEBUG, CONNECTED_TO_SERVICE, (std::string(local_service) + ':' + std::to_string(local_service_port)).c_str(), "connection::service");
 
     // host
     int host_fd = 0;
@@ -115,12 +113,10 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
     //  create, connect socket (host)
     host_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (host_fd == -1) {
-      console(CRITICAL, SOCK_CREATE_FAILED, "for host ", "connection::service");
-      signal_handler(EXIT_FAILURE);
+      console(ERROR, SOCK_CREATE_FAILED, "for host", "connection::service");
     }
     if (connect(host_fd, (struct sockaddr *) &host_addr, sizeof(host_addr))) {
-      console(CRITICAL, SOCK_CONNECT_FAILED, "to host ", "connection::service");
-      signal_handler(EXIT_FAILURE);
+      console(ERROR, SOCK_CONNECT_FAILED, "to host", "connection::service");
     }
 
     //  ssl context, turn plain socket into ssl connection
@@ -128,8 +124,7 @@ void service_thread_func(std::atomic<bool> &flag_kill, std::queue<std::string> &
     SSL *host_ssl = SSL_new(ctx);
     SSL_set_fd(host_ssl, host_fd);
     if (SSL_connect(host_ssl) <= 0) {
-      console(CRITICAL, SSL_CONNECT_FAILED, nullptr, "connection::service");
-      signal_handler(EXIT_FAILURE);
+      console(ERROR, SSL_CONNECT_FAILED, nullptr, "connection::service");
     }
 
     console(INFO, CONNECTED_FOR_ID, redirect_message.string.c_str(), "connection::service");

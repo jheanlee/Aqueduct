@@ -1,3 +1,4 @@
+use log::{debug, error, info, trace, warn};
 use crate::console::color_code::{CYAN, FAINT_GRAY, RED, RESET, YELLOW};
 use crate::{SHARED_CELL};
 
@@ -9,14 +10,27 @@ mod color_code {
   pub const CYAN: &str = "\x1b[36m";
 }
 
-#[repr(u8)]
 #[derive(Copy, Clone)]
 pub enum Level {
-  Critical = 50,
-  Error = 40,
-  Warning = 30,
-  Info = 20,
-  Debug = 10,
+  Critical,
+  Error,
+  Warning,
+  Notice,
+  Info,
+  Debug
+}
+
+impl Level {
+  fn as_u8(self) -> u8 {
+    match self {
+      Level::Critical => 50,
+      Level::Error => 40,
+      Level::Warning => 30,
+      Level::Notice => 30,
+      Level::Info => 20,
+      Level::Debug => 10
+    }
+  }
 }
 
 pub enum Code {
@@ -36,15 +50,22 @@ pub enum Code {
   
   MessageInvalid,
   ApiDumpFailed,
+
+  WebuiStarted,
+  
   ApiError,
+  
+  #[allow(dead_code)]
   DebugMsg,
 }
 
 pub fn console(level: Level, code: Code, detail: &str, function: &str) {
-  if SHARED_CELL.get().is_some() && (level.clone() as u8) <  SHARED_CELL.get().unwrap().verbose_level {
+  if SHARED_CELL.get().is_some() && level.as_u8() < SHARED_CELL.get().unwrap().verbose_level {
     return;
   }
+  
   let mut output: String = String::new();
+  let mut msg: String = String::new();
 
   output += chrono::Utc::now().format("(%F %T) ").to_string().as_str();
   
@@ -61,6 +82,9 @@ pub fn console(level: Level, code: Code, detail: &str, function: &str) {
       output += YELLOW;
       output += "[Warning] ";
     }
+    Level::Notice => {
+      output += "[Info] ";
+    }
     Level::Info => {
       output += "[Info] ";
     }
@@ -72,43 +96,46 @@ pub fn console(level: Level, code: Code, detail: &str, function: &str) {
   
   match code {
     Code::SharedResourcesSetFailed => {
-      output += "Failed to set shared resources";
+      msg += "Failed to set shared resources";
     }
     Code::DatabaseConnectionFailed => {
-      output += "Failed to connect to database";
+      msg += "Failed to connect to database";
     }
     Code::KeyInitFailed => {
-      output += "Failed to initialise keys for JWT"
+      msg += "Failed to initialise keys for JWT"
     }
     Code::SockConnectionFailed => {
-      output += "Failed to connect to core";
+      msg += "Failed to connect to core";
     }
     Code::SockBindFailed => {
-      output += "Failed to bind socket";
+      msg += "Failed to bind socket";
     }
     Code::SockServeFailed => {
-      output += "Failed to serve service";
+      msg += "Failed to serve service";
     }
     Code::SockConnectionLost => {
-      output += "Connection with core has ended";
+      msg += "Connection with core has ended";
     }
     Code::SockReadError => {
-      output += "Failed to read from socket";
+      msg += "Failed to read from socket";
     }
     Code::SockSendError => {
-      output += "Failed to write to socket";
+      msg += "Failed to write to socket";
     }
     Code::SockSelectError => {
-      output += "select error on socket";
+      msg += "select error on socket";
     }
     Code::MessageInvalid => {
-      output += "Invalid message";
+      msg += "Invalid message";
     }
     Code::ApiDumpFailed => {
-      output += "Failed to resolve api message";
+      msg += "Failed to resolve api message";
+    }
+    Code::WebuiStarted => {
+      msg += "Webui running on"
     }
     Code::ApiError => {
-      output += "Error";
+      msg += "Error";
     }
     Code::DebugMsg => {
       output += CYAN;
@@ -119,16 +146,42 @@ pub fn console(level: Level, code: Code, detail: &str, function: &str) {
   }
 
   if !detail.is_empty() {
-    output += ": ";
-    output += detail;
+    msg += ": ";
+    msg += detail;
   }
   
-  if SHARED_CELL.get().unwrap().verbose_level <= Level::Debug as u8 {
+  output += msg.as_str();
+  
+  if SHARED_CELL.get().map(|cell| cell.verbose_level).unwrap_or(30) <= Level::Debug.as_u8() {
     output += FAINT_GRAY;
     output += format!(" (API::{})", function).as_str();
     output += RESET;
   }
   
-  println!("{}", output);
-  //TODO daemon mode logging
+  
+  if SHARED_CELL.get().is_some() && SHARED_CELL.get().unwrap().daemon_mode {
+    if level.as_u8() >= std::cmp::max(SHARED_CELL.get().unwrap().verbose_level, Level::Warning.as_u8()) {
+      if cfg!(target_os = "macos") {
+        match level {
+          Level::Critical => error!("{}" ,msg), //  OS_LOG_TYPE_FAULT
+          Level::Error => warn!("{}", msg),     //  OS_LOG_TYPE_ERROR
+          Level::Warning => info!("{}", msg),   //  OS_LOG_TYPE_DEFAULT
+          Level::Notice => info!("{}", msg),    //  OS_LOG_TYPE_DEFAULT
+          Level::Info => debug!("{}", msg),     //  OS_LOG_TYPE_INFO
+          Level::Debug => trace!("{}", msg)     //  OS_LOG_TYPE_DEBUG
+        }
+      } else {
+        match level {
+          Level::Critical => error!("{}", msg), //  syslog::logger::crit may be better in the future
+          Level::Error => error!("{}", msg),
+          Level::Warning => warn!("{}", msg),
+          Level::Notice => warn!("{}", msg),
+          Level::Info => info!("{}", msg),
+          Level::Debug => debug!("{}", msg)
+        }
+      }
+    }
+  } else {
+    println!("{}", output);
+  }
 }

@@ -4,6 +4,14 @@
 
 #include "shared.hpp"
 
-namespace shared_resources {
+namespace config {
+  bool daemon_mode = false;
+}
 
+namespace shared_resources {
+  #if defined(__OS_LOG_H__)
+    os_log_t os_log_aqueduct;
+  #endif
+
+  std::mutex cout_mutex;
 }

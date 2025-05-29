@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
-project(Aqueduct)
+project(Aqueduct VERSION 0.2.0)
+
 set(CMAKE_CXX_STANDARD 17)
 
 #   server core
@@ -33,7 +34,10 @@ add_executable(aqueduct-server
         server/core/children/token.hpp
         server/core/key/generation.cpp
         server/core/key/generation.hpp
+        server/core/database/web_user.cpp
+        server/core/database/web_user.hpp
 )
+set_target_properties(aqueduct-server PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/aqueduct-server)
 
 #   client core
 add_executable(aqueduct-client
@@ -54,6 +58,7 @@ add_executable(aqueduct-client
         client/common/signal_handler.cpp
         client/common/signal_handler.hpp
 )
+set_target_properties(aqueduct-client PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/aqueduct-client)
 
 #   server/client dependencies
 find_package(Threads)
@@ -92,7 +97,7 @@ endif()
 message(STATUS "Cargo path: ${CARGO_BIN_PATH}")
 
 #   npm
-if (DEFINED ENV{NPM_BIN_PATH)
+if (DEFINED ENV{NPM_BIN_PATH})
     set(NPM_BIN_PATH $ENV{NPM_BIN_PATH})
 else()
     set(NPM_BIN_PATH npm)
@@ -103,11 +108,12 @@ message(STATUS "npm path: ${NPM_BIN_PATH}")
 add_custom_command(TARGET aqueduct-server POST_BUILD
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/server/api
         COMMAND ${CARGO_BIN_PATH} build --release --target-dir ${CMAKE_BINARY_DIR}
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/release/api ${CMAKE_BINARY_DIR}/aqueduct-server-api
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/release/api ${CMAKE_BINARY_DIR}/aqueduct-server/aqueduct-server-api
 )
 
 #   server frontend
 add_custom_command(TARGET aqueduct-server POST_BUILD
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/server/frontend
-        COMMAND ${NPM_BIN_PATH} run build -- --outDir ${CMAKE_BINARY_DIR}/frontend
+        COMMAND ${NPM_BIN_PATH} install
+        COMMAND ${NPM_BIN_PATH} run build -- --outDir ${CMAKE_BINARY_DIR}/aqueduct-server/dist --emptyOutDir
 )

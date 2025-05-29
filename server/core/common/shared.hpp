@@ -13,8 +13,13 @@
   #include <chrono>
   #include <cstdio>
 
+#include <termios.h>
   #include <sqlite3.h>
   #include <netinet/in.h>
+
+#if defined(__clang__) && defined(__APPLE__)
+    #include <os/log.h>
+  #endif
 
   struct Client {
     const size_t key;
@@ -48,15 +53,26 @@
   namespace config {
     extern std::string ssl_cert_path_str;
     extern std::string ssl_private_key_path_str;
-    extern std::string jwt_public_key_path_str;
-    extern std::string jwt_private_key_path_str;
+    extern std::string jwt_access_public_key_path_str;
+    extern std::string jwt_access_private_key_path_str;
+    extern std::string jwt_refresh_public_key_path_str;
+    extern std::string jwt_refresh_private_key_path_str;
     extern const char *ssl_cert_path;
     extern const char *ssl_private_key_path;
-    extern const char *jwt_public_key_path;
-    extern const char *jwt_private_key_path;
+    extern const char *jwt_access_public_key_path;
+    extern const char *jwt_access_private_key_path;
+    extern const char *jwt_refresh_public_key_path;
+    extern const char *jwt_refresh_private_key_path;
+    extern int client_db_interval_min;
   }
 
   namespace shared_resources {
+    #if defined(__OS_LOG_H__)
+      extern os_log_t os_log_aqueduct;
+    #endif
+
+    extern struct termios oldt;
+
     extern std::atomic<bool> global_flag_kill;
     extern std::atomic<bool> flag_handling_signal;
     extern std::atomic<bool> flag_tunneling_service_running;
@@ -70,7 +86,6 @@
 
     extern sqlite3 *db;
     extern std::string db_salt;
-    extern int client_db_interval_min;
 
     extern std::atomic<size_t> map_key;
     extern std::unordered_map<size_t, std::atomic<bool>> map_flag_kill;
@@ -102,9 +117,9 @@
   static const int heartbeat_sleep_sec = 30;
   static const int heartbeat_timeout_sec = 30;
 
-  extern int timeout_session_millisec;
+  const int timeout_session_millisec = 1000;
   extern int timeout_proxy_millisec;
-  extern int timeout_api_millisec;
+  const int timeout_api_millisec = 1000;
 
   extern const char *db_path;
 #endif //AQUEDUCT_SHARED_HPP

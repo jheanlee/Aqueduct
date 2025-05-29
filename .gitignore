@@ -8,10 +8,10 @@ cmake-build*
 
 bin
 lib
-server/frontend/dist
 
+server/target
 server/api/target
-server/frontend/src/components/ui/
-server/target/
+
+server/frontend/dist
 
 frontend_dev.sh

@@ -1,63 +1,76 @@
-import { fetcher } from "../core/fetcher";
+import {cronFetcher, fetcher} from "../core/fetcher";
+import {isAxiosError} from "axios";
 
 export const getStatus = async () => {
-  return await fetcher
-    .get<{
-      api_service_up: boolean;
-      connected_clients: number;
-      tunnel_service_up: boolean;
-      uptime: number;
-    }>("/api/status")
-    .then((res) => {
-      return res.data;
-    })
-    .catch(() => {
-      return null;
-    });
+  try {
+    const res = await cronFetcher
+      .get<{
+        api_service_up: boolean;
+        connected_clients: number;
+        tunnel_service_up: boolean;
+        uptime: number;
+      }>("/api/status");
+    return res.data;
+  } catch (error) {
+    if (isAxiosError(error)) {
+      return error.status || 500;
+    }
+    return 500;
+  }
 };
 
 export const listConnectedClients = async () => {
-  return await fetcher
-    .get<
-      {
-        key: number;
-        ip_addr: string;
-        port: number;
-        type: number;
-        stream_port: number;
-        user_addr: string;
-        user_port: number;
-        main_addr: string;
-        main_port: number;
-      }[]
-    >("/api/clients/connected")
-    .then((res) => {
-      return res.data;
-    })
-    .catch(() => {
-      return null;
-    });
+  try {
+    const res = await cronFetcher
+      .get<
+        {
+          key: number;
+          ip_addr: string;
+          port: number;
+          type: number;
+          stream_port: number;
+          user_addr: string;
+          user_port: number;
+          main_addr: string;
+          main_port: number;
+        }[]
+      >("/api/clients/connected");
+    return res.data;
+  } catch (error) {
+    if (isAxiosError(error)) {
+      return error.status || 500;
+    }
+    return 500;
+  }
 };
 
 export const updateConnectedClients = async () => {
-  return await fetcher.post("/api/clients/update").catch(() => {
-    return null;
-  });
+  try {
+    await fetcher.post("/api/clients/update");
+    return 200;
+  } catch (error) {
+    if (isAxiosError(error)) {
+      return error.status || 500;
+    }
+    return 500;
+  }
 };
 
 export const listClientsDb = async () => {
-  return await fetcher
-    .get<
-      {
-        ip: string;
-        sent: number;
-        received: number;
-      }[]
-    >("/api/clients/db")
-    .then((res) => {
-      return res.data;
-    })
-    .catch(() => {
-      return null;
-    });
+  try {
+    const res = await fetcher
+      .get<
+        {
+          ip: string;
+          sent: number;
+          received: number;
+        }[]
+      >("/api/clients/db");
+    return res.data;
+  } catch (error) {
+    if (isAxiosError(error)) {
+      return error.status || 500;
+    }
+    return 500;
+  }
 };

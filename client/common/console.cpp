@@ -4,6 +4,12 @@
 #include <iostream>
 #include <sstream>
 
+#if defined(__clang__) && defined(__APPLE__)
+  #include <os/log.h>
+#else
+  #include <sys/syslog.h>
+#endif
+
 #include "console.hpp"
 #include "shared.hpp"
 
@@ -13,10 +19,29 @@
 #define FAINT_GRAY  "\033[2;90m"
 #define CYAN        "\033[36m"
 
-//  TODO system log
+static int to_int(Level level) {
+  switch (level) {
+    case CRITICAL:
+      return 50;
+    case ERROR:
+      return 40;
+    case WARNING:
+    case NOTICE:
+      return 30;
+    case INFO:
+      return 20;
+    case DEBUG:
+      return 10;
+    case INSTRUCTION:
+      return -1;
+  }
+  return -1;
+}
 
 void console(Level level, Code code, const char *detail, const std::string &function) {
-  if (level < verbose_level && level != INSTRUCTION) return;
+  if (to_int(level) < verbose_level && to_int(level) != to_int(INSTRUCTION)) {
+    return;
+  }
 
   std::stringstream cout_buffer, msg_buffer;
 
@@ -40,6 +65,7 @@ void console(Level level, Code code, const char *detail, const std::string &func
       cout_buffer << YELLOW;
       cout_buffer << "[Warning] ";
       break;
+    case NOTICE:
     case INFO:
       cout_buffer << "[Info] ";
       break;
@@ -155,7 +181,7 @@ void console(Level level, Code code, const char *detail, const std::string &func
       msg_buffer << "Server has returned an error";
       break;
     case HOST_RESPONSE_TIMEOUT:
-      msg_buffer << "Host is not resposive. Timed out";
+      msg_buffer << "Host is not responsive. Timed out";
       break;
     case ENTER_TOKEN_INSTRUCTION:
       msg_buffer << "Please enter your token:";
@@ -167,7 +193,7 @@ void console(Level level, Code code, const char *detail, const std::string &func
       msg_buffer << "Closing with signal";
       break;
     case DEBUG_MSG:
-      msg_buffer << CYAN << "DEBUG_MSG:" << RESET;
+      cout_buffer << CYAN << "DEBUG_MSG:" << RESET;
       break;
   }
 
@@ -178,7 +204,7 @@ void console(Level level, Code code, const char *detail, const std::string &func
 
   cout_buffer << msg_buffer.str() << ' ';
 
-  if (verbose_level <= DEBUG) {
+  if (verbose_level <= to_int(DEBUG)) {
     cout_buffer << FAINT_GRAY;
     cout_buffer << '(';
     cout_buffer << function;
@@ -187,5 +213,56 @@ void console(Level level, Code code, const char *detail, const std::string &func
   }
   cout_buffer << '\n';
 
-  std::cout << cout_buffer.str();
+  if (config::daemon_mode && to_int(level) >= std::max(verbose_level, to_int(WARNING))) {
+    #if defined(__OS_LOG_H__)
+      switch (level) {
+        case CRITICAL:
+          os_log_with_type(shared_resources::os_log_aqueduct, OS_LOG_TYPE_FAULT, "%{public}s", msg_buffer.str().c_str());
+          break;
+        case ERROR:
+          os_log_with_type(shared_resources::os_log_aqueduct, OS_LOG_TYPE_ERROR, "%{public}s", msg_buffer.str().c_str());
+          break;
+        case WARNING:
+          os_log_with_type(shared_resources::os_log_aqueduct, OS_LOG_TYPE_DEFAULT, "%{public}s", msg_buffer.str().c_str());
+          break;
+        case NOTICE:
+          os_log_with_type(shared_resources::os_log_aqueduct, OS_LOG_TYPE_DEFAULT, "%{public}s", msg_buffer.str().c_str());
+          break;
+        case INFO:
+          os_log_with_type(shared_resources::os_log_aqueduct, OS_LOG_TYPE_INFO, "%{public}s", msg_buffer.str().c_str());
+          break;
+        case DEBUG:
+          os_log_with_type(shared_resources::os_log_aqueduct, OS_LOG_TYPE_DEBUG, "%{public}s", msg_buffer.str().c_str());
+          break;
+        case INSTRUCTION:
+          break;
+      }
+    #else
+    switch (level) {
+      case CRITICAL:
+      syslog(LOG_CRIT, "%s", msg_buffer.str().c_str());
+        break;
+      case ERROR:
+        syslog(LOG_ERR, "%s", msg_buffer.str().c_str());
+        break;
+      case WARNING:
+        syslog(LOG_WARNING, "%s", msg_buffer.str().c_str());
+        break;
+      case NOTICE:
+        syslog(LOG_NOTICE, "%s", msg_buffer.str().c_str());
+        break;
+      case INFO:
+        syslog(LOG_INFO, "%s", msg_buffer.str().c_str());
+        break;
+      case DEBUG:
+        syslog(LOG_DEBUG, "%s", msg_buffer.str().c_str());
+        break;
+      case INSTRUCTION:
+        break;
+    }
+  #endif
+  } else if (!config::daemon_mode) {
+    std::lock_guard<std::mutex> cout_lock(shared_resources::cout_mutex);
+    std::cout << cout_buffer.str();
+  }
 }

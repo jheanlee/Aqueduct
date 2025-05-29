@@ -10,7 +10,7 @@
   ],
   "compilerOptions": {
     "lib": [
-      "es2015"
+      "ES2015"
     ]
   }
 }

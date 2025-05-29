@@ -1,10 +1,11 @@
 [package]
 name = "api"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [dependencies]
 entity = { path = "../entity" }
+
 anyhow = "1.0.97"
 axum = "0.8.1"
 tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread", "net", "fs"] }
@@ -18,3 +19,16 @@ sea-orm = { version = "1.1.8", features = ["sqlx-sqlite", "runtime-tokio-native-
 jsonwebtoken = { version = "9.3.1", features = ["use_pem"] }
 data-encoding = "2.9.0"
 openssl = { version = "0.10.72", features = ["vendored"] }
+futures-util = "0.3.31"
+tower = "0.5.2"
+log = "0.4.27"
+regex = "1.11.1"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+oslog = "0.2.0"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+syslog = "7.0.0"
+
+[profile.release]
+panic = 'abort'
