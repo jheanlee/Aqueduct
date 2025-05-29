@@ -4,204 +4,109 @@ Aqueduct is a simple TCP Tunneling service that enables users to connect to a se
 
 ## Quick Start
 
-You can directly download [precompiled binaries](#precompiled-binaries) for your platform, or [build from source](#build-from-source).
+You can directly download [precompiled binaries](#precompiled-binaries) for your platform, or [build from source](https://github.com/jheanlee/Aqueduct/wiki/Installation#build-from-source).
 
-**Note: This software is not designed to, and will not, run on Windows. However, you can still tunnel services on the Windows machines via a Unix/Unix-like machine.**
+**Note: This software is not designed to, and will not, run on Windows.**
+**However, you can still tunnel services on the Windows machines via a Unix/Unix-like machine.**
 
-### Precompiled Binaries
+### Installation
+
+#### Precompiled Binaries
 
 Download precompiled binaries from the [release page](https://github.com/jheanlee/Aqueduct/releases/latest)
 
-Currently, there are binaries for two platforms: 
+Currently, there are binaries for the following platforms: 
 
-| File         | Description                       |
-|--------------|-----------------------------------|
-| *linux-amd64 | For Linux on x86-64 based systems |
-| *mac-apple   | For macOS on Apple sillicon       |
+| Suffix      | Target                            |
+|-------------|-----------------------------------|
+| linux-amd64 | For Linux on x86-64 based systems |
+| linux-arm64 | For Linux on arm based systems    |
+| mac-apple   | For macOS on Apple silicon        |
 
-Alternatively, you can directly build from source.
+#### Build from Source
 
-### Build from Source
+For instructions for building from source, please refer to our [wiki](https://github.com/jheanlee/Aqueduct/wiki/Installation#build-from-source).
 
-To build from source, you will need the following installed:
-1. A C++ compiler supporting at least C++17 (gcc recommended for linux, Apple clang recommended for macOS)
-2. [CMake](https://cmake.org)
-3. [OpenSSL](https://openssl.org) (some distros also need the dev packages: libssl-dev (apt), openssl-devel (dnf), etc.)
-4. [SQLite3](https://www.sqlite.org) (some distros also need the dev packages: libsqlite3-dev (apt), sqlite-devel (dnf), etc.)
-5. uuid-lib (pre-installed on macOS, uuid-dev (apt), libuuid-devel (dnf), etc.)
-6. [CLI11](https://github.com/CLIUtils/CLI11) (cli11 (brew), libcli11-dev (apt), cli11-devel(dnf))
+### Quick Start
 
-#### 0. Install the requirements
-#### Debian/Ubuntu (apt)
-```
-sudo apt update && \
-sudo apt install -y git gcc g++ cmake openssl libssl-dev sqlite3 libsqlite3-dev uuid-dev libcli11-dev
-```
-#### Fedora (dnf)
-```
-sudo dnf install -y git gcc g++ cmake openssl openssl-devel sqlite3 sqlite-devel libuuid-devel cli11-devel
-```
+For complete information on every command and feature, please refer to our [wiki](https://github.com/jheanlee/Aqueduct/wiki/Usage-(CLI).
 
-For other distros, or if you have issues installing the packages, please refer to their documentation.
-
-#### 1. Clone the source from our repo
-```
-git clone https://github.com/jheanlee/Aqueduct.git
-```
-
-#### 2. Switch to the directory and create a build directory
-```
-cd Aqueduct && mkdir build
-```
-
-#### 3. Run CMake
-```
-cmake . ..
-```
-
-#### 4. Run make
-```
-make
-```
-
-Now you should see the binaries `aqueduct-server` and `aqueduct-client` in the directory.
-
-### Tokens
-
-To (re)generate a token, you can use the command below:
-```
-./aqueduct-server token new --name [NAME]
-```
-Optionally, you can add some notes using the `--notes` option.
-
-To get a list of all tokens, use:
-```
-./aqueduct-server token list
-```
-Please notice that the tokens listed are hashed and are not usable for security.
-
-You can also remove a token using:
-```
-./aqueduct-server token remove --name
-```
-
-### Key
-
-Before you can start tunneling your service, you need a pair of key and certificate on the server for secure (TLS) connection.
-
-If you already have those, you can [skip](#connection) this step. Here, we are going to use OpenSSL to generate them:
-```
-openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 365 -nodes
-```
-Fill out the prompted instructions.
-
-The connection between the server and the clients will be encrypted using this pair.
-
-### Connection
 #### Server
 
-To start the server service up, use:
+1. Create a webui user using CLI.
+
 ```
-aqueduct-server run --tls-key [KEY] --tls-cert [CERT]
+./aqueduct-server web-user new
 ```
-Replace `[KEY]` and `[CERT]` with the path to the key and certificate that we generated earlier.
+
+2. Follow the instructions to create a user.
+
+```
+admin@example:~/aqueduct-server$ ./aqueduct-server web-user new
+(2025-05-28 12:24:15) Please enter the username of the new user
+username
+(2025-05-28 12:24:18) Please set a password for this user
+password
+(2025-05-28 12:24:21) [Info] User created: username
+(2025-05-28 12:24:21) [Info] Closing with signal: 0
+```
+
+3. Run `aqueduct-server`.
+
+```
+./aqueduct-server run
+```
+
+```
+(2025-05-28 12:30:10) [Info] Streaming host: 0.0.0.0:30330
+...
+
+Commands:
+Press L for a list of connected clients
+Press U for uptime status
+Press H for this help message
+
+(2025-05-28 12:30:10) [Info] API service has started
+(2025-05-28 12:30:10) [Info] Listening for connection
+(2025-05-28 12:30:10) [Info] API connection accepted
+(2025-05-28 12:30:10) [Info] Webui running on: 0.0.0.0:30331
+```
+
+Your clients can now connect to the server via `0.0.0.0:30330`.
+
+You can now navigate to `http://0.0.0.0:30331` for the web management page.
+
+4. Go to `http://0.0.0.0:30331` and click `Login`. Use the username and password that we created earlier.
+
+
+5. Go to the `Access` page and click the `Tokens` tab. 
+
+
+6. Click the `+` button located on the right. Fill in the information and click `Create`.
+
+7. Copy the new token.
 
 #### Client
-After the server is running, we can now tunnel our services.
-
-Go to the client machine and run:
-```
-aqueduct-client -H [SERVER ADDR] -s [SERVICE ADDR] -p [SERVICE PORT]
-```
-Replace the blanks with the corresponding values. `[SERVER ADDR]` can be either an ipv4 address (like `192.168.1.1`) or a domain (like `www.example.com`)
-
-Now you should be prompted a Message like this: 
-```
-(2025-02-10 10:24:01) Please enter your token:
-```
-Enter the [token generated](#tokens) on the server earlier, and your service will be tunneled to the server.
-
-For more details or options, see the [Usage](#usage) section below
-
-## Usage
-
-### Host (server)
 
 ```
-aqueduct-server [OPTIONS]  SUBCOMMAND
+Configuration used as an example:
+host (aqueduct-server): 10.0.0.1:30330
+service: 10.0.0.2:80
 ```
 
-#### Options
-
+1. Run `aqueduct-client` (please replace the example configuration to yours)
 ```
-Options:
-  -h,--help                        Print this help message and exit
-  -v,--verbose INT [20]            Output information detail level (inclusive). 10 for Debug or above, 50 for Critical only. Daemon logs have mask of max(30, verbose_level)
-  -d,--database TEXT [./aqueduct.sqlite] 
-                                   The path to database file
-
-Subcommands:
-  run                              Run the tunneling service
-  token                            Token management
+./aqueduct-client --host-addr 10.0.0.1 --host-port 30330 --service-addr 10.0.0.2 --service-port 80
 ```
 
-##### run options
+2. Enter your token (you can also use the --token option)
 ```
-Options:
-  -h,--help                        Print this help message and exit
-  -D,--daemon-mode                 Disables stdout and use syslog or os_log instead
-  -k,--tls-key TEXT REQUIRED   The path to a private key file used for TLS encryption
-  -c,--tls-cert TEXT REQUIRED      The path to a certification file used for TLS encryption
-  -p,--control INT [30330]         Client will connect via 0.0.0.0:<port>
-  -s,--port-start INT [51000]      The proxy port of the first client will be <port>, the last being (<port> + port-limit - 1)
-  -l,--port-limit INT [200]        Proxy ports will have a limit of <count> ports
-  --proxy-timeout INT [1]          The time(ms) poll() waits each call during proxying. See `man poll` for more information
-  --client-db-interval INT [1]     The interval(min) between automatic writes of client's proxied data to database
+(2025-05-28 12:59:11) Please enter your token:
+AQ_ReplaceThisWithTheGeneratedToken
 ```
 
-
-##### token options
+3. You can now access your service through the tunnelled address
 ```
-Options:
-  -h,--help                        Print this help Message and exit
-
-Subcommands:
-  new                              Create or regenerate a token
-    Options:
-      -h,--help                        Print this help message and exit
-      -n,--name TEXT REQUIRED          The name (id) of the token you want to modify
-      --notes TEXT                     Some notes for this token
-      --expiry INT:INT in [0 - 3650] [100] 
-                                       Days until the expiry of the token. 0 for no expiry
-                                       
-  remove                           Remove a token
-    Options:
-      -n,--name TEXT REQUIRED          The name (id) of the token you want to modify
-      
-  list                             List all tokens
-```
-
-#### Notes
-
-The host's control port and proxy port range must be accessable to client and external users
-
-### Client
-
-```
-aqueduct-client [OPTIONS]
-```
-
-#### Options
-
-```
-Options:
-  -h,--help                        Print this help message and exit
-  -v,--verbose INT [20]            Output information detail level (inclusive). 10 for Debug or above, 50 for Critical only. Daemon logs have mask of max(30, verbose_level)
-  -t,--token TEXT                  Token for accessing server. Only use this option on trusted machine
-  -H,--host-addr TEXT [0.0.0.0]    The host to stream to. Accepts ipv4 or domain
-  -P,--host-port INT [30330]       The control port of host
-  -s,--service-addr TEXT [0.0.0.0] 
-                                   The address of the service to be tunneled
-  -p,--service-port INT REQUIRED   The port of the service to be tunneled
-  --proxy-timeout INT [1]          The time(ms) poll() waits each call during proxying. See `man poll` for more information
+(2025-05-28 12:59:19) [Info] Authentication success
+(2025-05-28 12:59:19) [Info] Service is now available at: 10.0.0.1:51000
 ```
