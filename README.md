@@ -29,7 +29,7 @@ For instructions for building from source, please refer to our [wiki](https://gi
 
 ### Quick Start
 
-For complete information on every command and feature, please refer to our [wiki](https://github.com/jheanlee/Aqueduct/wiki/Usage-(CLI).
+For complete information on every command and feature, please refer to our [wiki](https://github.com/jheanlee/Aqueduct/wiki/Usage-(CLI)).
 
 #### Server
 

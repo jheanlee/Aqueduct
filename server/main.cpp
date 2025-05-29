@@ -55,6 +55,7 @@ int main(int argc, char *argv[]) {
     //  api child
 
     const char *args[15];
+    std::string verbose_level_str = std::to_string(verbose_level);
     args[0] = "./aqueduct-server-api";
     args[1] = "--database";
     args[2] = db_path;
@@ -67,7 +68,7 @@ int main(int argc, char *argv[]) {
     args[9] = "--refresh-public-key";
     args[10] = config::jwt_refresh_public_key_path;
     args[11] = "--verbose";
-    args[12] = std::to_string(verbose_level).c_str();
+    args[12] = verbose_level_str.c_str();
     args[13] = (shared_resources::daemon_mode) ? "--daemon-mode" : nullptr;
     args[14] = nullptr;
 

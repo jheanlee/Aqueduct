@@ -64,7 +64,6 @@ function Tokens() {
   const [tokens, setTokens] = useState<
     {
       name: string;
-      token: string;
       notes: string | null;
       expiry: number | null;
     }[]

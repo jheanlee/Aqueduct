@@ -7,7 +7,6 @@ export const listTokens = async () => {
       .get<
         {
           name: string;
-          token: string;
           notes: string | null;
           expiry: number | null;
         }[]

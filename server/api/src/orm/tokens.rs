@@ -8,10 +8,10 @@ use crate::domain::tokens::TokenModification;
 use crate::error::ApiError;
 use crate::SHARED_CELL;
 
-pub async fn list_tokens() -> Result<Vec<auth::Model>, ApiError> {
+pub async fn list_tokens() -> Result<Vec<auth::PartialModel>, ApiError> {
   let cell = SHARED_CELL.get().unwrap();
   let db = cell.database_connection.clone().unwrap();
-  Ok(auth::Entity::find().all(&db).await?)
+  Ok(auth::Entity::find().into_partial_model::<auth::PartialModel>().all(&db).await?)
 }
 
 pub async fn if_token_exists(name: String) -> Result<bool, ApiError> {

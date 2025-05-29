@@ -9,7 +9,7 @@ use crate::state::AppState;
 
 pub async fn get_tokens(State(_state): State<Arc<AppState>>) -> Result<Response<Body>, ApiError> {
   let response_builder = Response::builder().header(http::header::CONTENT_TYPE, "application/json");
-  let tokens: Vec<entity::entities::auth::Model> = list_tokens().await?;
+  let tokens: Vec<entity::entities::auth::PartialModel> = list_tokens().await?;
   let response_body = Body::from(serde_json::to_string(&tokens)?);
   let response = response_builder.body(response_body)?;
 
