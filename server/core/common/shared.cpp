@@ -17,6 +17,7 @@ namespace config {
   const char *jwt_access_private_key_path = "\0";
   const char *jwt_refresh_public_key_path = "\0";
   const char *jwt_refresh_private_key_path = "\0";
+  int client_db_interval_min = 1;
 }
 
 namespace shared_resources {

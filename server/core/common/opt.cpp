@@ -21,7 +21,6 @@ int ssl_control_port = 30330;
 int proxy_port_start = 51000;
 int proxy_port_limit = 200;
 int timeout_proxy_millisec = 1;
-int shared_resources::client_db_interval_min = 1;
 std::string db_path_str = "./aqueduct.sqlite";
 const char *db_path = "./aqueduct.sqlite";
 int verbose_level = 20;
@@ -39,7 +38,7 @@ void opt_handler(int argc, char * const argv[]) {
   app.add_option("-d,--database", db_path_str, "The path to database file")->capture_default_str();
 
   //  run
-  CLI::App *run = app.add_subcommand("run", "Run the tunneling service")->fallthrough();
+  CLI::App *run = app.add_subcommand("run", "Run the tunnelling service")->fallthrough();
   run->add_flag("-D, --daemon-mode", shared_resources::daemon_mode, "Disables stdout and use syslog or os_log instead")->capture_default_str();
 
   CLI::Option *ssl_private_key = run->add_option("--ssl-private-key", config::ssl_private_key_path_str, "The path to a private key file used for TLS encryption");
@@ -59,9 +58,7 @@ void opt_handler(int argc, char * const argv[]) {
   run->add_option("-s,--port-start", proxy_port_start, "The proxy port of the first client will be <port>, the last being (<port> + port-limit - 1)")->capture_default_str();
   run->add_option("-l,--port-limit", proxy_port_limit, "Proxy ports will have a limit of <count> ports")->capture_default_str();
 
-  run->add_option("--proxy-timeout", timeout_proxy_millisec, "The time(ms) poll() waits each call during proxying")->capture_default_str();
-
-  run->add_option("--client-db-interval", shared_resources::client_db_interval_min, "The interval(min) between automatic writes of client's proxied data to database")->capture_default_str();
+  run->add_option("--proxy-timeout", timeout_proxy_millisec, "The time (ms) poll() waits when no data is available (smaller value means more frequent switch between user and service)")->capture_default_str();
 
   //  token
   CLI::App *token = app.add_subcommand("token", "Token management")->require_subcommand(1, 1)->fallthrough();

@@ -63,6 +63,7 @@
     extern const char *jwt_access_private_key_path;
     extern const char *jwt_refresh_public_key_path;
     extern const char *jwt_refresh_private_key_path;
+    extern int client_db_interval_min;
   }
 
   namespace shared_resources {
@@ -85,7 +86,6 @@
 
     extern sqlite3 *db;
     extern std::string db_salt;
-    extern int client_db_interval_min;
 
     extern std::atomic<size_t> map_key;
     extern std::unordered_map<size_t, std::atomic<bool>> map_flag_kill;

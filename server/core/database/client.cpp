@@ -59,7 +59,7 @@ void update_client_db_thread_func() {
   while (!shared_resources::global_flag_kill) {
     //  timeout
     duration = std::chrono::duration_cast<std::chrono::minutes>(std::chrono::system_clock::now() - last_updated);
-    while (!shared_resources::global_flag_kill && duration < std::chrono::minutes(shared_resources::client_db_interval_min)) {
+    while (!shared_resources::global_flag_kill && duration < std::chrono::minutes(config::client_db_interval_min)) {
       std::this_thread::sleep_for(std::chrono::seconds(10));
       duration = std::chrono::duration_cast<std::chrono::minutes>(std::chrono::system_clock::now() - last_updated);
     }

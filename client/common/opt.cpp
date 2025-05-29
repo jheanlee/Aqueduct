@@ -48,10 +48,10 @@ void opt_handler(int argc, char * const argv[]) {
 
   app.add_option("-H,--host-addr", readable_host_str, "The host to stream to. Accepts ipv4 or domain")->capture_default_str();
   app.add_option("-P,--host-port", host_main_port, "The control port of host")->capture_default_str();
-  app.add_option("-s,--service-addr", local_service_str, "The address of the service to be tunneled")->capture_default_str();
-  app.add_option("-p,--service-port", local_service_port, "The port of the service to be tunneled")->required();
+  app.add_option("-s,--service-addr", local_service_str, "The address of the service to be tunnelled")->capture_default_str();
+  app.add_option("-p,--service-port", local_service_port, "The port of the service to be tunnelled")->required();
 
-  app.add_option("--proxy-timeout", timeout_proxy_millisec, "The time(ms) poll() waits each call during proxying")->capture_default_str();
+  app.add_option("--proxy-timeout", timeout_proxy_millisec, "the time (ms) poll() waits when no data is available (smaller value means more frequent switch between user and service)")->capture_default_str();
   
   try {
     app.parse(argc, argv);
