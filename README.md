@@ -21,7 +21,7 @@ Currently, there are binaries for the following platforms:
 |-------------|-----------------------------------|
 | linux-amd64 | For Linux on x86-64 based systems |
 | linux-arm64 | For Linux on arm based systems    |
-| mac-apple   | For macOS on Apple silicon        |
+| mac-arm64   | For macOS on Apple silicon        |
 
 #### Build from Source
 
